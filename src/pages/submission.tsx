@@ -4,6 +4,7 @@ import {
   Button,
   Container,
   Group,
+  Space,
   Stack,
   Text,
   Textarea,
@@ -43,7 +44,9 @@ const RegionSelector = ({ seq }: RegionSelectorProps) => {
     <Group className="sequence">
       {chunks.map((chunk, index) => (
         <div key={index} className="sequenceblock">
-          {chunk.map((char) => <span>{char}</span>)}
+          {chunk.map((char) => (
+            <span>{char}</span>
+          ))}
         </div>
       ))}
     </Group>
@@ -131,6 +134,7 @@ export const SubmissionPage = () => {
               Limiting your model to relevant subregions/domains can lead to
               better results and reduces computation time
             </Text>
+            <Space />
             <RegionSelector seq={seq} />
             <Button variant="filled" size="md">
               Continue to next step

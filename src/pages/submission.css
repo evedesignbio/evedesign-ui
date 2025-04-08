@@ -4,13 +4,14 @@
 
 .sequenceblock {
     position: relative;
+    font-family: monospace;
 }
 
 .sequenceblock:before{
     content: counter(sequence);
     counter-increment: sequence 10;
     position: absolute;
-    top: -1em;
+    top: -1.2em;
     right: 0;
     opacity: 0.5;
 }
