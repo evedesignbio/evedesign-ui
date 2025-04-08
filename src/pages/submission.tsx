@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Button,
@@ -44,8 +44,8 @@ const RegionSelector = ({ seq }: RegionSelectorProps) => {
     <Group className="sequence">
       {chunks.map((chunk, index) => (
         <div key={index} className="sequenceblock">
-          {chunk.map((char) => (
-            <span>{char}</span>
+          {chunk.map((char, posIndex) => (
+            <span key={posIndex}>{char}</span>
           ))}
         </div>
       ))}
@@ -56,6 +56,9 @@ const RegionSelector = ({ seq }: RegionSelectorProps) => {
 export const SubmissionPage = () => {
   const [seqInput, setSeqInput] = useState("");
   const [debouncedSeqInput] = useDebouncedValue(seqInput, DEBOUNCE_TIME);
+
+  // handle error message through state to avoid jitter upon reloading
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // normalize input: make upper case and remove any whitespace
   const debouncedSeqInputUpper = debouncedSeqInput
@@ -112,6 +115,13 @@ export const SubmissionPage = () => {
     }
   }
 
+  // avoid error message jitter while trying to load a Uniprot entry that looks like a valid ID but is not
+  useEffect(() => {
+    if (!seqQuery.isFetching) {
+      setErrorMsg(error);
+    }
+  }, [error]);
+
   return (
     <Container size="sm" pt="xl">
       <Stack>
@@ -125,7 +135,7 @@ export const SubmissionPage = () => {
           autosize
           value={seqInput}
           onChange={(e) => setSeqInput(e.target.value)}
-          error={error}
+          error={errorMsg}
         />
         {seq ? (
           <>
