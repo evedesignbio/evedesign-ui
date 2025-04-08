@@ -33,20 +33,66 @@ const RegionSelector = ({ seq }: RegionSelectorProps) => {
   const chars = [...seq];
   let chunks = [];
   const chunkSize = 10;
+  const firstIndex = 1;
+
+  const [regionStart, setRegionStart] = useState<number | null>(firstIndex);
+  // end is inclusive
+  const [regionEnd, setRegionEnd] = useState<number | null>(
+    firstIndex + chars.length - 1,
+  );
+  // TODO: selection ... need to store in state, and need to reset if new sequence is entered
+  // TODO: propagate state to parent component
+
+  console.log("regionStart", regionStart);
+  console.log("regionEnd", regionEnd);
 
   for (let i = 0; i < chars.length; i = i + chunkSize) {
     chunks.push(chars.slice(i, i + chunkSize));
   }
 
-  // TODO: make sure that all chars are rendered at equal width (font?)
-  // TODO: selection ... need to store in state, and need to reset if new sequence is entered
+  const handleClick = (pos: number) => {
+    // if region end defined, click starts a new selection
+    if (regionEnd) {
+      setRegionStart(pos);
+      setRegionEnd(null);
+    } else {
+      // start must be defined
+      setRegionEnd(pos);
+    }
+    // note click to invalid position is impossible to disabled pointer events through CSS
+  };
+
   return (
     <Group className="sequence">
-      {chunks.map((chunk, index) => (
-        <div key={index} className="sequenceblock">
-          {chunk.map((char, posIndex) => (
-            <span key={posIndex}>{char}</span>
-          ))}
+      {chunks.map((chunk, chunkIndex) => (
+        <div
+          key={chunkIndex}
+          className={
+            chunk.length == chunkSize
+              ? "sequenceblock"
+              : "sequenceblocknobefore"
+          }
+        >
+          {chunk.map((char, posIndex) => {
+            const pos = chunkIndex * chunkSize + posIndex + firstIndex;
+            const selectedClass =
+              regionStart && regionEnd && pos >= regionStart && pos <= regionEnd
+                ? "selected"
+                : "";
+            const selectableClass =
+              regionEnd || pos >= regionStart! ? "selectable" : "unselectable";
+
+            console.log(selectableClass, selectedClass);
+            return (
+              <span
+                key={posIndex}
+                className={selectedClass + " " + selectableClass}
+                onClick={() => handleClick(pos)}
+              >
+                {char}
+              </span>
+            );
+          })}
         </div>
       ))}
     </Group>

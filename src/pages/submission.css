@@ -7,11 +7,32 @@
     font-family: monospace;
 }
 
-.sequenceblock:before{
+.sequenceblocknobefore {
+    position: relative;
+    font-family: monospace;
+}
+
+.sequenceblock:before {
     content: counter(sequence);
     counter-increment: sequence 10;
     position: absolute;
     top: -1.2em;
     right: 0;
     opacity: 0.5;
+}
+
+.selectable {
+    cursor: pointer;
+    /* @mixin hover {
+        color: orange;
+    }*/
+}
+
+.unselectable {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.selected {
+    background-color: rgba(255, 171, 9, 0.5);
 }
