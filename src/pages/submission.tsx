@@ -1,7 +1,16 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Container, Stack, Textarea, Title } from "@mantine/core";
+import {
+  Button,
+  Container,
+  Group,
+  Stack,
+  Text,
+  Textarea,
+  Title,
+} from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
+import "./submission.css";
 
 const UNIPROT_AC_REGEXP = RegExp(
   "^[OPQ][0-9][A-Z0-9]{3}[0-9]$|^[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}$",
@@ -12,11 +21,38 @@ const uniprotUrlForId = (id: string): string => {
   return `https://rest.uniprot.org/uniprotkb/${id}.fasta`;
 };
 
+const DEBOUNCE_TIME = 100;
 const MIN_SEQ_LENGTH = 20;
+
+interface RegionSelectorProps {
+  seq: string;
+}
+
+const RegionSelector = ({ seq }: RegionSelectorProps) => {
+  const chars = [...seq];
+  let chunks = [];
+  const chunkSize = 10;
+
+  for (let i = 0; i < chars.length; i = i + chunkSize) {
+    chunks.push(chars.slice(i, i + chunkSize));
+  }
+
+  // TODO: make sure that all chars are rendered at equal width (font?)
+  // TODO: selection ... need to store in state, and need to reset if new sequence is entered
+  return (
+    <Group className="sequence">
+      {chunks.map((chunk, index) => (
+        <div key={index} className="sequenceblock">
+          {chunk.map((char) => <span>{char}</span>)}
+        </div>
+      ))}
+    </Group>
+  );
+};
 
 export const SubmissionPage = () => {
   const [seqInput, setSeqInput] = useState("");
-  const [debouncedSeqInput] = useDebouncedValue(seqInput, 500);
+  const [debouncedSeqInput] = useDebouncedValue(seqInput, DEBOUNCE_TIME);
 
   // normalize input: make upper case and remove any whitespace
   const debouncedSeqInputUpper = debouncedSeqInput
@@ -77,26 +113,31 @@ export const SubmissionPage = () => {
     <Container size="sm" pt="xl">
       <Stack>
         <Title order={1}>Create new design target</Title>
+        <Title order={4}>Enter your target protein</Title>
         <Textarea
           size="md"
-          label="Enter your target protein"
-          description=" "
+          // label="Enter your target protein"
+          // description=" "
           placeholder="UniProt identifier, entry name or amino acid sequence"
           autosize
           value={seqInput}
           onChange={(e) => setSeqInput(e.target.value)}
           error={error}
         />
+        {seq ? (
+          <>
+            <Title order={4}>Choose protein model region (optional)</Title>
+            <Text c="dimmed">
+              Limiting your model to relevant subregions/domains can lead to
+              better results and reduces computation time
+            </Text>
+            <RegionSelector seq={seq} />
+            <Button variant="filled" size="md">
+              Continue to next step
+            </Button>
+          </>
+        ) : null}
       </Stack>
-      <div>{debouncedSeqInput}</div>
-      <div>
-        <b>seq:</b> {seq}
-      </div>
-      <div>...</div>
-      <div>
-        <b>error:</b>
-        {error}
-      </div>
     </Container>
   );
 };

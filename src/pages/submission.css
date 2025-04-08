@@ -1,0 +1,16 @@
+.sequence {
+    counter-reset: sequence 0;
+}
+
+.sequenceblock {
+    position: relative;
+}
+
+.sequenceblock:before{
+    content: counter(sequence);
+    counter-increment: sequence 10;
+    position: absolute;
+    top: -1em;
+    right: 0;
+    opacity: 0.5;
+}
