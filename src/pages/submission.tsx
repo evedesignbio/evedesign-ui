@@ -337,18 +337,19 @@ export const SubmissionPage = () => {
 
   const mmseqsRunning =
     !mmseqsError &&
-    (mmseqsSub.isPending ||
-      mmseqsStatus.isPending ||
+    (mmseqsSub.isFetching ||
+      mmseqsStatus.isFetching ||
       (mmseqsStatus.isSuccess &&
         (mmseqsStatus.data.status === "RUNNING" ||
           mmseqsStatus.data.status === "PENDING")));
 
+  console.log("RUNNING", mmseqsRunning); // TODO: remove
+
+  // finished run with ID
   const mmseqsComplete =
     mmseqsStatus.isSuccess && mmseqsStatus.data.status === "COMPLETE";
 
   const mmseqsId = mmseqsStatus.isSuccess ? mmseqsStatus.data.id : null;
-
-
 
   if (targetSeq === null) {
     return <SequenceInput setTargetSeq={setTargetSeq} />;
