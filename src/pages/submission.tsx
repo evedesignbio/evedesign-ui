@@ -174,7 +174,7 @@ export const SubmissionPage = () => {
     <Container size="sm" pt="xl">
       <Stack>
         <Title order={1}>Create new design target</Title>
-        <Title order={4}>Enter your target protein</Title>
+        <Title order={4} c="blue">Enter your target protein</Title>
         <Textarea
           size="md"
           // label="Enter your target protein"
@@ -187,7 +187,7 @@ export const SubmissionPage = () => {
         />
         {seq ? (
           <>
-            <Title order={4}>Choose protein model region (optional)</Title>
+            <Title order={4} c="blue">Choose protein model region (optional)</Title>
             <Text c="dimmed">
               Limiting your model to relevant subregions/domains can lead to
               better results and reduces computation time
