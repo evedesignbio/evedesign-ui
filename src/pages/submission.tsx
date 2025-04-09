@@ -166,7 +166,7 @@ export const SubmissionPage = () => {
     if (!seqQuery.isFetching) {
       setErrorMsg(error);
     }
-  }, [error]);
+  }, [error, seqQuery.isFetching]);
 
   return (
     <Container size="sm" pt="xl">
