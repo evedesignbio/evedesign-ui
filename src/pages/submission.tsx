@@ -196,9 +196,9 @@ const SequenceInput = ({ setTargetSeq }: SequenceInputProps) => {
   if (definedRegion) {
     const regionLength = regionEnd - regionStart + 1;
     if (regionLength < MIN_REGION_LENGTH) {
-      regionError = `Selected region is too short (minimum: ${MIN_REGION_LENGTH})`;
+      regionError = `Selected region is too short (minimum: ${MIN_REGION_LENGTH} positions)`;
     } else if (regionLength > MAX_REGION_LENGTH) {
-      regionError = `Selected region is too long (maximum: ${MAX_REGION_LENGTH})`;
+      regionError = `Selected region is too long (maximum: ${MAX_REGION_LENGTH} positions)`;
     }
   } else {
     regionError = "Complete your region selection";
