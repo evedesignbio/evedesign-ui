@@ -270,11 +270,12 @@ export const SubmissionPage = () => {
   // const targetFirstIndex = targetSeq !== null ? targetSeq.start : null;
 
   // following https://hulk.mmseqs.com/mmirdit/scratch/requestmsa.mjs and https://hulk.mmseqs.com/mmirdit/scratch/
-  const mmseqsSubmission = useQuery({
+  const mmseqsSub = useQuery({
     // combination of sequence cut to target region is unique key
     queryKey: ["mmseqs_submit", targetSeqCut],
     queryFn: () =>
       fetch(mmseqsBaseUrl() + "ticket/msa", {
+        // TODO: remove made up error
         method: "POST",
         headers: {
           "User-Agent": "designserver-frontend",
@@ -287,35 +288,33 @@ export const SubmissionPage = () => {
       }).then((res) => {
         if (!res.ok) {
           throw new Error(`MMseqs submission failure: ${res.status}`);
-          // TODO: handle ratelimit case, use res.status to distinguish?
         }
         return res.json();
       }),
     enabled: targetSeq !== null, // only submit to server if there is a target sequence,
-    retry: (failureCount, error) => {
-      console.log("SUBMIT ERROR", failureCount, error);
-      // TODO: retry if status is RATELIMIT or UNKNOWN but how to best detect this here?
-      return false;
-    },
+    // retry: (failureCount, error) => {
+    //   console.log("SUBMIT ERROR", failureCount, error);
+    //   // TODO: retry if status is RATELIMIT or UNKNOWN but how to best detect this here?
+    //   // TODO: use res.status to distinguish failure modes?
+    //   return false;
+    // },
     staleTime: Infinity,
   });
 
   const mmseqsStatus = useQuery({
-    queryKey: ["mmseqs_status", mmseqsSubmission.data?.id],
+    queryKey: ["mmseqs_status", mmseqsSub.data?.id],
     queryFn: () =>
-      fetch(mmseqsBaseUrl() + "ticket/" + mmseqsSubmission.data?.id).then(
-        (res) => {
-          if (!res.ok) {
-            throw new Error("Failed to retrieve MMseqs status");
-          }
-          return res.json();
-        },
-      ),
+      fetch(mmseqsBaseUrl() + "ticket/" + mmseqsSub.data?.id).then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to retrieve MMseqs status");
+        }
+        return res.json();
+      }),
     enabled:
-      mmseqsSubmission.isSuccess &&
-      mmseqsSubmission.data !== undefined &&
-      mmseqsSubmission.data.id !== undefined &&
-      mmseqsSubmission.data.status !== undefined, // &&
+      mmseqsSub.isSuccess &&
+      mmseqsSub.data !== undefined &&
+      mmseqsSub.data.id !== undefined &&
+      mmseqsSub.data.status !== undefined, // &&
     // could avoid to run GET request but complicates code flow, so always run for now
     // mmseqsSubmission.data.status !== "COMPLETE",
     refetchInterval: (query) =>
@@ -327,29 +326,29 @@ export const SubmissionPage = () => {
     staleTime: Infinity,
   });
 
-  const mmseqsRunning =
-    mmseqsSubmission.isPending ||
-    mmseqsStatus.isPending ||
+  // derive status summary for MMseqs
+  const mmseqsError =
+    mmseqsSub.isError ||
+    mmseqsStatus.isError ||
     (mmseqsStatus.isSuccess &&
-      (mmseqsStatus.data.status === "RUNNING" ||
-        mmseqsStatus.data.status === "PENDING"));
+      mmseqsStatus.data.status !== "PENDING" &&
+      mmseqsStatus.data.status !== "RUNNING" &&
+      mmseqsStatus.data.status !== "COMPLETE");
+
+  const mmseqsRunning =
+    !mmseqsError &&
+    (mmseqsSub.isPending ||
+      mmseqsStatus.isPending ||
+      (mmseqsStatus.isSuccess &&
+        (mmseqsStatus.data.status === "RUNNING" ||
+          mmseqsStatus.data.status === "PENDING")));
 
   const mmseqsComplete =
     mmseqsStatus.isSuccess && mmseqsStatus.data.status === "COMPLETE";
 
   const mmseqsId = mmseqsStatus.isSuccess ? mmseqsStatus.data.id : null;
 
-  console.log("STATUS", mmseqsStatus.data);
-  console.log("MMSEQS id", mmseqsId);
-  console.log("MMSEQS complete", mmseqsComplete);
 
-  // console.log("MMSEQS POST DATA", mmseqsSubmission.data); // TODO: Remove
-  // console.log("MMSEQS GET DATA", mmseqsStatus.data); // TODO: Remove
-  // TODO: implement polling for result with get and ticket ID
-
-  // TODO: how to ensure results were properly fetched here?
-  // const mmseqsRunning =
-  // const mmseqsFinished =
 
   if (targetSeq === null) {
     return <SequenceInput setTargetSeq={setTargetSeq} />;
@@ -357,6 +356,7 @@ export const SubmissionPage = () => {
     return (
       <>
         <div>Target seq: {JSON.stringify(targetSeq)}</div>
+        <div>Error: {JSON.stringify(mmseqsError)}</div>
         <div>Running: {JSON.stringify(mmseqsRunning)}</div>
         <div>ID: {JSON.stringify(mmseqsId)}</div>
         <div>Complete: {JSON.stringify(mmseqsComplete)}</div>
