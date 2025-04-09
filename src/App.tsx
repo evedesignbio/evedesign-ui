@@ -9,7 +9,7 @@ const queryClient = new QueryClient();
 
 const App = () => {
   return (
-    <MantineProvider defaultColorScheme="light">
+    <MantineProvider defaultColorScheme="dark">
       <QueryClientProvider client={queryClient}>
         <Switch>
           <Route path="/" component={SubmissionPage} />

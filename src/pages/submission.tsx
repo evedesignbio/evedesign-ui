@@ -11,7 +11,6 @@ import {
   Title,
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
-import { useLocation } from "wouter";
 import "./submission.css";
 
 const UNIPROT_AC_REGEXP = RegExp(
@@ -25,27 +24,34 @@ const uniprotUrlForId = (id: string): string => {
 
 const DEBOUNCE_TIME = 100;
 const MIN_SEQ_LENGTH = 20;
+const MIN_REGION_LENGTH = 20;
+const MAX_REGION_LENGTH = 1000;
 
 interface RegionSelectorProps {
   seq: string;
+  regionStart: number | null;
+  regionEnd: number | null;
+  setRegionStart: (start: number | null) => void;
+  setRegionEnd: (start: number | null) => void;
 }
 
-const RegionSelector = ({ seq }: RegionSelectorProps) => {
+interface SeqWithRegion {
+  seq: string;
+  start: number;
+  end: number;
+}
+
+const RegionSelector = ({
+  seq,
+  regionStart,
+  regionEnd,
+  setRegionStart,
+  setRegionEnd,
+}: RegionSelectorProps) => {
   const chars = [...seq];
   let chunks = [];
   const chunkSize = 10;
   const firstIndex = 1;
-
-  const [regionStart, setRegionStart] = useState<number | null>(firstIndex);
-  // end is inclusive
-  const [regionEnd, setRegionEnd] = useState<number | null>(
-    firstIndex + chars.length - 1,
-  );
-  // TODO: selection ... need to store in state, and need to reset if new sequence is entered
-  // TODO: propagate state to parent component
-
-  console.log("regionStart", regionStart);
-  console.log("regionEnd", regionEnd);
 
   for (let i = 0; i < chars.length; i = i + chunkSize) {
     chunks.push(chars.slice(i, i + chunkSize));
@@ -83,7 +89,6 @@ const RegionSelector = ({ seq }: RegionSelectorProps) => {
             const selectableClass =
               regionEnd || pos >= regionStart! ? "selectable" : "unselectable";
 
-            console.log(selectableClass, selectedClass);
             return (
               <span
                 key={posIndex}
@@ -100,13 +105,21 @@ const RegionSelector = ({ seq }: RegionSelectorProps) => {
   );
 };
 
-export const SubmissionPage = () => {
+interface SequenceInputProps {
+  setTargetSeq: (seq: SeqWithRegion) => void;
+}
+
+const SequenceInput = ({ setTargetSeq }: SequenceInputProps) => {
   const [seqInput, setSeqInput] = useState("");
   const [debouncedSeqInput] = useDebouncedValue(seqInput, DEBOUNCE_TIME);
-  const [_, navigate] = useLocation();
 
   // handle error message through state to avoid jitter upon reloading
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // selection start and end; one-based indexing and end index is inclusive
+  const firstIndex = 1;
+  const [regionStart, setRegionStart] = useState<number | null>(null);
+  const [regionEnd, setRegionEnd] = useState<number | null>(null);
 
   // normalize input: make upper case and remove any whitespace
   const debouncedSeqInputUpper = debouncedSeqInput
@@ -170,11 +183,34 @@ export const SubmissionPage = () => {
     }
   }, [error, seqQuery.isFetching]);
 
+  // update region start/end if sequence changes
+  useEffect(() => {
+    if (seq !== null) {
+      setRegionStart(firstIndex);
+      setRegionEnd(firstIndex + seq.length - 1);
+    }
+  }, [seq]);
+
+  const definedRegion = regionStart !== null && regionEnd !== null;
+  let regionError = null;
+  if (definedRegion) {
+    const regionLength = regionEnd - regionStart + 1;
+    if (regionLength < MIN_REGION_LENGTH) {
+      regionError = `Selected region is too short (minimum: ${MIN_REGION_LENGTH})`;
+    } else if (regionLength > MAX_REGION_LENGTH) {
+      regionError = `Selected region is too long (maximum: ${MAX_REGION_LENGTH})`;
+    }
+  } else {
+    regionError = "Complete your region selection";
+  }
+
   return (
     <Container size="sm" pt="xl">
       <Stack>
         <Title order={1}>Create new design target</Title>
-        <Title order={4} c="blue">Enter your target protein</Title>
+        <Title order={4} c="blue">
+          Enter your target protein
+        </Title>
         <Textarea
           size="md"
           // label="Enter your target protein"
@@ -187,19 +223,50 @@ export const SubmissionPage = () => {
         />
         {seq ? (
           <>
-            <Title order={4} c="blue">Choose protein model region (optional)</Title>
+            <Title order={4} c="blue">
+              Choose protein model region (optional)
+            </Title>
             <Text c="dimmed">
               Limiting your model to relevant subregions/domains can lead to
-              better results and reduces computation time
+              better results and reduces computation time. Click on first
+              residue to start selection, then on last residue to end selection.
             </Text>
             <Space />
-            <RegionSelector seq={seq} />
-            <Button variant="filled" size="md" onClick={() => navigate("/results/A1234")}>
-              Continue to next step
+            <RegionSelector
+              seq={seq}
+              regionStart={regionStart}
+              regionEnd={regionEnd}
+              setRegionStart={setRegionStart}
+              setRegionEnd={setRegionEnd}
+            />
+            <Space />
+            <Button
+              variant="filled"
+              size="md"
+              disabled={regionError !== null}
+              onClick={() =>
+                setTargetSeq({ seq: seq, start: regionStart!, end: regionEnd! })
+              }
+            >
+              {regionError === null ? "Continue to next step" : regionError}
             </Button>
           </>
         ) : null}
       </Stack>
     </Container>
   );
+};
+
+export const SubmissionPage = () => {
+  const [targetSeq, setTargetSeq] = useState<SeqWithRegion | null>(null);
+  console.log("TARGET SEQ", targetSeq); // TODO: remove
+  // TODO: retrieve MMseqs and FoldSeek info here based on target sequence specification
+
+  if (targetSeq === null) {
+    return <SequenceInput setTargetSeq={setTargetSeq} />;
+  } else {
+    return <div>Target seq: {JSON.stringify(targetSeq)}</div>;
+  }
+  // TODO: // const [_, navigate] = useLocation();
+  // TODO: navigation to results page onClick={() => navigate("/results/A1234")}
 };
