@@ -12,6 +12,7 @@ import {
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import "./submission.css";
+import { mmseqsBaseUrl, convertToQueryUrl } from "../utils/api.ts";
 
 const UNIPROT_AC_REGEXP = RegExp(
   "^[OPQ][0-9][A-Z0-9]{3}[0-9]$|^[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}$",
@@ -26,6 +27,7 @@ const DEBOUNCE_TIME = 100;
 const MIN_SEQ_LENGTH = 20;
 const MIN_REGION_LENGTH = 20;
 const MAX_REGION_LENGTH = 1000;
+const MMSEQS_POLLING_INTERVAL = 2000;
 
 interface RegionSelectorProps {
   seq: string;
@@ -258,14 +260,108 @@ const SequenceInput = ({ setTargetSeq }: SequenceInputProps) => {
 };
 
 export const SubmissionPage = () => {
+  // full target sequence with selected region as fed back by SequenceInput component
   const [targetSeq, setTargetSeq] = useState<SeqWithRegion | null>(null);
-  console.log("TARGET SEQ", targetSeq); // TODO: remove
-  // TODO: retrieve MMseqs and FoldSeek info here based on target sequence specification
+
+  const targetSeqCut =
+    targetSeq !== null
+      ? targetSeq.seq.substring(targetSeq.start - 1, targetSeq.end)
+      : null;
+  // const targetFirstIndex = targetSeq !== null ? targetSeq.start : null;
+
+  // following https://hulk.mmseqs.com/mmirdit/scratch/requestmsa.mjs and https://hulk.mmseqs.com/mmirdit/scratch/
+  const mmseqsSubmission = useQuery({
+    // combination of sequence cut to target region is unique key
+    queryKey: ["mmseqs_submit", targetSeqCut],
+    queryFn: () =>
+      fetch(mmseqsBaseUrl() + "ticket/msa", {
+        method: "POST",
+        headers: {
+          "User-Agent": "designserver-frontend",
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: convertToQueryUrl({
+          q: `>1\n${targetSeqCut}`,
+          mode: "env",
+        }),
+      }).then((res) => {
+        if (!res.ok) {
+          throw new Error(`MMseqs submission failure: ${res.status}`);
+          // TODO: handle ratelimit case, use res.status to distinguish?
+        }
+        return res.json();
+      }),
+    enabled: targetSeq !== null, // only submit to server if there is a target sequence,
+    retry: (failureCount, error) => {
+      console.log("SUBMIT ERROR", failureCount, error);
+      // TODO: retry if status is RATELIMIT or UNKNOWN but how to best detect this here?
+      return false;
+    },
+    staleTime: Infinity,
+  });
+
+  const mmseqsStatus = useQuery({
+    queryKey: ["mmseqs_status", mmseqsSubmission.data?.id],
+    queryFn: () =>
+      fetch(mmseqsBaseUrl() + "ticket/" + mmseqsSubmission.data?.id).then(
+        (res) => {
+          if (!res.ok) {
+            throw new Error("Failed to retrieve MMseqs status");
+          }
+          return res.json();
+        },
+      ),
+    enabled:
+      mmseqsSubmission.isSuccess &&
+      mmseqsSubmission.data !== undefined &&
+      mmseqsSubmission.data.id !== undefined &&
+      mmseqsSubmission.data.status !== undefined, // &&
+    // could avoid to run GET request but complicates code flow, so always run for now
+    // mmseqsSubmission.data.status !== "COMPLETE",
+    refetchInterval: (query) =>
+      // !query.state.data?.status ||
+      query.state.data?.status === "PENDING" ||
+      query.state.data?.status === "RUNNING"
+        ? MMSEQS_POLLING_INTERVAL
+        : false,
+    staleTime: Infinity,
+  });
+
+  const mmseqsRunning =
+    mmseqsSubmission.isPending ||
+    mmseqsStatus.isPending ||
+    (mmseqsStatus.isSuccess &&
+      (mmseqsStatus.data.status === "RUNNING" ||
+        mmseqsStatus.data.status === "PENDING"));
+
+  const mmseqsComplete =
+    mmseqsStatus.isSuccess && mmseqsStatus.data.status === "COMPLETE";
+
+  const mmseqsId = mmseqsStatus.isSuccess ? mmseqsStatus.data.id : null;
+
+  console.log("STATUS", mmseqsStatus.data);
+  console.log("MMSEQS id", mmseqsId);
+  console.log("MMSEQS complete", mmseqsComplete);
+
+  // console.log("MMSEQS POST DATA", mmseqsSubmission.data); // TODO: Remove
+  // console.log("MMSEQS GET DATA", mmseqsStatus.data); // TODO: Remove
+  // TODO: implement polling for result with get and ticket ID
+
+  // TODO: how to ensure results were properly fetched here?
+  // const mmseqsRunning =
+  // const mmseqsFinished =
 
   if (targetSeq === null) {
     return <SequenceInput setTargetSeq={setTargetSeq} />;
   } else {
-    return <div>Target seq: {JSON.stringify(targetSeq)}</div>;
+    return (
+      <>
+        <div>Target seq: {JSON.stringify(targetSeq)}</div>
+        <div>Running: {JSON.stringify(mmseqsRunning)}</div>
+        <div>ID: {JSON.stringify(mmseqsId)}</div>
+        <div>Complete: {JSON.stringify(mmseqsComplete)}</div>
+      </>
+    );
   }
   // TODO: // const [_, navigate] = useLocation();
   // TODO: navigation to results page onClick={() => navigate("/results/A1234")}
