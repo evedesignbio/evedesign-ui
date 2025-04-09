@@ -267,7 +267,8 @@ export const SubmissionPage = () => {
     targetSeq !== null
       ? targetSeq.seq.substring(targetSeq.start - 1, targetSeq.end)
       : null;
-  // const targetFirstIndex = targetSeq !== null ? targetSeq.start : null;
+
+  const targetFirstIndex = targetSeq !== null ? targetSeq.start : null;
 
   // following https://hulk.mmseqs.com/mmirdit/scratch/requestmsa.mjs and https://hulk.mmseqs.com/mmirdit/scratch/
   const mmseqsSub = useQuery({
@@ -343,8 +344,6 @@ export const SubmissionPage = () => {
         (mmseqsStatus.data.status === "RUNNING" ||
           mmseqsStatus.data.status === "PENDING")));
 
-  console.log("RUNNING", mmseqsRunning); // TODO: remove
-
   // finished run with ID
   const mmseqsComplete =
     mmseqsStatus.isSuccess && mmseqsStatus.data.status === "COMPLETE";
@@ -356,7 +355,7 @@ export const SubmissionPage = () => {
   } else {
     return (
       <>
-        <div>Target seq: {JSON.stringify(targetSeq)}</div>
+        <div>Target seq: {targetSeqCut} {targetFirstIndex}</div>
         <div>Error: {JSON.stringify(mmseqsError)}</div>
         <div>Running: {JSON.stringify(mmseqsRunning)}</div>
         <div>ID: {JSON.stringify(mmseqsId)}</div>
