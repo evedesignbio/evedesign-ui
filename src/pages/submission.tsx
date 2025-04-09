@@ -11,6 +11,7 @@ import {
   Title,
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
+import { useLocation } from "wouter";
 import "./submission.css";
 
 const UNIPROT_AC_REGEXP = RegExp(
@@ -102,6 +103,7 @@ const RegionSelector = ({ seq }: RegionSelectorProps) => {
 export const SubmissionPage = () => {
   const [seqInput, setSeqInput] = useState("");
   const [debouncedSeqInput] = useDebouncedValue(seqInput, DEBOUNCE_TIME);
+  const [_, navigate] = useLocation();
 
   // handle error message through state to avoid jitter upon reloading
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -192,7 +194,7 @@ export const SubmissionPage = () => {
             </Text>
             <Space />
             <RegionSelector seq={seq} />
-            <Button variant="filled" size="md">
+            <Button variant="filled" size="md" onClick={() => navigate("/results/A1234")}>
               Continue to next step
             </Button>
           </>
