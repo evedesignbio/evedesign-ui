@@ -12,6 +12,7 @@ import {
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useMmseqsDownload, useMmseqsSearch } from "../api/mmseqs.ts";
+import { useFoldseek } from "../api/foldseek.ts";
 import "./submission.css";
 
 const UNIPROT_AC_REGEXP = RegExp(
@@ -271,9 +272,13 @@ export const SubmissionPage = () => {
 
   // MMseqs query submission and status retrieval (does not download MSA to decouple)
   const seqSearch = useMmseqsSearch(targetSeqCut);
-
-  // download MMseqs alignment one finished
   const msa = useMmseqsDownload(seqSearch.completed ? seqSearch.id : null);
+  const numSeqs = msa.data ? msa.data.length : null;
+  // const seqSearch = null;
+  // const numSeqs = null;
+
+  // const strucSearch = useFoldseek(targetSeqCut);
+  // console.log("STRUCT", strucSearch);
 
   if (targetSeq === null) {
     return <SequenceInput setTargetSeq={setTargetSeq} />;
@@ -284,6 +289,8 @@ export const SubmissionPage = () => {
           Target seq: {targetSeqCut} {targetFirstIndex}
         </div>
         <div>{JSON.stringify(seqSearch)}</div>
+        <div>Number of sequences: {numSeqs}</div>
+
         {/*<div>Error: {JSON.stringify(mmseqsError)}</div>*/}
         {/*<div>Running: {JSON.stringify(mmseqsRunning)}</div>*/}
         {/*<div>ID: {JSON.stringify(mmseqsId)}</div>*/}

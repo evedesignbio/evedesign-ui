@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { convertToQueryUrl } from "./utils.ts";
 // @ts-ignore
 import TarReader from "./tar.js";
+import { Sequence } from "../models/design.ts";
 
 const MMSEQS_POLLING_INTERVAL = 2000;
 const mmseqsBaseUrl = (): string => "https://api.colabfold.com/";
@@ -97,16 +98,27 @@ const parseTar = async (blob: Blob) => {
   const tar = new TarReader();
   const reader = await tar.readFile(blob);
 
-  let sequences: string[] = [];
+  let sequences: Sequence[] = [];
   for (let i = 0; i < reader.length; i++) {
     if (reader[i].name.endsWith(".a3m")) {
       const text = await tar.getTextFile(reader[i].name);
       const lines = text.split("\n");
+      let curId: string | null = null;
+
       for (let j = 0; j < lines.length; j++) {
-        if (!lines[j].startsWith(">")) {
+        if (lines[j].startsWith(">")) {
+          if (curId !== null) throw new Error("Invalid file format");
+          curId = lines[j].substring(1);
+        } else {
           // remove all lower-case letters
-          lines[j] = lines[j].replace(/[a-z]/g, "");
-          sequences.push(lines[j]);
+          const curSeq = lines[j]; // lines[j].replace(/[a-z]/g, "");
+          sequences.push({
+            seq: curSeq,
+            id: curId,
+            key: null,
+            type: "protein",
+          });
+          curId = null;
         }
       }
     }
@@ -118,7 +130,7 @@ const parseTar = async (blob: Blob) => {
 };
 
 export const useMmseqsDownload = (id: string | null) => {
-  const query = useQuery({
+  return useQuery({
     queryKey: ["mmseqs_msa", id],
     queryFn: () =>
       fetch(mmseqsBaseUrl() + "result/download/" + id)
@@ -136,12 +148,4 @@ export const useMmseqsDownload = (id: string | null) => {
         .then(parseTar),
     enabled: id !== null,
   });
-
-  console.log("DOWNLOAD:", query.data);
-
-  // TODO: return parsed sequences object + status information
-  // return "ALIGNMENT:" + id;
-  return {
-    data: null,
-  };
 };
