@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { convertToQueryUrl } from "./utils.ts";
+// @ts-ignore
+import TarReader from "./tar.js";
 
 const MMSEQS_POLLING_INTERVAL = 2000;
 const mmseqsBaseUrl = (): string => "https://api.colabfold.com/";
@@ -90,23 +92,56 @@ export const useMmseqsSearch = (seq: string | null) => {
   };
 };
 
+// borrowed from https://hulk.mmseqs.com/mmirdit/scratch/requestmsa.mjs
+const parseTar = async (blob: Blob) => {
+  const tar = new TarReader();
+  const reader = await tar.readFile(blob);
+
+  let sequences: string[] = [];
+  for (let i = 0; i < reader.length; i++) {
+    if (reader[i].name.endsWith(".a3m")) {
+      const text = await tar.getTextFile(reader[i].name);
+      const lines = text.split("\n");
+      for (let j = 0; j < lines.length; j++) {
+        if (!lines[j].startsWith(">")) {
+          // remove all lower-case letters
+          lines[j] = lines[j].replace(/[a-z]/g, "");
+          sequences.push(lines[j]);
+        }
+      }
+    }
+  }
+
+  return new Promise((resolve, _) => {
+    resolve(sequences);
+  });
+};
+
 export const useMmseqsDownload = (id: string | null) => {
   const query = useQuery({
     queryKey: ["mmseqs_msa", id],
     queryFn: () =>
-      fetch(mmseqsBaseUrl() + "result/download/" + id).then((res) => {
-        if (!res.ok) {
-          throw new Error(`MMseqs download failure: ${res.status}`);
-        }
+      fetch(mmseqsBaseUrl() + "result/download/" + id)
+        .then((res) => {
+          if (!res.ok || !res.body) {
+            throw new Error(`MMseqs download failure: ${res.status}`);
+          }
 
-        console.log("RESPONSE", res);
-        return res.text();
-      }),
+          const decompressedStream = res.body.pipeThrough(
+            new DecompressionStream("gzip"),
+          );
+
+          return new Response(decompressedStream).blob();
+        })
+        .then(parseTar),
     enabled: id !== null,
   });
 
   console.log("DOWNLOAD:", query.data);
 
-  // TODO: return sequences object
+  // TODO: return parsed sequences object + status information
   // return "ALIGNMENT:" + id;
+  return {
+    data: null,
+  };
 };
