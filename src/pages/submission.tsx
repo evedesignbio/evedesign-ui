@@ -11,8 +11,8 @@ import {
   Title,
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
-import { useMmseqsDownload, useMmseqsSearch } from "../api/mmseqs.ts";
-import { useFoldseek } from "../api/foldseek.ts";
+import { useMmseqsMsa, useMmseqsSearch } from "../api/mmseqs.ts";
+import { useFoldseekResult, useFoldseekSearch } from "../api/foldseek.ts";
 import "./submission.css";
 
 const UNIPROT_AC_REGEXP = RegExp(
@@ -272,13 +272,16 @@ export const SubmissionPage = () => {
 
   // MMseqs query submission and status retrieval (does not download MSA to decouple)
   const seqSearch = useMmseqsSearch(targetSeqCut);
-  const msa = useMmseqsDownload(seqSearch.completed ? seqSearch.id : null);
-  const numSeqs = msa.data ? msa.data.length : null;
+  const msa = useMmseqsMsa(seqSearch.completed ? seqSearch.id : null);
+  const numSeqs = msa.data ? msa.data.length : null;  // TODO: fix
   // const seqSearch = null;
   // const numSeqs = null;
 
-  // const strucSearch = useFoldseek(targetSeqCut);
-  // console.log("STRUCT", strucSearch);
+  const foldseekSearch = useFoldseekSearch(targetSeqCut);
+  const foldseekResult = useFoldseekResult(
+    foldseekSearch.completed ? foldseekSearch.id : null,
+  );
+  const numStructures = foldseekResult.data?.results[0].alignments[0].length;
 
   if (targetSeq === null) {
     return <SequenceInput setTargetSeq={setTargetSeq} />;
@@ -290,6 +293,7 @@ export const SubmissionPage = () => {
         </div>
         <div>{JSON.stringify(seqSearch)}</div>
         <div>Number of sequences: {numSeqs}</div>
+        <div>Number of structures: {numStructures}</div>
 
         {/*<div>Error: {JSON.stringify(mmseqsError)}</div>*/}
         {/*<div>Running: {JSON.stringify(mmseqsRunning)}</div>*/}

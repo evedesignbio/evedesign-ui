@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { convertToQueryUrl } from "./utils.ts";
+import { usePolling } from "./polling.ts";
 
 const foldseek3DiBaseUrl = (): string => "https://3di.foldseek.com/";
 const foldseekBaseUrl = (): string => "https://search.foldseek.com/";
 
-export const useFoldseek = (seq: string | null) => {
+export const useFoldseekSearch = (seq: string | null) => {
   // Step 1: predict 3Di states from sequence
   const q3di = useQuery({
     queryKey: ["foldseek_3di", seq],
@@ -20,36 +20,38 @@ export const useFoldseek = (seq: string | null) => {
     staleTime: Infinity,
   });
 
-  console.log("QUERY", q3di.data); // TODO: remove
+  const search = usePolling(
+    q3di.isSuccess ? seq : null, // only pass sequence to start query once we have 3Di predictions
+    "foldseek",
+    foldseekBaseUrl() + "api/ticket",
+    foldseekBaseUrl() + "api/ticket/",
+    {
+      q: `>target\n${seq}\n>3DI\n${q3di.data}\n`,
+      database: ["pdb100"], // ["afdb50", "afdb-swissprot", "afdb-proteome"], // TODO
+      mode: "3diaa",
+    },
+  );
 
-  // Step 2: submit FoldSeek search with predicted 3Di sequence
-  const qSub = useQuery({
-    queryKey: ["foldseek_submit", seq],
+  // merge status across 3Di and main FoldSeek queries
+  return {
+    error: q3di.isError || search.error,
+    running: q3di.isFetching || search.running,
+    completed: search.completed,
+    id: search.id,
+  };
+};
+
+export const useFoldseekResult = (id: string | null) => {
+  return useQuery({
+    queryKey: ["foldseek_result", id],
     queryFn: () =>
-      fetch(foldseekBaseUrl() + "api/ticket", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: convertToQueryUrl({
-          q: `>target\n${seq}\n>3DI\n${q3di.data}\n`,
-          database: ["pdb100"],  // ["afdb50", "afdb-swissprot", "afdb-proteome"], // TODO
-          mode: "3diaa",
-        }),
-      }).then((res) => {
-        if (!res.ok) {
-          throw new Error(`FoldSeek 3Di prediction failure: ${res.status}`);
+      fetch(foldseekBaseUrl() + "api/result/" + id + "/0").then((res) => {
+        if (!res.ok || !res.body) {
+          throw new Error(`MMseqs download failure: ${res.status}`);
         }
+
         return res.json();
       }),
-    // only submit to server if there is a 3Di prediction already
-    enabled: seq !== null && q3di.isSuccess, // && q3di.data,
-    staleTime: Infinity,
+    enabled: id !== null,
   });
-
-  console.log("MAIN SUB", qSub.data);
-
-  // Step 3: poll for results
-  // r_fs = requests.get("https://search.foldseek.com/api/result/vURjEn8WzYKIE840NS8pVhOSaswfwvvG0-1cNA/0")
-  // r_fs.ok
 };
