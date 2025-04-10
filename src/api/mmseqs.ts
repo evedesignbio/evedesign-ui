@@ -4,15 +4,19 @@ import { convertToQueryUrl } from "./utils.ts";
 const MMSEQS_POLLING_INTERVAL = 2000;
 const mmseqsBaseUrl = (): string => "https://api.colabfold.com/";
 
+const runningOrPending = (s: string | undefined) =>
+  s === "RUNNING" || s === "PENDING";
+
+const validStatus = (s: string | undefined) =>
+  s === undefined || s === "RUNNING" || s === "PENDING" || s === "COMPLETE";
+
 export const useMmseqsSearch = (seq: string | null) => {
   // Step 1: Post query sequence to MMseqs server
   // following https://hulk.mmseqs.com/mmirdit/scratch/requestmsa.mjs and https://hulk.mmseqs.com/mmirdit/scratch/
-  const mmseqsSub = useQuery({
-    // combination of sequence cut to target region is unique key
+  const qSub = useQuery({
     queryKey: ["mmseqs_submit", seq],
     queryFn: () =>
       fetch(mmseqsBaseUrl() + "ticket/msa", {
-        // TODO: remove made up error
         method: "POST",
         headers: {
           "User-Agent": "designserver-frontend",
@@ -28,68 +32,72 @@ export const useMmseqsSearch = (seq: string | null) => {
         }
         return res.json();
       }),
-    enabled: seq !== null, // only submit to server if there is a target sequence,
-    // retry: (failureCount, error) => {
-    //   console.log("SUBMIT ERROR", failureCount, error);
-    //   // TODO: retry if status is RATELIMIT or UNKNOWN but how to best detect this here?
-    //   // TODO: use res.status to distinguish failure modes?
-    //   return false;
-    // },
+    // only submit to server if there is a target sequence,
+    enabled: seq !== null,
+    /*
+    // use res.qStatus to distinguish failure modes?
+    // retry if qStatus is RATELIMIT or UNKNOWN but how to best detect this here?
+    retry: (failureCount, error) => {
+      console.log("SUBMIT ERROR", failureCount, error);
+      return false;
+    },*/
     staleTime: Infinity,
   });
 
-  const mmseqsStatus = useQuery({
-    queryKey: ["mmseqs_status", mmseqsSub.data?.id],
+  console.log("POST:", qSub.data); // TODO: remove
+
+  const qStatus = useQuery({
+    queryKey: ["mmseqs_status", qSub.data?.id],
     queryFn: () =>
-      fetch(mmseqsBaseUrl() + "ticket/" + mmseqsSub.data?.id).then((res) => {
+      fetch(mmseqsBaseUrl() + "ticket/" + qSub.data?.id).then((res) => {
         if (!res.ok) {
           throw new Error("Failed to retrieve MMseqs status");
         }
         return res.json();
       }),
-    enabled:
-      mmseqsSub.isSuccess &&
-      mmseqsSub.data !== undefined &&
-      mmseqsSub.data.id !== undefined &&
-      mmseqsSub.data.status !== undefined, // &&
-    // could avoid to run GET request but complicates code flow, so always run for now
-    // mmseqsSubmission.data.status !== "COMPLETE",
+    // only need to run this query if it didn't complete right away
+    enabled: runningOrPending(qSub.data?.status),
+    // refetch while qStatus is PENDING or RUNNING
     refetchInterval: (query) =>
-      // !query.state.data?.status ||
-      query.state.data?.status === "PENDING" ||
-      query.state.data?.status === "RUNNING"
+      runningOrPending(query.state.data?.status)
         ? MMSEQS_POLLING_INTERVAL
         : false,
     staleTime: Infinity,
   });
 
-  // derive status summary for MMseqs
-  const mmseqsError =
-    mmseqsSub.isError ||
-    mmseqsStatus.isError ||
-    (mmseqsStatus.isSuccess &&
-      mmseqsStatus.data.status !== "PENDING" &&
-      mmseqsStatus.data.status !== "RUNNING" &&
-      mmseqsStatus.data.status !== "COMPLETE");
+  console.log("GET:", qStatus.data); // TODO: remove
 
-  const mmseqsRunning =
-    !mmseqsError &&
-    (mmseqsSub.isFetching ||
-      mmseqsStatus.isFetching ||
-      (mmseqsStatus.isSuccess &&
-        (mmseqsStatus.data.status === "RUNNING" ||
-          mmseqsStatus.data.status === "PENDING")));
+  // merge status across the two query objects, slightly more complicated since POST might already
+  // return COMPLETE status without needing to run GET query
+  const error =
+    qSub.isError ||
+    qStatus.isError ||
+    !validStatus(qSub.data?.status) ||
+    !validStatus(qStatus.data?.status);
 
-  // finished run with ID
-  const mmseqsComplete =
-    mmseqsStatus.isSuccess && mmseqsStatus.data.status === "COMPLETE";
+  // don't check qSub status for running/pending as this value will stay while running GET query
+  const running =
+    qSub.isFetching ||
+    qStatus.isFetching ||
+    runningOrPending(qStatus.data?.status);
 
-  const mmseqsId = mmseqsStatus.isSuccess ? mmseqsStatus.data.id : null;
+  const complete =
+    qSub.data?.status === "COMPLETE" || qStatus.data?.status === "COMPLETE";
+
+  const id = qSub.isSuccess? qSub.data.id : null;
 
   return {
-    error: mmseqsError,
-    running: mmseqsRunning,
-    complete: mmseqsComplete,
-    id: mmseqsId,
+    error: error,
+    running: running,
+    completed: complete,
+    id: id,
   };
+};
+
+export const useMmseqsDownload = (id: string | null) => {
+  if (id !== null) {
+    return "ALIGNMENT";
+  } else {
+    return null;
+  }
 };

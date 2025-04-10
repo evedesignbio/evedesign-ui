@@ -11,7 +11,7 @@ import {
   Title,
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
-import { useMmseqsSearch } from "../api/mmseqs.ts";
+import { useMmseqsDownload, useMmseqsSearch } from "../api/mmseqs.ts";
 import "./submission.css";
 
 const UNIPROT_AC_REGEXP = RegExp(
@@ -269,8 +269,11 @@ export const SubmissionPage = () => {
 
   const targetFirstIndex = targetSeq !== null ? targetSeq.start : null;
 
-  const seqSearchResult = useMmseqsSearch(targetSeqCut);
-  console.log("SEQ SEARCH", seqSearchResult);
+  const seqSearchId = useMmseqsSearch(targetSeqCut);
+  console.log("SEQ SEARCH", seqSearchId);
+
+  // const seqSearchMsa = useMmseqsDownload(null);
+  // console.log("MSA", seqSearchId);
 
   if (targetSeq === null) {
     return <SequenceInput setTargetSeq={setTargetSeq} />;
