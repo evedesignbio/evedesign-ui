@@ -44,8 +44,6 @@ export const useMmseqsSearch = (seq: string | null) => {
     staleTime: Infinity,
   });
 
-  console.log("POST:", qSub.data); // TODO: remove
-
   const qStatus = useQuery({
     queryKey: ["mmseqs_status", qSub.data?.id],
     queryFn: () =>
@@ -65,8 +63,6 @@ export const useMmseqsSearch = (seq: string | null) => {
     staleTime: Infinity,
   });
 
-  console.log("GET:", qStatus.data); // TODO: remove
-
   // merge status across the two query objects, slightly more complicated since POST might already
   // return COMPLETE status without needing to run GET query
   const error =
@@ -84,7 +80,7 @@ export const useMmseqsSearch = (seq: string | null) => {
   const complete =
     qSub.data?.status === "COMPLETE" || qStatus.data?.status === "COMPLETE";
 
-  const id = qSub.isSuccess? qSub.data.id : null;
+  const id = qSub.isSuccess ? qSub.data.id : null;
 
   return {
     error: error,
@@ -95,9 +91,22 @@ export const useMmseqsSearch = (seq: string | null) => {
 };
 
 export const useMmseqsDownload = (id: string | null) => {
-  if (id !== null) {
-    return "ALIGNMENT";
-  } else {
-    return null;
-  }
+  const query = useQuery({
+    queryKey: ["mmseqs_msa", id],
+    queryFn: () =>
+      fetch(mmseqsBaseUrl() + "result/download/" + id).then((res) => {
+        if (!res.ok) {
+          throw new Error(`MMseqs download failure: ${res.status}`);
+        }
+
+        console.log("RESPONSE", res);
+        return res.text();
+      }),
+    enabled: id !== null,
+  });
+
+  console.log("DOWNLOAD:", query.data);
+
+  // TODO: return sequences object
+  // return "ALIGNMENT:" + id;
 };

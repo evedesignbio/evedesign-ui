@@ -269,11 +269,11 @@ export const SubmissionPage = () => {
 
   const targetFirstIndex = targetSeq !== null ? targetSeq.start : null;
 
-  const seqSearchId = useMmseqsSearch(targetSeqCut);
-  console.log("SEQ SEARCH", seqSearchId);
+  // MMseqs query submission and status retrieval (does not download MSA to decouple)
+  const seqSearch = useMmseqsSearch(targetSeqCut);
 
-  // const seqSearchMsa = useMmseqsDownload(null);
-  // console.log("MSA", seqSearchId);
+  // download MMseqs alignment one finished
+  const msa = useMmseqsDownload(seqSearch.completed ? seqSearch.id : null);
 
   if (targetSeq === null) {
     return <SequenceInput setTargetSeq={setTargetSeq} />;
@@ -283,6 +283,7 @@ export const SubmissionPage = () => {
         <div>
           Target seq: {targetSeqCut} {targetFirstIndex}
         </div>
+        <div>{JSON.stringify(seqSearch)}</div>
         {/*<div>Error: {JSON.stringify(mmseqsError)}</div>*/}
         {/*<div>Running: {JSON.stringify(mmseqsRunning)}</div>*/}
         {/*<div>ID: {JSON.stringify(mmseqsId)}</div>*/}
