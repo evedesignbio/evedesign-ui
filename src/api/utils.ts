@@ -17,6 +17,3 @@ export function convertToQueryUrl(obj: any) {
 
   return params.toString();
 }
-
-export const mmseqsBaseUrl = (): string =>
-  "https://api.colabfold.com/";

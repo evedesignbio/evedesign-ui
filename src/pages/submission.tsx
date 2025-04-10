@@ -11,8 +11,8 @@ import {
   Title,
 } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
+import { useMmseqsSearch } from "../api/mmseqs.ts";
 import "./submission.css";
-import { mmseqsBaseUrl, convertToQueryUrl } from "../utils/api.ts";
 
 const UNIPROT_AC_REGEXP = RegExp(
   "^[OPQ][0-9][A-Z0-9]{3}[0-9]$|^[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}$",
@@ -27,7 +27,6 @@ const DEBOUNCE_TIME = 100;
 const MIN_SEQ_LENGTH = 20;
 const MIN_REGION_LENGTH = 20;
 const MAX_REGION_LENGTH = 1000;
-const MMSEQS_POLLING_INTERVAL = 2000;
 
 interface RegionSelectorProps {
   seq: string;
@@ -270,96 +269,21 @@ export const SubmissionPage = () => {
 
   const targetFirstIndex = targetSeq !== null ? targetSeq.start : null;
 
-  // following https://hulk.mmseqs.com/mmirdit/scratch/requestmsa.mjs and https://hulk.mmseqs.com/mmirdit/scratch/
-  const mmseqsSub = useQuery({
-    // combination of sequence cut to target region is unique key
-    queryKey: ["mmseqs_submit", targetSeqCut],
-    queryFn: () =>
-      fetch(mmseqsBaseUrl() + "ticket/msa", {
-        // TODO: remove made up error
-        method: "POST",
-        headers: {
-          "User-Agent": "designserver-frontend",
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: convertToQueryUrl({
-          q: `>1\n${targetSeqCut}`,
-          mode: "env",
-        }),
-      }).then((res) => {
-        if (!res.ok) {
-          throw new Error(`MMseqs submission failure: ${res.status}`);
-        }
-        return res.json();
-      }),
-    enabled: targetSeq !== null, // only submit to server if there is a target sequence,
-    // retry: (failureCount, error) => {
-    //   console.log("SUBMIT ERROR", failureCount, error);
-    //   // TODO: retry if status is RATELIMIT or UNKNOWN but how to best detect this here?
-    //   // TODO: use res.status to distinguish failure modes?
-    //   return false;
-    // },
-    staleTime: Infinity,
-  });
-
-  const mmseqsStatus = useQuery({
-    queryKey: ["mmseqs_status", mmseqsSub.data?.id],
-    queryFn: () =>
-      fetch(mmseqsBaseUrl() + "ticket/" + mmseqsSub.data?.id).then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to retrieve MMseqs status");
-        }
-        return res.json();
-      }),
-    enabled:
-      mmseqsSub.isSuccess &&
-      mmseqsSub.data !== undefined &&
-      mmseqsSub.data.id !== undefined &&
-      mmseqsSub.data.status !== undefined, // &&
-    // could avoid to run GET request but complicates code flow, so always run for now
-    // mmseqsSubmission.data.status !== "COMPLETE",
-    refetchInterval: (query) =>
-      // !query.state.data?.status ||
-      query.state.data?.status === "PENDING" ||
-      query.state.data?.status === "RUNNING"
-        ? MMSEQS_POLLING_INTERVAL
-        : false,
-    staleTime: Infinity,
-  });
-
-  // derive status summary for MMseqs
-  const mmseqsError =
-    mmseqsSub.isError ||
-    mmseqsStatus.isError ||
-    (mmseqsStatus.isSuccess &&
-      mmseqsStatus.data.status !== "PENDING" &&
-      mmseqsStatus.data.status !== "RUNNING" &&
-      mmseqsStatus.data.status !== "COMPLETE");
-
-  const mmseqsRunning =
-    !mmseqsError &&
-    (mmseqsSub.isFetching ||
-      mmseqsStatus.isFetching ||
-      (mmseqsStatus.isSuccess &&
-        (mmseqsStatus.data.status === "RUNNING" ||
-          mmseqsStatus.data.status === "PENDING")));
-
-  // finished run with ID
-  const mmseqsComplete =
-    mmseqsStatus.isSuccess && mmseqsStatus.data.status === "COMPLETE";
-
-  const mmseqsId = mmseqsStatus.isSuccess ? mmseqsStatus.data.id : null;
+  const seqSearchResult = useMmseqsSearch(targetSeqCut);
+  console.log("SEQ SEARCH", seqSearchResult);
 
   if (targetSeq === null) {
     return <SequenceInput setTargetSeq={setTargetSeq} />;
   } else {
     return (
       <>
-        <div>Target seq: {targetSeqCut} {targetFirstIndex}</div>
-        <div>Error: {JSON.stringify(mmseqsError)}</div>
-        <div>Running: {JSON.stringify(mmseqsRunning)}</div>
-        <div>ID: {JSON.stringify(mmseqsId)}</div>
-        <div>Complete: {JSON.stringify(mmseqsComplete)}</div>
+        <div>
+          Target seq: {targetSeqCut} {targetFirstIndex}
+        </div>
+        {/*<div>Error: {JSON.stringify(mmseqsError)}</div>*/}
+        {/*<div>Running: {JSON.stringify(mmseqsRunning)}</div>*/}
+        {/*<div>ID: {JSON.stringify(mmseqsId)}</div>*/}
+        {/*<div>Complete: {JSON.stringify(mmseqsComplete)}</div>*/}
       </>
     );
   }
