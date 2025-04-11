@@ -273,9 +273,10 @@ export const SubmissionPage = () => {
   // MMseqs query submission and status retrieval (does not download MSA to decouple)
   const seqSearch = useMmseqsSearch(targetSeqCut);
   const msa = useMmseqsMsa(seqSearch.completed ? seqSearch.id : null);
-  const numSeqs = msa.data ? msa.data.length : null;  // TODO: fix
+  console.log(msa);
+  // const numSeqs = msa.data ? msa.data.length : null;  // TODO: fix
   // const seqSearch = null;
-  // const numSeqs = null;
+  const numSeqs = null;
 
   const foldseekSearch = useFoldseekSearch(targetSeqCut);
   const foldseekResult = useFoldseekResult(
