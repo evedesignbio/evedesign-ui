@@ -1,7 +1,7 @@
 import "@mantine/core/styles.css";
 import { MantineProvider } from "@mantine/core";
 import { Route, Switch } from "wouter";
-import { SubmissionPage } from "./pages/submission.tsx";
+import { SubmissionPage } from "./pages/submission";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ResultsPage } from "./pages/results.tsx";
 
