@@ -1,14 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Button,
-  Container,
-  Group,
-  Space,
-  Stack,
-  Text,
-  Textarea,
-  Title,
-} from "@mantine/core";
+import { Button, Group, Space, Text, Textarea, Title } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useQuery } from "@tanstack/react-query";
 import "./submission.css";
@@ -205,54 +196,69 @@ export const SequenceInput = ({ setTargetSeq }: SequenceInputProps) => {
   }
 
   return (
-    <Container size="sm" pt="xl">
-      <Stack>
-        <Title order={1}>Create new design target</Title>
-        <Title order={4} c="blue">
-          Enter your target protein
-        </Title>
-        <Textarea
-          size="md"
-          // label="Enter your target protein"
-          // description=" "
-          placeholder="UniProt identifier, entry name or amino acid sequence"
-          autosize
-          value={seqInput}
-          onChange={(e) => setSeqInput(e.target.value)}
-          error={errorMsg}
-        />
-        {seq ? (
-          <>
-            <Title order={4} c="blue">
-              Choose protein model region (optional)
-            </Title>
-            <Text c="dimmed">
-              Limiting your model to relevant subregions/domains can lead to
-              better results and reduces computation time. Click on first
-              residue to start selection, then on last residue to end selection.
-            </Text>
-            <Space />
-            <RegionSelector
-              seq={seq}
-              regionStart={regionStart}
-              regionEnd={regionEnd}
-              setRegionStart={setRegionStart}
-              setRegionEnd={setRegionEnd}
-            />
-            <Space />
-            <Button
-              variant="filled"
-              size="md"
-              disabled={regionError !== null}
-              onClick={() =>
-                setTargetSeq({ seq: seq, start: regionStart!, end: regionEnd! })
-              }
-            >
-              {regionError === null ? "Continue to next step" : regionError}
-            </Button>
-          </>
-        ) : null}
-      </Stack>
-    </Container>
+    <>
+      <Title order={1}>Create new design target</Title>
+      <Title order={4} c="blue">
+        Enter your target protein
+      </Title>
+      <Textarea
+        size="md"
+        // label="Enter your target protein"
+        // description=" "
+        placeholder="UniProt identifier, entry name or amino acid sequence"
+        autosize
+        value={seqInput}
+        onChange={(e) => setSeqInput(e.target.value)}
+        error={errorMsg}
+      />
+      {seq ? (
+        <>
+          <Title order={4} c="blue">
+            Choose protein model region (optional)
+          </Title>
+          <Text c="dimmed">
+            Limiting your model to relevant subregions/domains can lead to
+            better results and reduces computation time. Click on first residue
+            to start selection, then on last residue to end selection.
+          </Text>
+          <Space />
+          <RegionSelector
+            seq={seq}
+            regionStart={regionStart}
+            regionEnd={regionEnd}
+            setRegionStart={setRegionStart}
+            setRegionEnd={setRegionEnd}
+          />
+          <Space />
+          <Button
+            variant="filled"
+            size="md"
+            disabled={regionError !== null}
+            onClick={() =>
+              setTargetSeq({ seq: seq, start: regionStart!, end: regionEnd! })
+            }
+          >
+            {regionError === null ? "Continue to next step" : regionError}
+          </Button>
+        </>
+      ) : null}
+    </>
+  );
+};
+
+export interface MsaOrStructureErrorProps {
+  reset: () => void;
+}
+
+export const MsaOrStructureError = ({ reset }: MsaOrStructureErrorProps) => {
+  return (
+    <>
+      <Title order={1}>Error :(</Title>
+      <Text>
+        Something went wrong while trying to fetch sequences and structures from
+        external web servers. Please try again later.
+      </Text>
+      <Button onClick={reset}>Back to submission</Button>
+    </>
   );
 };
