@@ -50,7 +50,7 @@ const parseTar = async (blob: Blob) => {
     }
   }
 
-  return new Promise((resolve, _) => {
+  return new Promise<Sequence[]>((resolve, _) => {
     resolve(sequences);
   });
 };
