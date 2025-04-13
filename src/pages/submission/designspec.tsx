@@ -30,6 +30,9 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
   console.log(targetSeq);
 
   // TODO: instantiate design spec based on sequences / structures automatically?
+  // TODO: put spec state in this function, use reducer to operate on it
+  // TODO: render design spec through separate child component
+
   return (
     <>
       <Title order={1}>Specify design parameters</Title>

@@ -28,12 +28,17 @@ const parseTar = async (blob: Blob) => {
   for (let i = 0; i < reader.length; i++) {
     if (reader[i].name.endsWith(".a3m")) {
       const text = await tar.getTextFile(reader[i].name);
-      const lines = text.split("\n");
+      // end of file appears to always have null terminator which we must remove
+      const lines = text.replaceAll("\x00", "").trim().split("\n");
       let curId: string | null = null;
 
       for (let j = 0; j < lines.length; j++) {
+        // just in case there are empty lines we skip them
+        if (lines[j].trim() === "") {
+          continue;
+        }
+
         if (lines[j].startsWith(">")) {
-          if (curId !== null) throw new Error("Invalid file format");
           curId = lines[j].substring(1);
         } else {
           // remove all lower-case letters
