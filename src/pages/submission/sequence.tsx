@@ -68,6 +68,7 @@ const RegionSelector = ({
       firstIndex={1}
       handleClick={handleClick}
       getPosStyle={getPosStyle}
+      chunkSize={10}
     />
   );
 };
