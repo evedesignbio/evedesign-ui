@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Button, Group, Space, Text, Textarea, Title } from "@mantine/core";
+import { Button, Space, Text, Textarea, Title } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useQuery } from "@tanstack/react-query";
-import "./submission.css";
+import { SequenceViewer } from "../../components/sequenceviewer";
 
 const UNIPROT_AC_REGEXP = RegExp(
   "^[OPQ][0-9][A-Z0-9]{3}[0-9]$|^[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}$",
@@ -39,15 +39,6 @@ const RegionSelector = ({
   setRegionStart,
   setRegionEnd,
 }: RegionSelectorProps) => {
-  const chars = [...seq];
-  let chunks = [];
-  const chunkSize = 10;
-  const firstIndex = 1;
-
-  for (let i = 0; i < chars.length; i = i + chunkSize) {
-    chunks.push(chars.slice(i, i + chunkSize));
-  }
-
   const handleClick = (pos: number) => {
     // if region end defined, click starts a new selection
     if (regionEnd) {
@@ -60,39 +51,24 @@ const RegionSelector = ({
     // note click to invalid position is impossible to disabled pointer events through CSS
   };
 
-  return (
-    <Group className="sequence">
-      {chunks.map((chunk, chunkIndex) => (
-        <div
-          key={chunkIndex}
-          className={
-            chunk.length == chunkSize
-              ? "sequenceblock"
-              : "sequenceblocknobefore"
-          }
-        >
-          {chunk.map((char, posIndex) => {
-            const pos = chunkIndex * chunkSize + posIndex + firstIndex;
-            const selectedClass =
-              regionStart && regionEnd && pos >= regionStart && pos <= regionEnd
-                ? "selected"
-                : "";
-            const selectableClass =
-              regionEnd || pos >= regionStart! ? "selectable" : "unselectable";
+  const getPosStyle = (pos: number) => {
+    const selectedClass =
+      regionStart && regionEnd && pos >= regionStart && pos <= regionEnd
+        ? "selected"
+        : "";
+    const selectableClass =
+      regionEnd || pos >= regionStart! ? "selectable" : "unselectable";
 
-            return (
-              <span
-                key={posIndex}
-                className={selectedClass + " " + selectableClass}
-                onClick={() => handleClick(pos)}
-              >
-                {char}
-              </span>
-            );
-          })}
-        </div>
-      ))}
-    </Group>
+    return selectedClass + " " + selectableClass;
+  };
+
+  return (
+    <SequenceViewer
+      seq={seq}
+      firstIndex={1}
+      handleClick={handleClick}
+      getPosStyle={getPosStyle}
+    />
   );
 };
 
@@ -122,7 +98,7 @@ export const SequenceInput = ({ setTargetSeq }: SequenceInputProps) => {
     UNIPROT_AC_REGEXP.test(debouncedSeqInputUpper) ||
     UNIPROT_NAME_REGEXP.test(debouncedSeqInputUpper);
 
-  // does input look like a valid amino acid sequence?
+  // does input look like a valid amino acid sequenceviewer?
   const validProteinSeq = AMINO_ACID_SEQ_REGEXP.test(debouncedSeqInputUpper);
 
   // only if input looks like it could be valid Uniprot ID/name, try to retrieve it
@@ -154,9 +130,9 @@ export const SequenceInput = ({ setTargetSeq }: SequenceInputProps) => {
     }
     // note: not handling seqQuery.isPending on purpose
   } else {
-    // otherwise, can only have a valid amino acid sequence or an error, unless input is empty
+    // otherwise, can only have a valid amino acid sequenceviewer or an error, unless input is empty
     if (validProteinSeq) {
-      // make sure sequence is not too short
+      // make sure sequenceviewer is not too short
       if (debouncedSeqInputUpper.length < MIN_SEQ_LENGTH) {
         error = `Sequence too short (minimum length: ${MIN_SEQ_LENGTH} amino acids)`;
       } else {
@@ -174,7 +150,7 @@ export const SequenceInput = ({ setTargetSeq }: SequenceInputProps) => {
     }
   }, [error, seqQuery.isFetching]);
 
-  // update region start/end if sequence changes
+  // update region start/end if sequenceviewer changes
   useEffect(() => {
     if (seq !== null) {
       setRegionStart(firstIndex);

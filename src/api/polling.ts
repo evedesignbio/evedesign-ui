@@ -16,7 +16,7 @@ export const usePolling = (
   statusUrl: string,
   body: any,
 ) => {
-  // Step 1: Post query sequence to server
+  // Step 1: Post query sequenceviewer to server
   // following https://hulk.mmseqs.com/mmirdit/scratch/requestmsa.mjs and https://hulk.mmseqs.com/mmirdit/scratch/
   const qSub = useQuery({
     queryKey: [methodKey + "_submit", seq],
@@ -34,7 +34,7 @@ export const usePolling = (
         }
         return res.json();
       }),
-    // only submit to server if there is a target sequence,
+    // only submit to server if there is a target sequenceviewer,
     enabled: seq !== null,
     /*
     // use res.qStatus to distinguish failure modes?

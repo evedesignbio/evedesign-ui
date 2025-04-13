@@ -10,7 +10,7 @@ import {
 import { DesignSpecInput } from "./designspec.tsx";
 
 export const SubmissionPage = () => {
-  // full target sequence with selected region as fed back by SequenceInput component
+  // full target sequenceviewer with selected region as fed back by SequenceInput component
   const [targetSeq, setTargetSeq] = useState<SeqWithRegion | null>(null);
 
   const targetSeqCut =

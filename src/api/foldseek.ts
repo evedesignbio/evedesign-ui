@@ -5,7 +5,7 @@ const foldseek3DiBaseUrl = (): string => "https://3di.foldseek.com/";
 const foldseekBaseUrl = (): string => "https://search.foldseek.com/";
 
 export const useFoldseekSearch = (seq: string | null) => {
-  // Step 1: predict 3Di states from sequence
+  // Step 1: predict 3Di states from sequenceviewer
   const q3di = useQuery({
     queryKey: ["foldseek_3di", seq],
     queryFn: () =>
@@ -15,13 +15,13 @@ export const useFoldseekSearch = (seq: string | null) => {
         }
         return res.json();
       }),
-    // only submit to server if there is a target sequence,
+    // only submit to server if there is a target sequenceviewer,
     enabled: seq !== null,
     staleTime: Infinity,
   });
 
   const search = usePolling(
-    q3di.isSuccess ? seq : null, // only pass sequence to start query once we have 3Di predictions
+    q3di.isSuccess ? seq : null, // only pass sequenceviewer to start query once we have 3Di predictions
     "foldseek",
     foldseekBaseUrl() + "api/ticket",
     foldseekBaseUrl() + "api/ticket/",
