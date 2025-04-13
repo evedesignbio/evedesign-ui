@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Button, Space, Text, Textarea, Title } from "@mantine/core";
+import { Button, Group, Space, Text, Textarea, Title } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SequenceViewer } from "../../components/sequenceviewer";
 
 const UNIPROT_AC_REGEXP = RegExp(
@@ -228,14 +228,21 @@ export interface MsaOrStructureErrorProps {
 }
 
 export const MsaOrStructureError = ({ reset }: MsaOrStructureErrorProps) => {
+  const queryClient = useQueryClient();
   return (
     <>
       <Title order={1}>Error :(</Title>
       <Text>
         Something went wrong while trying to fetch sequences and structures from
-        external web servers. Please try again later.
+        the MMseqs and FoldSeek web servers. If you tried many inputs in a short
+        time, you may have hit their rate limit. Please try again later.
       </Text>
-      <Button onClick={reset}>Back to submission</Button>
+      <Group>
+        <Button onClick={reset} variant={"outline"}>
+          Back to submission
+        </Button>
+        <Button onClick={() => queryClient.invalidateQueries()}>Retry</Button>
+      </Group>
     </>
   );
 };

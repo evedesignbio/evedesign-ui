@@ -1,7 +1,17 @@
 import { useMemo } from "react";
-import { Button, Card, Group, Text, Title } from "@mantine/core";
+import {
+  Button,
+  Card,
+  Group,
+  NumberInput,
+  Select,
+  Space,
+  Text,
+  Title,
+} from "@mantine/core";
 import { Sequence } from "../../models/design.ts";
 import { SeqWithRegion } from "./sequence.tsx";
+import { SequenceViewer } from "../../components/sequenceviewer";
 
 export interface DesignSpecProps {
   targetSeq: SeqWithRegion;
@@ -9,6 +19,13 @@ export interface DesignSpecProps {
 }
 
 export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
+  const targetSeqCut = targetSeq.seq.substring(
+    targetSeq.start - 1,
+    targetSeq.end,
+  );
+
+  // const [posSelection, setPosSelection] = useState<number[] | null >(null);
+
   const numSeqs = msa.length;
 
   const downloadButton = useMemo(() => {
@@ -18,7 +35,12 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
       const url = URL.createObjectURL(blob);
 
       return (
-        <Button component="a" href={url} download="mmseqs_msa.a3m">
+        <Button
+          variant="default"
+          component="a"
+          href={url}
+          download="mmseqs_msa.a3m"
+        >
           Download MSA
         </Button>
       );
@@ -27,11 +49,11 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
     }
   }, [msa]);
 
-  console.log(targetSeq);
-
-  // TODO: instantiate design spec based on sequences / structures automatically?
-  // TODO: put spec state in this function, use reducer to operate on it
-  // TODO: render design spec through separate child component
+  // TODO: need to cut target sequence ... right now showing full sequence
+  // TODO: init positions when input target seq changes
+  // TODO: allow to select model
+  // TODO: allow to select sampler
+  // TODO: add sampler params
 
   return (
     <>
@@ -42,18 +64,69 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
       <Card padding="lg" radius="md">
         <Group justify="space-between">
           <Text>{numSeqs} homologous sequences found</Text>
-          {downloadButton}
+          <Group>
+            <Button variant="default" disabled={true}>
+              Filter
+            </Button>
+            {downloadButton}
+          </Group>
         </Group>
       </Card>
-
       <Title order={4} c="blue">
-        Choose generation strategy
+        Choose generation parameters
       </Title>
-      <Text>coming soon :)</Text>
+      <Group>
+        <NumberInput
+          label="Number of designs"
+          min={1}
+          max={20000}
+          step={1000}
+          defaultValue={1000}
+          thousandSeparator={true}
+          allowDecimal={false}
+          description="More designs take longer to run"
+        />
+        <Select
+          label="Sequence diversity (temperature)"
+          description="Higher temperature gives more diversity"
+          placeholder="Pick value"
+          defaultValue={"0.1"}
+          data={[
+            { value: "0.0001", label: "0.0001 (very low)" },
+            { value: "0.001", label: "0.001 (low)" },
+            { value: "0.1", label: "0.1 (normal)" },
+            { value: "1.0", label: "1.0 (high)" },
+          ]}
+        />
+      </Group>
+      <Space />
       <Title order={4} c="blue">
-        Define positions to mutate in designs
+        Define positions to mutate
       </Title>
-      <Text>coming soon :)</Text>
+      <Space />
+      <SequenceViewer
+        seq={targetSeqCut}
+        firstIndex={targetSeq.start}
+        handleClick={(pos) => {
+          console.log("clicked", pos);
+        }}
+        getPosStyle={(_) => "selectable"}
+        chunkSize={10}
+      />
+      <Group>
+        <Button variant="default">Select all</Button>
+        <Button variant="default">Select none</Button>
+        <Button variant="default">Invert selection</Button>
+      </Group>
+      <Space />
+      <Button
+        variant="filled"
+        size="md"
+        disabled={true}
+        onClick={() => console.log("GENERATE")}
+      >
+        Generate designs (coming soon)
+      </Button>
     </>
   );
 };
