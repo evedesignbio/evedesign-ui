@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Badge,
   Button,
   Card,
   Group,
@@ -9,12 +10,17 @@ import {
   Space,
   Stack,
   Text,
+  TextInput,
   Title,
 } from "@mantine/core";
 import { Sequence } from "../../models/design.ts";
 import { SeqWithRegion } from "./sequence.tsx";
 import { SequenceViewer } from "../../components/sequenceviewer";
 import { range } from "../../utils/helpers.ts";
+
+const MIN_NUM_DESIGNS = 1;
+const MAX_NUM_DESIGNS = 20000;
+const DEFAULT_NUM_DESIGNS = 1000;
 
 export interface DesignSpecProps {
   targetSeq: SeqWithRegion;
@@ -27,14 +33,27 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
     targetSeq.end,
   );
 
+  const [jobName, setJobName] = useState("");
+  const [model, setModel] = useState<string | null>("evmutation2");
   const [sampler, setSampler] = useState("model");
+  const [numDesigns, setNumDesigns] = useState<number | string>(
+    DEFAULT_NUM_DESIGNS,
+  );
+  const [temperature, setTemperature] = useState<string | null>("0.1");
   const [posSelection, setPosSelection] = useState<number[]>([]);
+  // TODO: checks before submission
+  //  1) at least 1 position defined?
 
   const selectAllPos = () =>
     setPosSelection(range(targetSeq.start, targetSeq.end + 1, 1));
 
   // (re-)initialize selected positions whenever target sequence changes
   useEffect(selectAllPos, [targetSeq]);
+
+  // set only viable sampler option if ESM2 selected
+  useEffect(() => {
+    if (model === "esm2") setSampler("gibbs");
+  }, [model]);
 
   const downloadButton = useMemo(() => {
     if (msa) {
@@ -58,17 +77,59 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
   }, [msa]);
 
   const numSeqs = msa.length;
+  const evoModelOk = numSeqs / targetSeqCut.length > 1;
 
-  // TODO: need to cut target sequence ... right now showing full sequence
-  // TODO: init positions when input target seq changes
-  // TODO: allow to select model
-  // TODO: allow to select sampler
-  // TODO: add sampler params
-  // TODO: use slider for params
-  // TODO: job name input
+  let samplerOptions = [
+    {
+      label: (
+        <Stack gap="xs">
+          <Text size={"md"} fw={500}>Autoregressive sampling</Text>
+          <Text size="sm" c="dimmed">
+            Faster, but limited control over generation.
+            <br />
+            Recommended for larger libraries.
+          </Text>
+        </Stack>
+      ),
+      value: "model",
+    },
+    {
+      label: (
+        <Stack gap="xs" align={"center"}>
+          <Text size={"md"} fw={500}>Restrained Gibbs sampling</Text>
+          <Text size="sm" c="dimmed">
+            Slower, but precise control over generation
+            <br />
+            (distance to WT, motifs, ...).
+          </Text>
+        </Stack>
+      ),
+      value: "gibbs",
+    },
+  ];
 
-  // TODO: checks:
-  //  1) at least 1 position defined?
+  if (model === "esm2") {
+    samplerOptions = samplerOptions.slice(1);
+  }
+
+  let restraints = null;
+  if (sampler === "gibbs") {
+    restraints = (
+      <Select
+        label="Extra restraints for sampling"
+        description="Specify additional design properties to enforce during generation"
+        placeholder="Pick value"
+        // value={temperature}
+        // onChange={setTemperature}
+        data={[
+          {
+            value: "linear_seq_dist",
+            label: "Linear sequence distance restraint",
+          },
+        ]}
+      />
+    );
+  }
 
   return (
     <>
@@ -86,66 +147,89 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
             {downloadButton}
           </Group>
         </Group>
+        <Group>
+          <Badge variant="light" color={evoModelOk ? "green" : "orange"}>
+            Evolutionary models {evoModelOk ? "applicable" : "not applicable"}
+          </Badge>
+        </Group>
       </Card>
+
+      <Space />
       <Title order={4} c="blue">
         Choose generation parameters
       </Title>
-      <SegmentedControl
-        value={sampler}
-        onChange={setSampler}
-        fullWidth={true}
+      <Stack>
+        <Select
+          label="Design model"
+          description="Select a molecular model that best aligns with your design goals"
+          placeholder="Pick value"
+          data={[
+            {
+              value: "evmutation2",
+              label:
+                "EVmutation2 (evolutionary model; best for designing functional proteins)",
+            },
+            {
+              value: "proteinmpnn",
+              label:
+                "ProteinMPNN (inverse folding model; best for designing stability but may lose function)",
+            },
+            {
+              value: "esm2",
+              label:
+                "ESM2 (best for sequence-only design in absence of evolutionary record)",
+            },
+          ]}
+          value={model}
+          onChange={setModel}
+          allowDeselect={false}
+        />
+      </Stack>
+
+      <Stack gap={6}>
+        <Text size="sm" fw={500}>
+          Sampling strategy
+        </Text>
+        {/*<Text c="dimmed" size={"sm"}>Use the strategy that is most appropriate to your design problem</Text>*/}
+
+        <SegmentedControl
+          value={sampler}
+          onChange={setSampler}
+          data={samplerOptions}
+        />
+      </Stack>
+
+      <NumberInput
+        label="Number of designs"
+        min={MIN_NUM_DESIGNS}
+        max={MAX_NUM_DESIGNS}
+        step={1000}
+        value={numDesigns}
+        onChange={setNumDesigns}
+        thousandSeparator={true}
+        allowDecimal={false}
+        description="More designs take longer to run"
+      />
+      <Select
+        label="Sequence diversity (sampling temperature)"
+        description="Higher temperatures give more diversity"
+        placeholder="Pick value"
+        value={temperature}
+        onChange={setTemperature}
+        allowDeselect={false}
         data={[
-          {
-            label: (
-              <Stack gap="xs">
-                <Title order={5}>Autoregressive sampling</Title>
-                <Text size="sm" c="dimmed">
-                  Faster, but limited control over generation.
-                  <br />Recommended for larger libraries.
-                </Text>
-              </Stack>
-            ),
-            value: "model",
-          },
-          {
-            label: (
-              <Stack gap="xs" align={"center"}>
-                <Title order={5}>Constrained Gibbs sampling</Title>
-                <Text size="sm" c="dimmed">
-                  Slower, but precise control over generation
-                  <br />
-                  (distance to WT, motifs, ...).
-                </Text>
-              </Stack>
-            ),
-            value: "gibbs",
-          },
+          { value: "0.01", label: "0.01 (very low)" },
+          { value: "0.05", label: "0.05 (low)" },
+          { value: "0.1", label: "0.1 (normal-low)" },
+          { value: "0.2", label: "0.2 (normal-low)" },
+          { value: "0.5", label: "0.5 (normal-high)" },
+          { value: "1.0", label: "1.0 (normal-high)" },
+          { value: "2.0", label: "2.0 (high)" },
         ]}
       />
-      <Group>
-        <NumberInput
-          label="Number of designs"
-          min={1}
-          max={20000}
-          step={1000}
-          defaultValue={1000}
-          thousandSeparator={true}
-          allowDecimal={false}
-          description="More designs take longer to run"
-        />
-        <Select
-          label="Sequence diversity (temperature)"
-          description="Higher temperature gives more diversity"
-          placeholder="Pick value"
-          defaultValue={"0.1"}
-          data={[
-            { value: "0.0001", label: "0.0001 (very low)" },
-            { value: "0.001", label: "0.001 (low)" },
-            { value: "0.1", label: "0.1 (normal)" },
-            { value: "1.0", label: "1.0 (high)" },
-          ]}
-        />
-      </Group>
+
+      {restraints}
+
       <Space />
       <Title order={4} c="blue">
         Define positions to mutate
@@ -187,6 +271,14 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
         </Button>
       </Group>
       <Space />
+      {/*<TextInput
+        label="Name your design job"
+        description="Specifying a job name will allow you to locate your results more easily later"
+        placeholder="Enter job name (optional)"
+        value={jobName}
+        onChange={(e) => setJobName(e.target.value)}
+      />*/}
+      <Space />
       <Button
         variant="filled"
         size="md"
@@ -198,24 +290,3 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
     </>
   );
 };
-
-// const numSeqs = msa && msa.data ? msa.data.length : 0;
-// const numStructures = foldseekResult.data?.results[0].alignments[0].length;
-// const targetFirstIndex = targetSeq !== null ? targetSeq.start : null;
-
-// <>
-//   <div>
-//     Target seq: {targetSeqCut} {targetFirstIndex}
-//   </div>
-//   <div>{JSON.stringify(seqSearch)}</div>
-//   <div>Number of sequences: {numSeqs}</div>
-//   <div>Number of structures: {numStructures}</div>
-//   {downloadButton}
-//
-//   {/*<div>Error: {JSON.stringify(mmseqsError)}</div>*/}
-//   {/*<div>Running: {JSON.stringify(mmseqsRunning)}</div>*/}
-//   {/*<div>ID: {JSON.stringify(mmseqsId)}</div>*/}
-//   {/*<div>Complete: {JSON.stringify(mmseqsComplete)}</div>*/}
-// </>
-// // TODO: // const [_, navigate] = useLocation();
-// // TODO: navigation to results page onClick={() => navigate("/results/A1234")}
