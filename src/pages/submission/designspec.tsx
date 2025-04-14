@@ -138,8 +138,6 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
   const numSeqs = msa.length;
   const evoModelOk = numSeqs / targetSeqCut.length > 1;
 
-  console.log("SAMPLER", sampler);
-
   let samplerOptions = [
     {
       label: (
