@@ -95,7 +95,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
 
   // const [jobName, setJobName] = useState("");
   const [model, setModel] = useState<string | null>("evmutation2");
-  const [sampler, setSampler] = useState("gibbs"); // TODO: revert
+  const [sampler, setSampler] = useState("model");
   const [numDesigns, setNumDesigns] = useState<number | string>(
     DEFAULT_NUM_DESIGNS,
   );
@@ -137,6 +137,8 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
 
   const numSeqs = msa.length;
   const evoModelOk = numSeqs / targetSeqCut.length > 1;
+
+  console.log("SAMPLER", sampler);
 
   let samplerOptions = [
     {
