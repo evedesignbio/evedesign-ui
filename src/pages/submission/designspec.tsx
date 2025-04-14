@@ -20,7 +20,7 @@ import { range } from "../../utils/helpers.ts";
 
 const MIN_NUM_DESIGNS = 1;
 const MAX_NUM_DESIGNS = 20000;
-const DEFAULT_NUM_DESIGNS = 1000;
+const DEFAULT_NUM_DESIGNS = 16;  // TODO: increase again
 
 export interface DesignSpecProps {
   targetSeq: SeqWithRegion;
@@ -29,6 +29,7 @@ export interface DesignSpecProps {
 
 interface RestraintSpec {
   key: string;
+  variant: string;
   weight: number;
   args: object | null;
   data: object | null;
@@ -55,9 +56,9 @@ const RestraintList = ({ restraints, setRestraints }: RestraintListProps) => {
     <Card key={index}>
       <Group justify="space-between">
         <Text size={"sm"}>
-          {restraint.key === "linear_seq_dist_target"
-            ? "Mutation distance to target sequence"
-            : "TODO"}
+          {restraint.key === "linear_seq_dist_restraint"
+            ? "Mutation distance to target sequence" // TODO: eventually also will have arbitrary mutation distance
+            : "Not yet implemented"}
         </Text>
         <Group gap={"xs"}>
           <Text size={"sm"}>Weight</Text>
@@ -104,6 +105,7 @@ const buildSpec = (
   restraints: RestraintSpec[],
   posSelection: number[],
 ): PipelineSpec => {
+  const temperatureNumeric = parseFloat(temperature);
   let modelSpec;
   if (model === "evmutation2") {
     modelSpec = {
@@ -118,15 +120,30 @@ const buildSpec = (
     throw new Error("Model not yet implemented");
   }
 
-  console.log("RESTRAINTS", restraints); // TODO: remove
-
   let generator;
   if (sampler === "model") {
     generator = modelSpec;
   } else {
-    // TODO: add restraints with weights
-    const scorers = [modelSpec]; // TODO
-    const weights = [1]; // TODO
+    // const restraintAsObj = restraints as object[];
+    // remove weight attribute
+    const restraintAsObj = restraints.map(
+        (r) => {
+          const {weight, ...filtObject} = r;
+          return filtObject
+        }
+    )
+    // work around TS complaints
+    let scorers: object[] = [modelSpec];
+    if (scorers.length > 0) {
+      scorers = scorers.concat(restraintAsObj);
+    }
+    const weights = [1.0].concat(restraints.map((r) => r.weight));
+
+    const numSweeps = 100; // TODO: find reasonable default here
+    const initStrategy = "system"; // TODO: determine if we want to use random (more sweeps needed) or system
+    // TODO: for now, linearly anneal the temperature down by one order of magnitude over all sweeps
+    const temperatureUpdate =
+      (temperatureNumeric - temperatureNumeric / 10) / numSweeps;
 
     generator = {
       key: "gibbs",
@@ -134,10 +151,13 @@ const buildSpec = (
       args: {
         scorers: scorers,
         weights: weights,
-        num_sweeps: 1, // TODO: use reasonable default here
-        init_strategy: "system", // TODO: determine if we want to use random or system
+        num_sweeps: numSweeps,
+        init_strategy: initStrategy,
         scan_order: "random",
-        temperature_schedule: null, // TODO: determine good value / use auto-determmined linear schedule
+        temperature_schedule: {
+          type: "linear",
+          update: temperatureUpdate,
+        },
       },
     };
   }
@@ -178,7 +198,7 @@ const buildSpec = (
           fixed_pos: {
             0: fixedPos,
           },
-          temperature: parseFloat(temperature),
+          temperature: temperatureNumeric,
           deletions: false,
         },
       },
@@ -281,16 +301,17 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
           description="Specify additional design properties to enforce during generation"
           withCheckIcon={false}
           placeholder="Select a restraint to add..."
-          onOptionSubmit={(value) => {
-            // TODO: flexibly instantiate different restraints here
+          onOptionSubmit={(_) => {
+            // TODO: flexibly instantiate different restraints here based on selected value
             const newRestraint: RestraintSpec = {
-              key: value,
+              key: "linear_seq_dist_restraint",
+              variant: "default",
               weight: -0.1,
               args: null,
-              data: {
+              data: [{
                 entity: 0,
                 rep: targetSeqCut,
-              },
+              }],
             };
 
             setRestraints(restraints.concat(newRestraint));
@@ -298,7 +319,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
           data={[
             {
               value: "linear_seq_dist_target",
-              label: "Sequence distance to target sequence",
+              label: "Mutation distance to target sequence",
             },
           ]}
         />
