@@ -56,7 +56,7 @@ const RestraintList = ({ restraints, setRestraints }: RestraintListProps) => {
       <Group justify="space-between">
         <Text size={"sm"}>
           {restraint.key === "linear_seq_dist_target"
-            ? "Sequence distance to target sequence"
+            ? "Mutation distance to target sequence"
             : "TODO"}
         </Text>
         <Group gap={"xs"}>
@@ -64,7 +64,7 @@ const RestraintList = ({ restraints, setRestraints }: RestraintListProps) => {
           <NumberInput
             size="xs"
             value={restraint.weight}
-            suffix={restraint.weight > 0 ? "  [make dissimilar]" : (restraint.weight < 0 ? "   [make similar]" : "")}
+            suffix={restraint.weight > 0 ? "  (make dissimilar)" : (restraint.weight < 0 ? "   (make similar)" : "")}
             onChange={(value) => {
               if (typeof value === "string") return;
               updateAndSet(index, {
