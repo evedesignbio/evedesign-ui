@@ -13,7 +13,7 @@ import {
   Text,
   Title,
 } from "@mantine/core";
-import { Sequence } from "../../models/design.ts";
+import { PipelineSpec, Sequence } from "../../models/design.ts";
 import { SeqWithRegion } from "./sequence.tsx";
 import { SequenceViewer } from "../../components/sequenceviewer";
 import { range } from "../../utils/helpers.ts";
@@ -64,7 +64,13 @@ const RestraintList = ({ restraints, setRestraints }: RestraintListProps) => {
           <NumberInput
             size="xs"
             value={restraint.weight}
-            suffix={restraint.weight > 0 ? "  (make dissimilar)" : (restraint.weight < 0 ? "   (make similar)" : "")}
+            suffix={
+              restraint.weight > 0
+                ? "  (make dissimilar)"
+                : restraint.weight < 0
+                  ? "   (make similar)"
+                  : ""
+            }
             onChange={(value) => {
               if (typeof value === "string") return;
               updateAndSet(index, {
@@ -80,11 +86,104 @@ const RestraintList = ({ restraints, setRestraints }: RestraintListProps) => {
             setRestraints(restraints.filter((_, index2) => index2 !== index))
           }
           variant={"transparent"}
-
         />
       </Group>
     </Card>
   ));
+};
+
+const buildSpec = (
+  targetSeqCut: string,
+  firstIndex: number,
+  lastIndex: number,
+  msa: Sequence[],
+  numDesigns: number,
+  temperature: string,
+  model: string,
+  sampler: string,
+  restraints: RestraintSpec[],
+  posSelection: number[],
+): PipelineSpec => {
+  let modelSpec;
+  if (model === "evmutation2") {
+    modelSpec = {
+      key: "evmutation2",
+      variant: "msa-only-small",
+      args: {
+        encoder_num_samples: 1,
+        decoder_batch_size: Math.min(numDesigns, 512),
+      },
+    };
+  } else {
+    throw new Error("Model not yet implemented");
+  }
+
+  console.log("RESTRAINTS", restraints); // TODO: remove
+
+  let generator;
+  if (sampler === "model") {
+    generator = modelSpec;
+  } else {
+    // TODO: add restraints with weights
+    const scorers = [modelSpec]; // TODO
+    const weights = [1]; // TODO
+
+    generator = {
+      key: "gibbs",
+      variant: "default",
+      args: {
+        scorers: scorers,
+        weights: weights,
+        num_sweeps: 1, // TODO: use reasonable default here
+        init_strategy: "system", // TODO: determine if we want to use random or system
+        scan_order: "random",
+        temperature_schedule: null, // TODO: determine good value / use auto-determmined linear schedule
+      },
+    };
+  }
+
+  // invert posSelection (positions to mutate) into fixed positions list
+  const fixedPos = range(firstIndex, lastIndex, 1).filter(
+    (pos) => !posSelection.includes(pos),
+  );
+
+  return {
+    key: "pipeline",
+    schema_version: "0.1",
+    metadata: null,
+
+    system: [
+      {
+        type: "protein",
+        rep: targetSeqCut,
+        id: "1",
+        first_index: firstIndex,
+        sequences: {
+          seqs: msa,
+          aligned: true,
+          type: "protein",
+          weights: null,
+          format: "a3m",
+        },
+      },
+    ],
+    system_instances: null,
+    steps: [
+      {
+        key: "generate",
+        generator: generator,
+        args: {
+          num_designs: numDesigns,
+          entities: [0],
+          fixed_pos: {
+            0: fixedPos,
+          },
+          temperature: parseFloat(temperature),
+          deletions: false,
+        },
+      },
+    ],
+  };
 };
 
 export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
@@ -94,17 +193,15 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
   );
 
   // const [jobName, setJobName] = useState("");
-  const [model, setModel] = useState<string | null>("evmutation2");
+  const [model, setModel] = useState<string>("evmutation2");
   const [sampler, setSampler] = useState("model");
-  const [numDesigns, setNumDesigns] = useState<number | string>(
-    DEFAULT_NUM_DESIGNS,
-  );
-  const [temperature, setTemperature] = useState<string | null>("0.1");
+  const [numDesigns, setNumDesigns] = useState<number>(DEFAULT_NUM_DESIGNS);
+  const [temperature, setTemperature] = useState<string>("0.1");
   const [posSelection, setPosSelection] = useState<number[]>([]);
   const [restraints, setRestraints] = useState<RestraintSpec[]>([]);
 
   const selectAllPos = () =>
-    setPosSelection(range(targetSeq.start, targetSeq.end + 1, 1));
+    setPosSelection(range(targetSeq.start, targetSeq.end, 1));
 
   // (re-)initialize selected positions whenever target sequence changes
   useEffect(selectAllPos, [targetSeq]);
@@ -262,7 +359,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
             },
           ]}
           value={model}
-          onChange={setModel}
+          onOptionSubmit={setModel}
           allowDeselect={false}
         />
       </Stack>
@@ -286,7 +383,10 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
         max={MAX_NUM_DESIGNS}
         step={1000}
         value={numDesigns}
-        onChange={setNumDesigns}
+        onChange={(value) => {
+          if (typeof value === "string") return;
+          setNumDesigns(value);
+        }}
         thousandSeparator={true}
         allowDecimal={false}
         description="More designs take longer to run"
@@ -296,7 +396,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
         description="Higher temperatures give more diversity"
         placeholder="Pick value"
         value={temperature}
-        onChange={setTemperature}
+        onOptionSubmit={setTemperature}
         allowDeselect={false}
         data={[
           { value: "0.01", label: "0.01 (very low)" },
@@ -342,7 +442,8 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
           variant="default"
           onClick={() =>
             setPosSelection(
-              range(targetSeq.start, targetSeq.end + 1, 1).filter(
+              // note that range function includes end in range
+              range(targetSeq.start, targetSeq.end, 1).filter(
                 (pos) => !posSelection.includes(pos),
               ),
             )
@@ -364,7 +465,22 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
         variant="filled"
         size="md"
         disabled={posSelection.length === 0}
-        onClick={() => console.log("GENERATE")}
+        onClick={() => {
+          const designSpec = buildSpec(
+            targetSeqCut,
+            targetSeq.start,
+            targetSeq.end,
+            msa,
+            numDesigns,
+            temperature,
+            model,
+            sampler,
+            restraints,
+            posSelection,
+          );
+          console.log("SUBMIT", JSON.stringify(designSpec));
+          // TODO: implement actual submission with auth
+        }}
       >
         {posSelection.length > 0
           ? "Generate designs"
