@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { Container, LoadingOverlay, Loader, Stack, Text } from "@mantine/core";
+import {
+  Container,
+  LoadingOverlay,
+  Loader,
+  Stack,
+  Text,
+} from "@mantine/core";
 import { useMmseqsMsa, useMmseqsSearch } from "../../api/mmseqs.ts";
 import { useFoldseekResult, useFoldseekSearch } from "../../api/foldseek.ts";
 import {

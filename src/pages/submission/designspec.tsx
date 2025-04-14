@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Button,
   Card,
@@ -12,6 +12,7 @@ import {
 import { Sequence } from "../../models/design.ts";
 import { SeqWithRegion } from "./sequence.tsx";
 import { SequenceViewer } from "../../components/sequenceviewer";
+import {range} from "../../utils/helpers.ts";
 
 export interface DesignSpecProps {
   targetSeq: SeqWithRegion;
@@ -24,9 +25,13 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
     targetSeq.end,
   );
 
-  // const [posSelection, setPosSelection] = useState<number[] | null >(null);
+  const [posSelection, setPosSelection] = useState<number[]>([]);
 
-  const numSeqs = msa.length;
+  const selectAllPos = () =>
+    setPosSelection(range(targetSeq.start, targetSeq.end + 1, 1));
+
+  // (re-)initialize selected positions whenever target sequence changes
+  useEffect(selectAllPos, [targetSeq]);
 
   const downloadButton = useMemo(() => {
     if (msa) {
@@ -49,11 +54,17 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
     }
   }, [msa]);
 
+  const numSeqs = msa.length;
+
   // TODO: need to cut target sequence ... right now showing full sequence
   // TODO: init positions when input target seq changes
   // TODO: allow to select model
   // TODO: allow to select sampler
   // TODO: add sampler params
+  // TODO: use slider for params
+
+  // TODO: checks:
+  //  1) at least 1 positino defined?
 
   return (
     <>
@@ -108,15 +119,36 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
         seq={targetSeqCut}
         firstIndex={targetSeq.start}
         handleClick={(pos) => {
-          console.log("clicked", pos);
+          if (posSelection.includes(pos)) {
+            setPosSelection(posSelection.filter((curPos) => curPos !== pos));
+          } else {
+            setPosSelection(posSelection.concat(pos));
+          }
         }}
-        getPosStyle={(_) => "selectable"}
+        getPosStyle={(pos) =>
+          "selectable" + (posSelection.includes(pos) ? " selected " : "")
+        }
         chunkSize={10}
       />
       <Group>
-        <Button variant="default">Select all</Button>
-        <Button variant="default">Select none</Button>
-        <Button variant="default">Invert selection</Button>
+        <Button variant="default" onClick={selectAllPos}>
+          Select all
+        </Button>
+        <Button variant="default" onClick={() => setPosSelection([])}>
+          Select none
+        </Button>
+        <Button
+          variant="default"
+          onClick={() =>
+            setPosSelection(
+              range(targetSeq.start, targetSeq.end + 1, 1).filter(
+                (pos) => !posSelection.includes(pos),
+              ),
+            )
+          }
+        >
+          Invert selection
+        </Button>
       </Group>
       <Space />
       <Button
