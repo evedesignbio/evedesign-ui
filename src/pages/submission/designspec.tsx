@@ -4,15 +4,17 @@ import {
   Card,
   Group,
   NumberInput,
+  SegmentedControl,
   Select,
   Space,
+  Stack,
   Text,
   Title,
 } from "@mantine/core";
 import { Sequence } from "../../models/design.ts";
 import { SeqWithRegion } from "./sequence.tsx";
 import { SequenceViewer } from "../../components/sequenceviewer";
-import {range} from "../../utils/helpers.ts";
+import { range } from "../../utils/helpers.ts";
 
 export interface DesignSpecProps {
   targetSeq: SeqWithRegion;
@@ -25,6 +27,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
     targetSeq.end,
   );
 
+  const [sampler, setSampler] = useState("model");
   const [posSelection, setPosSelection] = useState<number[]>([]);
 
   const selectAllPos = () =>
@@ -62,9 +65,10 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
   // TODO: allow to select sampler
   // TODO: add sampler params
   // TODO: use slider for params
+  // TODO: job name input
 
   // TODO: checks:
-  //  1) at least 1 positino defined?
+  //  1) at least 1 position defined?
 
   return (
     <>
@@ -86,6 +90,38 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
       <Title order={4} c="blue">
         Choose generation parameters
       </Title>
+      <SegmentedControl
+        value={sampler}
+        onChange={setSampler}
+        fullWidth={true}
+        data={[
+          {
+            label: (
+              <Stack gap="xs">
+                <Title order={5}>Autoregressive sampling</Title>
+                <Text size="sm" c="dimmed">
+                  Faster, but limited control over generation.
+                  <br />Recommended for larger libraries.
+                </Text>
+              </Stack>
+            ),
+            value: "model",
+          },
+          {
+            label: (
+              <Stack gap="xs" align={"center"}>
+                <Title order={5}>Constrained Gibbs sampling</Title>
+                <Text size="sm" c="dimmed">
+                  Slower, but precise control over generation
+                  <br />
+                  (distance to WT, motifs, ...).
+                </Text>
+              </Stack>
+            ),
+            value: "gibbs",
+          },
+        ]}
+      />
       <Group>
         <NumberInput
           label="Number of designs"
