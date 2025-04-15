@@ -20,7 +20,7 @@ import { range } from "../../utils/helpers.ts";
 
 const MIN_NUM_DESIGNS = 1;
 const MAX_NUM_DESIGNS = 20000;
-const DEFAULT_NUM_DESIGNS = 16;  // TODO: increase again
+const DEFAULT_NUM_DESIGNS = 16; // TODO: increase again
 
 export interface DesignSpecProps {
   targetSeq: SeqWithRegion;
@@ -116,6 +116,15 @@ const buildSpec = (
         decoder_batch_size: Math.min(numDesigns, 512),
       },
     };
+  } else if (model === "evmutation2_ensembled") {
+    modelSpec = {
+      key: "evmutation2",
+      variant: "msa-only-small",
+      args: {
+        encoder_num_samples: 4,
+        decoder_batch_size: Math.min(numDesigns, 512),
+      },
+    };
   } else {
     throw new Error("Model not yet implemented");
   }
@@ -126,12 +135,10 @@ const buildSpec = (
   } else {
     // const restraintAsObj = restraints as object[];
     // remove weight attribute
-    const restraintAsObj = restraints.map(
-        (r) => {
-          const {weight, ...filtObject} = r;
-          return filtObject
-        }
-    )
+    const restraintAsObj = restraints.map((r) => {
+      const { weight, ...filtObject } = r;
+      return filtObject;
+    });
     // work around TS complaints
     let scorers: object[] = [modelSpec];
     if (scorers.length > 0) {
@@ -297,8 +304,8 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
     restraintSelection = (
       <>
         <Select
-          label="Extra restraints for sampling"
-          description="Specify additional design properties to enforce during generation"
+          label="Extra specifications on sequence properties"
+          description="Specify additional restraints to enforce during generation"
           withCheckIcon={false}
           placeholder="Select a restraint to add..."
           onOptionSubmit={(_) => {
@@ -308,10 +315,12 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
               variant: "default",
               weight: -0.1,
               args: null,
-              data: [{
-                entity: 0,
-                rep: targetSeqCut,
-              }],
+              data: [
+                {
+                  entity: 0,
+                  rep: targetSeqCut,
+                },
+              ],
             };
 
             setRestraints(restraints.concat(newRestraint));
@@ -365,6 +374,11 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
               value: "evmutation2",
               label:
                 "EVmutation2 (evolutionary model; best for designing functional proteins)",
+            },
+            {
+              value: "evmutation2_ensembled",
+              label:
+                "EVmutation2 (ensembled high-accuracy mode with 4x runtime)",
             },
             {
               value: "proteinmpnn",
@@ -499,7 +513,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
             restraints,
             posSelection,
           );
-          console.log("SUBMIT", JSON.stringify(designSpec));
+          console.log("SUBMIT", designSpec);
           // TODO: implement actual submission with auth
         }}
       >
