@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   CloseButton,
+  Collapse,
   Group,
   NumberInput,
   SegmentedControl,
@@ -17,10 +18,19 @@ import { PipelineSpec, Sequence } from "../../models/design.ts";
 import { SeqWithRegion } from "./sequence.tsx";
 import { SequenceViewer } from "../../components/sequenceviewer";
 import { range } from "../../utils/helpers.ts";
+import { useDisclosure } from "@mantine/hooks";
 
 const MIN_NUM_DESIGNS = 1;
 const MAX_NUM_DESIGNS = 20000;
 const DEFAULT_NUM_DESIGNS = 16; // TODO: increase again
+
+// Gibbs sampler params
+const MIN_NUM_SWEEPS = 1; // TODO: raise to minimum sensible value
+const MAX_NUM_SWEEPS = 1000;
+const DEFAULT_NUM_SWEEPS = 100;
+const DEFAULT_TEMPERATURE_FACTOR = 10;
+const MIN_TEMPERATURE_FACTOR = 1;
+const MAX_TEMPERATURE_FACTOR = 1000;
 
 export interface DesignSpecProps {
   targetSeq: SeqWithRegion;
@@ -93,7 +103,7 @@ const RestraintList = ({ restraints, setRestraints }: RestraintListProps) => {
   ));
 };
 
-const buildSpec = (
+const buildDesignSpec = (
   targetSeqCut: string,
   firstIndex: number,
   lastIndex: number,
@@ -104,6 +114,9 @@ const buildSpec = (
   sampler: string,
   restraints: RestraintSpec[],
   posSelection: number[],
+  temperatureFactor: number,
+  numSweeps: number,
+  initStrategy: string,
 ): PipelineSpec => {
   const temperatureNumeric = parseFloat(temperature);
   let modelSpec;
@@ -146,11 +159,9 @@ const buildSpec = (
     }
     const weights = [1.0].concat(restraints.map((r) => r.weight));
 
-    const numSweeps = 100; // TODO: find reasonable default here
-    const initStrategy = "system"; // TODO: determine if we want to use random (more sweeps needed) or system
-    // TODO: for now, linearly anneal the temperature down by one order of magnitude over all sweeps
+    // use linear schedule by default, set temperatureFactor to 1 for constant temperature
     const temperatureUpdate =
-      (temperatureNumeric - temperatureNumeric / 10) / numSweeps;
+      (temperatureNumeric - temperatureNumeric / temperatureFactor) / numSweeps;
 
     generator = {
       key: "gibbs",
@@ -219,13 +230,20 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
     targetSeq.end,
   );
 
-  // const [jobName, setJobName] = useState("");
   const [model, setModel] = useState<string>("evmutation2");
   const [sampler, setSampler] = useState("model");
   const [numDesigns, setNumDesigns] = useState<number>(DEFAULT_NUM_DESIGNS);
   const [temperature, setTemperature] = useState<string>("0.1");
   const [posSelection, setPosSelection] = useState<number[]>([]);
+
+  // Gibbs settings
   const [restraints, setRestraints] = useState<RestraintSpec[]>([]);
+  const [expertOpen, { toggle: toggleExpert }] = useDisclosure(false);
+  const [numSweeps, setNumSweeps] = useState<number>(DEFAULT_NUM_SWEEPS);
+  const [initStrategy, setInitStrategy] = useState<string>("system");
+  const [temperatureFactor, setTemperatureFactor] = useState(
+    DEFAULT_TEMPERATURE_FACTOR,
+  );
 
   const selectAllPos = () =>
     setPosSelection(range(targetSeq.start, targetSeq.end, 1));
@@ -237,6 +255,9 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
   useEffect(() => {
     if (model === "esm2") setSampler("gibbs");
   }, [model]);
+
+  const numSeqs = msa.length;
+  const evoModelOk = numSeqs / targetSeqCut.length > 1;
 
   const downloadButton = useMemo(() => {
     if (msa) {
@@ -258,9 +279,6 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
       return null;
     }
   }, [msa]);
-
-  const numSeqs = msa.length;
-  const evoModelOk = numSeqs / targetSeqCut.length > 1;
 
   let samplerOptions = [
     {
@@ -333,6 +351,58 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
           ]}
         />
         <RestraintList restraints={restraints} setRestraints={setRestraints} />
+        <Button onClick={toggleExpert} variant="subtle">
+          {expertOpen ? "Hide" : "Show"} expert settings
+        </Button>
+        <Collapse in={expertOpen}>
+          <Stack>
+            <NumberInput
+              label="Sampling temperature schedule factor"
+              min={MIN_TEMPERATURE_FACTOR}
+              max={MAX_TEMPERATURE_FACTOR}
+              step={1}
+              value={temperatureFactor}
+              onChange={(value) => {
+                if (typeof value === "string") return;
+                setTemperatureFactor(value);
+              }}
+              thousandSeparator={true}
+              allowDecimal={false}
+              description="Initial temperature will be reduced linearly from T to T/factor over all sweeps (set to 1 for constant temperature)"
+            />
+            <NumberInput
+              label="Number of Gibbs sweeps"
+              min={MIN_NUM_SWEEPS}
+              max={MAX_NUM_SWEEPS}
+              step={1}
+              value={numSweeps}
+              onChange={(value) => {
+                if (typeof value === "string") return;
+                setNumSweeps(value);
+              }}
+              thousandSeparator={true}
+              allowDecimal={false}
+              description="Increasing sweeps may give more reliable results at the expense of higher runtime "
+            />
+            <Select
+              label="Gibbs initialization strategy"
+              description="Random initialization may yield more diversity at the expense of needing more sweeps"
+              data={[
+                {
+                  value: "random",
+                  label: "Random sequence",
+                },
+                {
+                  value: "system",
+                  label: "Target sequence",
+                },
+              ]}
+              value={initStrategy}
+              onOptionSubmit={setInitStrategy}
+              allowDeselect={false}
+            />
+          </Stack>
+        </Collapse>
       </>
     );
   }
@@ -501,7 +571,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
         size="md"
         disabled={posSelection.length === 0}
         onClick={() => {
-          const designSpec = buildSpec(
+          const designSpec = buildDesignSpec(
             targetSeqCut,
             targetSeq.start,
             targetSeq.end,
@@ -512,6 +582,9 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
             sampler,
             restraints,
             posSelection,
+            temperatureFactor,
+            numSweeps,
+            initStrategy,
           );
           console.log("SUBMIT", designSpec);
           // TODO: implement actual submission with auth
