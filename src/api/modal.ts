@@ -1,11 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
-import { PipelineSpec } from "../models/design.ts";
+import {PipelineSpec, SingleMutationScanSpec} from "../models/design.ts";
 
 const getBackendUrl = () =>
   "https://deboramarkslab--designserver-api-fastapi-app.modal.run/";
 
 interface SubmissionParams {
-  spec: PipelineSpec;
+  spec: PipelineSpec | SingleMutationScanSpec;
   token: string;
 }
 
