@@ -4,8 +4,11 @@ import {
   Button,
   Card,
   CloseButton,
+  Code,
   Collapse,
   Group,
+  Loader,
+  Modal,
   NumberInput,
   PasswordInput,
   SegmentedControl,
@@ -280,6 +283,8 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
   // submission-related
   const [token, setToken] = useState("");
   const submission = useSubmission();
+  const [isSubmitting, { open: openSubmitting, close: closeSubmitting }] =
+    useDisclosure(false);
 
   const selectAllPos = () =>
     setPosSelection(range(targetSeq.start, targetSeq.end, 1));
@@ -542,6 +547,61 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
 
   return (
     <>
+      <Modal
+        opened={isSubmitting}
+        onClose={closeSubmitting}
+        withCloseButton={false}
+        // title="Job submission"
+        overlayProps={{
+          // backgroundOpacity: 0.55,
+          blur: 3,
+        }}
+      >
+        <Stack align={"center"}>
+          {submission.isPending ? (
+            <>
+              <Loader type="dots" size="xl"></Loader>
+              <Text>Submitting your job...</Text>
+            </>
+          ) : null}
+          {submission.isSuccess ? (
+            <>
+              <Title order={2}>Submission successful!</Title>
+              <Group>
+                <Text>Your job ID is</Text>
+                <Code>{submission.data?.job_id}</Code>
+              </Group>
+              <Group>
+                <Button variant="default" onClick={closeSubmitting}>
+                  Submit another job
+                </Button>
+                <Button
+                  component="a"
+                  href={`/results/${submission.data?.job_id}`}
+                >
+                  Go to results
+                </Button>
+              </Group>
+            </>
+          ) : null}
+          {submission.isError ? (
+            <>
+              <Title order={1}>Error :(</Title>
+
+              <Text>
+                Submission failed with error code {submission.error.message}.{" "}
+                {submission.error.message === "401"
+                  ? " Please make sure to use a valid submission token."
+                  : " Please try again later."}
+              </Text>
+
+              <Group>
+                <Button onClick={closeSubmitting}>Close</Button>
+              </Group>
+            </>
+          ) : null}
+        </Stack>
+      </Modal>
       <Title order={1}>Specify design parameters</Title>
       <Title order={4} c="blue">
         Your target sequence
@@ -647,10 +707,13 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
             numSweeps,
             initStrategy,
           );
-          console.log("SUBMIT", spec);  // TODO: remove
 
           // perform submission
-          submission.mutate({ spec: spec, token: token });
+          submission.mutate({
+            spec: spec,
+            token: token,
+          });
+          openSubmitting();
         }}
       >
         {posSelection.length > 0
