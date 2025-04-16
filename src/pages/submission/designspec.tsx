@@ -15,7 +15,11 @@ import {
   Text,
   Title,
 } from "@mantine/core";
-import { PipelineSpec, Sequence } from "../../models/design.ts";
+import {
+  PipelineSpec,
+  Sequence,
+  SingleMutationScanSpec,
+} from "../../models/design.ts";
 import { SeqWithRegion } from "./sequence.tsx";
 import { SequenceViewer } from "../../components/sequenceviewer";
 import { range } from "../../utils/helpers.ts";
@@ -119,8 +123,9 @@ const buildSpec = (
   temperatureFactor: number,
   numSweeps: number,
   initStrategy: string,
-): PipelineSpec => {
+): PipelineSpec | SingleMutationScanSpec => {
   const temperatureNumeric = parseFloat(temperature);
+  // instantiate core molecular model (used for any type of pipeline)
   let modelSpec;
   if (model === "evmutation2") {
     modelSpec = {
@@ -144,86 +149,111 @@ const buildSpec = (
     throw new Error("Model not yet implemented");
   }
 
-  let generator;
-  if (sampler === "model") {
-    generator = modelSpec;
-  } else {
-    // const restraintAsObj = restraints as object[];
-    // remove weight attribute
-    const restraintAsObj = restraints.map((r) => {
-      const { weight, ...filtObject } = r;
-      return filtObject;
-    });
-    // work around TS complaints
-    let scorers: object[] = [modelSpec];
-    if (scorers.length > 0) {
-      scorers = scorers.concat(restraintAsObj);
-    }
-    const weights = [1.0].concat(restraints.map((r) => r.weight));
-
-    // use linear schedule by default, set temperatureFactor to 1 for constant temperature
-    const temperatureUpdate =
-      (temperatureNumeric - temperatureNumeric / temperatureFactor) / numSweeps;
-
-    generator = {
-      key: "gibbs",
-      variant: "default",
-      args: {
-        scorers: scorers,
-        weights: weights,
-        num_sweeps: numSweeps,
-        init_strategy: initStrategy,
-        scan_order: "random",
-        temperature_schedule: {
-          type: "linear",
-          update: temperatureUpdate,
-        },
-      },
-    };
-  }
-
-  // invert posSelection (positions to mutate) into fixed positions list
-  const fixedPos = range(firstIndex, lastIndex, 1).filter(
-    (pos) => !posSelection.includes(pos),
-  );
-
-  return {
-    key: "pipeline",
-    schema_version: "0.1",
-    metadata: null,
-
-    system: [
-      {
+  // also instantiate system
+  const system = [
+    {
+      type: "protein",
+      rep: targetSeqCut,
+      id: "1",
+      first_index: firstIndex,
+      sequences: {
+        seqs: msa,
+        aligned: true,
         type: "protein",
-        rep: targetSeqCut,
-        id: "1",
-        first_index: firstIndex,
-        sequences: {
-          seqs: msa,
-          aligned: true,
-          type: "protein",
-          weights: null,
-          format: "a3m",
-        },
+        weights: null,
+        format: "a3m",
       },
-    ],
-    system_instances: null,
-    steps: [
-      {
-        key: "generate",
-        generator: generator,
-        args: {
-          num_designs: numDesigns,
-          entities: [0],
-          fixed_pos: {
-            0: fixedPos,
+    },
+  ];
+
+  if (sampler === "single_mutation_scan") {
+    return {
+      key: "single_mutation_scan",
+      schema_version: "0.1",
+      system: system,
+      system_instance: {
+        entity_instances: [
+          {
+            rep: targetSeqCut,
+            models: null,
           },
-          temperature: temperatureNumeric,
-          deletions: false,
-        },
+        ],
       },
-    ],
-  };
+
+      scorer: modelSpec,
+      entity: 0,
+      positions: null,
+      metadata: null,
+    } as SingleMutationScanSpec;
+  } else {
+    let generator;
+    if (sampler === "model") {
+      generator = modelSpec;
+    } else {
+      // const restraintAsObj = restraints as object[];
+      // remove weight attribute
+      const restraintAsObj = restraints.map((r) => {
+        const { weight, ...filtObject } = r;
+        return filtObject;
+      });
+      // work around TS complaints
+      let scorers: object[] = [modelSpec];
+      if (scorers.length > 0) {
+        scorers = scorers.concat(restraintAsObj);
+      }
+      const weights = [1.0].concat(restraints.map((r) => r.weight));
+
+      // use linear schedule by default, set temperatureFactor to 1 for constant temperature
+      const temperatureUpdate =
+        (temperatureNumeric - temperatureNumeric / temperatureFactor) /
+        numSweeps;
+
+      generator = {
+        key: "gibbs",
+        variant: "default",
+        args: {
+          scorers: scorers,
+          weights: weights,
+          num_sweeps: numSweeps,
+          init_strategy: initStrategy,
+          scan_order: "random",
+          temperature_schedule: {
+            type: "linear",
+            update: temperatureUpdate,
+          },
+        },
+      };
+    }
+
+    // invert posSelection (positions to mutate) into fixed positions list
+    const fixedPos = range(firstIndex, lastIndex, 1).filter(
+      (pos) => !posSelection.includes(pos),
+    );
+
+    return {
+      key: "pipeline",
+      schema_version: "0.1",
+      metadata: null,
+
+      system: system,
+      system_instances: null,
+      steps: [
+        {
+          key: "generate",
+          generator: generator,
+          args: {
+            num_designs: numDesigns,
+            entities: [0],
+            fixed_pos: {
+              0: fixedPos,
+            },
+            temperature: temperatureNumeric,
+            deletions: false,
+          },
+        },
+      ],
+    } as PipelineSpec;
+  }
 };
 
 export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
@@ -233,7 +263,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
   );
 
   const [model, setModel] = useState<string>("evmutation2");
-  const [sampler, setSampler] = useState("model");
+  const [sampler, setSampler] = useState("single_mutation_scan");
   const [numDesigns, setNumDesigns] = useState<number>(DEFAULT_NUM_DESIGNS);
   const [temperature, setTemperature] = useState<string>("0.1");
   const [posSelection, setPosSelection] = useState<number[]>([]);
@@ -291,12 +321,26 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
       label: (
         <Stack gap="xs">
           <Text size={"sm"} fw={500}>
+            Single mutation scan
+          </Text>
+          <Text size="xs" c="dimmed">
+            Score all possible singles <br />
+            to survey for mutable positions
+          </Text>
+        </Stack>
+      ),
+      value: "single_mutation_scan",
+    },
+    {
+      label: (
+        <Stack gap="xs">
+          <Text size={"sm"} fw={500}>
             Autoregressive sampling
           </Text>
           <Text size="xs" c="dimmed">
-            Faster, but limited control over design properties.
+            Fast sampling,
             <br />
-            Recommended for larger libraries.
+            limited control over properties.
           </Text>
         </Stack>
       ),
@@ -309,9 +353,9 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
             Restrained Gibbs sampling
           </Text>
           <Text size="xs" c="dimmed">
-            Slower, but precise control over design properties
+            Slow sampling,
             <br />
-            (distance to WT, motifs, ...).
+            precise control over properties.
           </Text>
         </Stack>
       ),
@@ -319,8 +363,9 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
     },
   ];
 
+  // no own sampling on esm2, so remove from list
   if (model === "esm2") {
-    samplerOptions = samplerOptions.slice(1);
+    samplerOptions = samplerOptions.filter((x) => x.value !== "model");
   }
 
   let restraintSelection = null;
@@ -413,6 +458,88 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
     );
   }
 
+  const samplingSettings =
+    sampler !== "single_mutation_scan" ? (
+      <>
+        <NumberInput
+          label="Number of designs"
+          min={MIN_NUM_DESIGNS}
+          max={MAX_NUM_DESIGNS}
+          step={1000}
+          value={numDesigns}
+          onChange={(value) => {
+            if (typeof value === "string") return;
+            setNumDesigns(value);
+          }}
+          thousandSeparator={true}
+          allowDecimal={false}
+          description="More designs take longer to run"
+        />
+        <Select
+          label="Sequence diversity (sampling temperature)"
+          description="Higher temperatures give more diversity"
+          placeholder="Pick value"
+          value={temperature}
+          onOptionSubmit={setTemperature}
+          allowDeselect={false}
+          data={[
+            { value: "0.01", label: "0.01 (very low)" },
+            { value: "0.05", label: "0.05 (low)" },
+            { value: "0.1", label: "0.1 (normal-low)" },
+            { value: "0.2", label: "0.2 (normal-low)" },
+            { value: "0.5", label: "0.5 (normal-high)" },
+            { value: "1.0", label: "1.0 (normal-high)" },
+            { value: "2.0", label: "2.0 (high)" },
+          ]}
+        />
+
+        {restraintSelection}
+
+        <Space />
+        <Title order={4} c="blue">
+          Define positions to mutate
+        </Title>
+        <Space />
+        <SequenceViewer
+          seq={targetSeqCut}
+          firstIndex={targetSeq.start}
+          handleClick={(pos) => {
+            if (posSelection.includes(pos)) {
+              setPosSelection(posSelection.filter((curPos) => curPos !== pos));
+            } else {
+              setPosSelection(posSelection.concat(pos));
+            }
+          }}
+          getPosStyle={(pos) =>
+            "selectable" + (posSelection.includes(pos) ? " selected " : "")
+          }
+          chunkSize={10}
+        />
+        <Group>
+          <Button variant="default" onClick={selectAllPos}>
+            Select all
+          </Button>
+          <Button variant="default" onClick={() => setPosSelection([])}>
+            Select none
+          </Button>
+          <Button
+            variant="default"
+            onClick={() =>
+              setPosSelection(
+                // note that range function includes end in range
+                range(targetSeq.start, targetSeq.end, 1).filter(
+                  (pos) => !posSelection.includes(pos),
+                ),
+              )
+            }
+          >
+            Invert selection
+          </Button>
+        </Group>
+        <Space />
+      </>
+    ) : null;
+
   return (
     <>
       <Title order={1}>Specify design parameters</Title>
@@ -485,92 +612,12 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
           value={sampler}
           onChange={setSampler}
           data={samplerOptions}
+          withItemsBorders={false}
         />
       </Stack>
 
-      <NumberInput
-        label="Number of designs"
-        min={MIN_NUM_DESIGNS}
-        max={MAX_NUM_DESIGNS}
-        step={1000}
-        value={numDesigns}
-        onChange={(value) => {
-          if (typeof value === "string") return;
-          setNumDesigns(value);
-        }}
-        thousandSeparator={true}
-        allowDecimal={false}
-        description="More designs take longer to run"
-      />
-      <Select
-        label="Sequence diversity (sampling temperature)"
-        description="Higher temperatures give more diversity"
-        placeholder="Pick value"
-        value={temperature}
-        onOptionSubmit={setTemperature}
-        allowDeselect={false}
-        data={[
-          { value: "0.01", label: "0.01 (very low)" },
-          { value: "0.05", label: "0.05 (low)" },
-          { value: "0.1", label: "0.1 (normal-low)" },
-          { value: "0.2", label: "0.2 (normal-low)" },
-          { value: "0.5", label: "0.5 (normal-high)" },
-          { value: "1.0", label: "1.0 (normal-high)" },
-          { value: "2.0", label: "2.0 (high)" },
-        ]}
-      />
+      {samplingSettings}
 
-      {restraintSelection}
-
-      <Space />
-      <Title order={4} c="blue">
-        Define positions to mutate
-      </Title>
-      <Space />
-      <SequenceViewer
-        seq={targetSeqCut}
-        firstIndex={targetSeq.start}
-        handleClick={(pos) => {
-          if (posSelection.includes(pos)) {
-            setPosSelection(posSelection.filter((curPos) => curPos !== pos));
-          } else {
-            setPosSelection(posSelection.concat(pos));
-          }
-        }}
-        getPosStyle={(pos) =>
-          "selectable" + (posSelection.includes(pos) ? " selected " : "")
-        }
-        chunkSize={10}
-      />
-      <Group>
-        <Button variant="default" onClick={selectAllPos}>
-          Select all
-        </Button>
-        <Button variant="default" onClick={() => setPosSelection([])}>
-          Select none
-        </Button>
-        <Button
-          variant="default"
-          onClick={() =>
-            setPosSelection(
-              // note that range function includes end in range
-              range(targetSeq.start, targetSeq.end, 1).filter(
-                (pos) => !posSelection.includes(pos),
-              ),
-            )
-          }
-        >
-          Invert selection
-        </Button>
-      </Group>
-      <Space />
-      {/*<TextInput
-        label="Name your design job"
-        description="Specifying a job name will allow you to locate your results more easily later"
-        placeholder="Enter job name (optional)"
-        value={jobName}
-        onChange={(e) => setJobName(e.target.value)}
-      />*/}
       <Space />
       <PasswordInput
         label="Submission token"
@@ -600,7 +647,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
             numSweeps,
             initStrategy,
           );
-          console.log("SUBMIT", spec);
+          console.log("SUBMIT", spec);  // TODO: remove
 
           // perform submission
           submission.mutate({ spec: spec, token: token });

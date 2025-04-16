@@ -51,3 +51,14 @@ export interface PipelineSpec {
   system_instances: SystemInstanceSpec[] | null;
   steps: GenerationStepSpec[];  // TODO: implement other step types from backend
 }
+
+export interface SingleMutationScanSpec {
+  key: string;
+  schema_version: string;
+  system: EntitySpec[];
+  // system_instances: SystemInstanceSpec;
+  scorer: object;
+  entity: number | null;
+  positions: number[] | null;
+  metadata: object | null;
+}
