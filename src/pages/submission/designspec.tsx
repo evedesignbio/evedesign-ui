@@ -7,6 +7,7 @@ import {
   Collapse,
   Group,
   NumberInput,
+  PasswordInput,
   SegmentedControl,
   Select,
   Space,
@@ -19,6 +20,7 @@ import { SeqWithRegion } from "./sequence.tsx";
 import { SequenceViewer } from "../../components/sequenceviewer";
 import { range } from "../../utils/helpers.ts";
 import { useDisclosure } from "@mantine/hooks";
+import { useSubmission } from "../../api/modal.ts";
 
 const MIN_NUM_DESIGNS = 1;
 const MAX_NUM_DESIGNS = 20000;
@@ -103,7 +105,7 @@ const RestraintList = ({ restraints, setRestraints }: RestraintListProps) => {
   ));
 };
 
-const buildDesignSpec = (
+const buildSpec = (
   targetSeqCut: string,
   firstIndex: number,
   lastIndex: number,
@@ -244,6 +246,10 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
   const [temperatureFactor, setTemperatureFactor] = useState(
     DEFAULT_TEMPERATURE_FACTOR,
   );
+
+  // submission-related
+  const [token, setToken] = useState("");
+  const submission = useSubmission();
 
   const selectAllPos = () =>
     setPosSelection(range(targetSeq.start, targetSeq.end, 1));
@@ -566,12 +572,20 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
         onChange={(e) => setJobName(e.target.value)}
       />*/}
       <Space />
+      <PasswordInput
+        label="Submission token"
+        description="Valid token is required for submission to prevent unauthorized access"
+        placeholder="Enter token"
+        value={token}
+        onChange={(event) => setToken(event.currentTarget.value)}
+      />
+      <Space />
       <Button
         variant="filled"
         size="md"
-        disabled={posSelection.length === 0}
+        disabled={posSelection.length === 0 || token.length === 0}
         onClick={() => {
-          const designSpec = buildDesignSpec(
+          const spec = buildSpec(
             targetSeqCut,
             targetSeq.start,
             targetSeq.end,
@@ -586,12 +600,16 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
             numSweeps,
             initStrategy,
           );
-          console.log("SUBMIT", designSpec);
-          // TODO: implement actual submission with auth
+          console.log("SUBMIT", spec);
+
+          // perform submission
+          submission.mutate({ spec: spec, token: token });
         }}
       >
         {posSelection.length > 0
-          ? "Generate designs"
+          ? token.length > 0
+            ? "Generate designs"
+            : "Submission token required"
           : "Must select at least one position to design"}
       </Button>
     </>

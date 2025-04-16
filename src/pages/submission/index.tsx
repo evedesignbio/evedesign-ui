@@ -57,9 +57,7 @@ export const SubmissionPage = () => {
             children: (
               <Stack align="center">
                 <Loader type="dots" size="xl" />
-                <Text>
-                  Retrieving evolutionary sequences and 3D structures
-                </Text>
+                <Text>Retrieving evolutionary sequences and 3D structures</Text>
               </Stack>
             ),
           }}
