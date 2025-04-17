@@ -28,6 +28,7 @@ import { SequenceViewer } from "../../components/sequenceviewer";
 import { range } from "../../utils/helpers.ts";
 import { useDisclosure } from "@mantine/hooks";
 import { useSubmission } from "../../api/modal.ts";
+import { Link } from "wouter";
 
 const MIN_NUM_DESIGNS = 1;
 const MAX_NUM_DESIGNS = 20000;
@@ -576,7 +577,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
                   Submit another job
                 </Button>
                 <Button
-                  component="a"
+                  component={Link}
                   href={`/results/${submission.data?.job_id}`}
                 >
                   Go to results

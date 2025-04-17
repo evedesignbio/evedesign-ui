@@ -4,7 +4,8 @@ import {
   JobListEntry,
   useJobData,
 } from "../api/modal.ts";
-import {Button} from "@mantine/core";
+import { Button } from "@mantine/core";
+import { Link } from "wouter";
 
 interface ResultsPageProps {
   id: string;
@@ -25,7 +26,7 @@ export const ResultsPage = ({ id }: ResultsPageProps) => {
     <>
       <div>Job ID: {id}</div>
       <div>Job status: {qJob.data?.status}</div>
-      <Button component="a" href="/">
+      <Button component={Link} href="/">
         Submit another job
       </Button>
     </>
