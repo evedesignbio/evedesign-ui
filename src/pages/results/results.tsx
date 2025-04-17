@@ -31,7 +31,7 @@ export const ResultsPageWrapper = ({ id }: ResultsWrapperProps) => {
     switch (qJob.data.status) {
       case "finished":
         color = "green";
-        resultView = <ResultViewer results={qJob.data.results!} />;
+        resultView = <ResultViewer results={qJob.data.results!} id={id} />;
         break;
       case "running":
         color = "orange";
