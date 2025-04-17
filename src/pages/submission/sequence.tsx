@@ -3,6 +3,8 @@ import { Button, Group, Space, Text, Textarea, Title } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SequenceViewer } from "../../components/sequenceviewer";
+import { useJobList } from "../../api/local.ts";
+import { Link } from "wouter";
 
 const UNIPROT_AC_REGEXP = RegExp(
   "^[OPQ][0-9][A-Z0-9]{3}[0-9]$|^[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}$",
@@ -80,6 +82,9 @@ interface SequenceInputProps {
 export const SequenceInput = ({ setTargetSeq }: SequenceInputProps) => {
   const [seqInput, setSeqInput] = useState("");
   const [debouncedSeqInput] = useDebouncedValue(seqInput, DEBOUNCE_TIME);
+
+  // previously submitted jobs from local storage
+  const [jobList] = useJobList();
 
   // handle error message through state to avoid jitter upon reloading
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -176,12 +181,10 @@ export const SequenceInput = ({ setTargetSeq }: SequenceInputProps) => {
     <>
       <Title order={1}>Create new design target</Title>
       <Title order={4} c="blue">
-        Enter your target protein
+        Enter your protein
       </Title>
       <Textarea
         size="md"
-        // label="Enter your target protein"
-        // description=" "
         placeholder="UniProt identifier, entry name or amino acid sequence"
         autosize
         value={seqInput}
@@ -216,6 +219,14 @@ export const SequenceInput = ({ setTargetSeq }: SequenceInputProps) => {
             }
           >
             {regionError === null ? "Continue to next step" : regionError}
+          </Button>
+        </>
+      ) : null}
+      {jobList.length > 0 ? (
+        <>
+          <Space h="xl" />
+          <Button variant="subtle" component={Link} href="/results">
+            Previously submitted jobs...
           </Button>
         </>
       ) : null}

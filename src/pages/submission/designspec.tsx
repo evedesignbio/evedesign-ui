@@ -552,6 +552,8 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
         opened={isSubmitting}
         onClose={closeSubmitting}
         withCloseButton={false}
+        closeOnClickOutside={false}
+        closeOnEscape={false}
         // title="Job submission"
         overlayProps={{
           // backgroundOpacity: 0.55,

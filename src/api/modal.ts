@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useLocalStorage } from "@mantine/hooks";
 import { PipelineSpec, SingleMutationScanSpec } from "../models/design.ts";
+import { useJobList } from "./local.ts";
 
 export const getBackendUrl = () =>
   "https://deboramarkslab--designserver-api-fastapi-app.modal.run/";
@@ -18,10 +18,7 @@ export interface JobListEntry {
 export const JOB_LIST_STORAGE_KEY = "job-list";
 
 export const useSubmission = () => {
-  const [jobList, setJobList] = useLocalStorage<JobListEntry[]>({
-    key: JOB_LIST_STORAGE_KEY,
-    defaultValue: [],
-  });
+  const [jobList, setJobList] = useJobList();
 
   return useMutation({
     mutationFn: (params: SubmissionParams) => {
