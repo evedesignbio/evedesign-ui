@@ -2,7 +2,7 @@ export interface Sequence {
   seq: string;
   id: string | null;
   key: string | null;
-  type: "protein" | "dna" | "rna"
+  type: "protein" | "dna" | "rna";
 }
 
 export interface SequencesSpec {
@@ -22,38 +22,42 @@ export interface EntitySpec {
 }
 
 export interface EntityInstanceSpec {
-  // TODO
+  rep: string;
+  models: object | null;
 }
 
 export interface SystemInstanceSpec {
-  // TODO
+  entity_instances: EntityInstanceSpec[];
+  score: number | null;
+  confidence: number | null;
+  metadata: object | null;
 }
 
 export interface GenerateArgsSpec {
   num_designs: number;
   entities: number[] | null;
-  fixed_pos: object | null;  // TODO: refine definition
+  fixed_pos: object | null; // TODO: refine definition
   temperature: number;
   deletions: boolean;
 }
 
 export interface GenerationStepSpec {
-  key: string;
+  key: "generate";
   generator: object;
   args: GenerateArgsSpec;
 }
 
 export interface PipelineSpec {
-  key: string;
+  key: "pipeline";
   schema_version: string;
   metadata: object | null;
   system: EntitySpec[];
   system_instances: SystemInstanceSpec[] | null;
-  steps: GenerationStepSpec[];  // TODO: implement other step types from backend
+  steps: GenerationStepSpec[]; // TODO: implement other step types from backend
 }
 
 export interface SingleMutationScanSpec {
-  key: string;
+  key: "single_mutation_scan";
   schema_version: string;
   system: EntitySpec[];
   // system_instances: SystemInstanceSpec;
@@ -61,4 +65,16 @@ export interface SingleMutationScanSpec {
   entity: number | null;
   positions: number[] | null;
   metadata: object | null;
+}
+
+export interface SingleMutWithScore {
+  to: string;
+  score: number;
+}
+
+export interface SingleMutationScanResult {
+  entity: number;
+  pos: number;
+  ref: string;
+  subs: SingleMutWithScore[];
 }

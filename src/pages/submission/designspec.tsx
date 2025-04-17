@@ -607,7 +607,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
       </Modal>
       <Title order={1}>Specify design parameters</Title>
       <Title order={4} c="blue">
-        Your target sequence
+        Your sequence
       </Title>
       <Card padding="lg" radius="md">
         <Group justify="space-between">

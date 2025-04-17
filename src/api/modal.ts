@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { PipelineSpec, SingleMutationScanSpec } from "../models/design.ts";
 import { useJobList } from "./local.ts";
+import { ApiJobResult } from "../models/api.ts";
 
 export const getBackendUrl = () =>
   "https://deboramarkslab--designserver-api-fastapi-app.modal.run/";
@@ -15,7 +16,8 @@ export interface JobListEntry {
   submissionDate: string;
 }
 
-export const JOB_LIST_STORAGE_KEY = "job-list";
+export const JOB_LIST_STORAGE_KEY = "design-job-list";
+const POLLING_INTERVAL = 5000;
 
 export const useSubmission = () => {
   const [jobList, setJobList] = useJobList();
@@ -55,15 +57,21 @@ export const useSubmission = () => {
 };
 
 export const useJobData = (id: string) => {
+  // status options: initialized, running, failed, finished, invalid
   return useQuery({
     queryKey: ["jobdata", id],
-    queryFn: () =>
+    queryFn: (): Promise<ApiJobResult> =>
       fetch(getBackendUrl() + "job/" + id).then((res) => {
         if (!res.ok) {
           throw new Error(`${res.status}`);
         }
-
         return res.json();
       }),
+    refetchInterval: (query) =>
+      query.state.data?.status === "initialized" ||
+      query.state.data?.status === "running"
+        ? POLLING_INTERVAL
+        : false,
+    staleTime: Infinity,
   });
 };
