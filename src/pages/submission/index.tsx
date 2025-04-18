@@ -35,8 +35,8 @@ export const SubmissionPage = () => {
   const anyLoading =
     seqSearch.running ||
     foldseekSearch.running ||
-    msa.isFetching ||
-    foldseekResult.isFetching;
+    msa.isLoading ||
+    foldseekResult.isLoading;
 
   const allCompleted =
     seqSearch.completed &&
