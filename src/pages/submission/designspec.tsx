@@ -26,7 +26,7 @@ import {
 import { SeqWithRegion } from "./sequence.tsx";
 import { SequenceViewer } from "../../components/sequenceviewer";
 import { range } from "../../utils/helpers.ts";
-import { useDisclosure } from "@mantine/hooks";
+import { useDisclosure, useViewportSize } from "@mantine/hooks";
 import { useSubmission } from "../../api/modal.ts";
 import { Link } from "wouter";
 
@@ -286,6 +286,8 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
   const submission = useSubmission();
   const [isSubmitting, { open: openSubmitting, close: closeSubmitting }] =
     useDisclosure(false);
+
+  const { width: viewportWidth } = useViewportSize();
 
   const selectAllPos = () =>
     setPosSelection(range(targetSeq.start, targetSeq.end, 1));
@@ -610,7 +612,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
         Your sequence
       </Title>
       <Card padding="lg" radius="md">
-        <Group justify="space-between">
+        <Group justify="space-between" pb={"xs"}>
           <Text>{numSeqs} homologous sequences found</Text>
           <Group>
             <Button variant="default" disabled={true}>
@@ -676,6 +678,8 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
           onChange={setSampler}
           data={samplerOptions}
           withItemsBorders={false}
+          orientation={viewportWidth > 700 ? "horizontal" : "vertical"}
+          fullWidth={true}
         />
       </Stack>
 
