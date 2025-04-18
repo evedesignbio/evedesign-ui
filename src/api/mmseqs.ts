@@ -78,5 +78,6 @@ export const useMmseqsMsa = (id: string | null) => {
         })
         .then(parseTar),
     enabled: id !== null,
+    staleTime: Infinity,
   });
 };

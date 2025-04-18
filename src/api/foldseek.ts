@@ -53,5 +53,6 @@ export const useFoldseekResult = (id: string | null) => {
         return res.json();
       }),
     enabled: id !== null,
+    staleTime: Infinity,
   });
 };
