@@ -14,7 +14,7 @@ export const useMmseqsSearch = (seq: string | null) => {
     mmseqsBaseUrl() + "ticket/",
     {
       q: `>1\n${seq}`,
-      mode: "all",
+      mode: "env",
     },
   );
 };
