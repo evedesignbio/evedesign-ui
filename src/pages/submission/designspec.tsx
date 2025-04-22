@@ -266,7 +266,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
     targetSeq.end,
   );
 
-  const [model, setModel] = useState<string>("evmutation2");
+  const [model, setModel] = useState<string>("evmutation2_ensembled");
   const [sampler, setSampler] = useState("single_mutation_scan");
   const [numDesigns, setNumDesigns] = useState<number>(DEFAULT_NUM_DESIGNS);
   const [temperature, setTemperature] = useState<string>("0.1");
@@ -333,7 +333,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
           </Text>
           <Text size="xs" c="dimmed">
             Score all possible singles <br />
-            to survey for mutable positions
+            to survey for mutable positions.
           </Text>
         </Stack>
       ),
