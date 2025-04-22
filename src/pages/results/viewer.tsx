@@ -118,6 +118,10 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
         />
         {downloadButton}
       </Group>
+      <Space />
+      <Button disabled={true}>Analyze and cluster designs</Button>
+      <Space />
+      <Button disabled={true}>Generate DNA sequences</Button>
     </Stack>
   );
 };
