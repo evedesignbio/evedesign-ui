@@ -149,6 +149,14 @@ const buildSpec = (
         decoder_batch_size: Math.min(numDesigns, 512),
       },
     };
+  } else if (model === "esm2_650m") {
+    modelSpec = {
+      key: "esm2",
+      variant: "esm2_t33_650M_UR50D",
+      args: {
+        batch_size: Math.min(numDesigns, 512),
+      },
+    };
   } else {
     throw new Error("Model not yet implemented");
   }
@@ -297,7 +305,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
 
   // set only viable sampler option if ESM2 selected
   useEffect(() => {
-    if (model === "esm2") setSampler("gibbs");
+    if (model.startsWith("esm2") && sampler === "model") setSampler("gibbs");
   }, [model]);
 
   const numSeqs = msa.length;
@@ -372,7 +380,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
   ];
 
   // no own sampling on esm2, so remove from list
-  if (model === "esm2") {
+  if (model.startsWith("esm2")) {
     samplerOptions = samplerOptions.filter((x) => x.value !== "model");
   }
 
@@ -639,25 +647,24 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
           placeholder="Pick value"
           data={[
             {
-              value: "evmutation2",
+              value: "evmutation2_ensembled",
               label:
                 "EVmutation2 (evolutionary model; best for designing functional proteins)",
             },
             {
-              value: "evmutation2_ensembled",
+              value: "evmutation2",
               label:
-                "EVmutation2 (ensembled high-accuracy mode with 4x runtime)",
+                "EVmutation2 (lower accuracy mode, 4x speedup over ensembled version)",
+            },
+            {
+              value: "esm2_650m",
+              label:
+                "ESM2 650M (best for sequence-only design in absence of evolutionary record)",
             },
             {
               value: "proteinmpnn",
               label:
                 "ProteinMPNN (inverse folding model; best for designing stability but may lose function)",
-              disabled: true,
-            },
-            {
-              value: "esm2",
-              label:
-                "ESM2 (best for sequence-only design in absence of evolutionary record)",
               disabled: true,
             },
           ]}
