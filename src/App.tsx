@@ -15,7 +15,7 @@ const App = () => {
         <Switch>
           <Route path="/" component={SubmissionPage} />
           <Route path="/results/" component={JobListPage} />
-          <Route path="/results/:id">
+          <Route path="/results/:id" nest>
             {(params) => <ResultsPageWrapper id={params.id} />}
           </Route>
         </Switch>

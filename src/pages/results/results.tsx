@@ -11,6 +11,33 @@ import {
 import { useJobData } from "../../api/modal.ts";
 import { useQueryClient } from "@tanstack/react-query";
 import { ResultViewer } from "./viewer.tsx";
+import { Route } from "wouter";
+import {
+  PipelineApiResult,
+  SingleMutationScanApiResult,
+} from "../../models/api.ts";
+import { DNAGenerationDialog } from "./dna.tsx";
+
+export interface FinishedResultsWrapperProps {
+  id: string;
+  results: PipelineApiResult | SingleMutationScanApiResult;
+}
+
+export const FinishedResultsPageWrapper = ({
+  id,
+  results,
+}: FinishedResultsWrapperProps) => {
+  return (
+    <>
+      <Route path="/dna">
+        <DNAGenerationDialog id={id} results={results!} />
+      </Route>
+      <Route path="/">
+        <ResultViewer results={results!} id={id} />
+      </Route>
+    </>
+  );
+};
 
 interface ResultsWrapperProps {
   id: string;
@@ -31,7 +58,9 @@ export const ResultsPageWrapper = ({ id }: ResultsWrapperProps) => {
     switch (qJob.data.status) {
       case "finished":
         color = "green";
-        resultView = <ResultViewer results={qJob.data.results!} id={id} />;
+        resultView = (
+          <FinishedResultsPageWrapper results={qJob.data.results!} id={id} />
+        );
         break;
       case "running":
         color = "orange";

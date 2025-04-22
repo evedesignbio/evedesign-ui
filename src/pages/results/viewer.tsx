@@ -4,7 +4,9 @@ import {
   PipelineApiResult,
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
+import {Link} from "wouter";
 
+// TODO: improve props, receive list of instances/scores + spec
 export interface ResultViewerProps {
   id: string;
   results: PipelineApiResult | SingleMutationScanApiResult;
@@ -121,7 +123,7 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
       <Space />
       <Button disabled={true}>Analyze and cluster designs</Button>
       <Space />
-      <Button disabled={true}>Generate DNA sequences</Button>
+      <Button component={Link} href="/dna">Generate DNA sequences...</Button>
     </Stack>
   );
 };
