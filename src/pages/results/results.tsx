@@ -11,7 +11,7 @@ import {
 import { useJobData } from "../../api/modal.ts";
 import { useQueryClient } from "@tanstack/react-query";
 import { ResultViewer } from "./viewer.tsx";
-import { Route } from "wouter";
+import { Route, useRoute } from "wouter";
 import {
   PipelineApiResult,
   SingleMutationScanApiResult,
@@ -46,8 +46,8 @@ interface ResultsWrapperProps {
 export const ResultsPageWrapper = ({ id }: ResultsWrapperProps) => {
   // status options: initialized, running, failed, finished, invalid
   const qJob = useJobData(id);
-
   const queryClient = useQueryClient();
+  const [isDnaView, _] = useRoute("/dna");
 
   let content;
   if (qJob.isSuccess) {
@@ -83,6 +83,11 @@ export const ResultsPageWrapper = ({ id }: ResultsWrapperProps) => {
         <Group>
           <Text>Job status:</Text>
           <Badge color={color}>{label}</Badge>
+          <Badge variant={"outline"}>
+            {qJob.data.results!.spec
+              ? qJob.data.results!.spec.key.replace("_", " ").replace("_", " ")
+              : "protein to dna"}
+          </Badge>
         </Group>
         {resultView}
       </>
@@ -107,7 +112,7 @@ export const ResultsPageWrapper = ({ id }: ResultsWrapperProps) => {
   return (
     <Container size="sm" pt="xl">
       <Stack>
-        <Title order={1}>Job result</Title>
+        <Title order={1}>{isDnaView ? "DNA Generation" : "Job result"}</Title>
         <Title order={4} c="blue">
           ID: {id}
         </Title>

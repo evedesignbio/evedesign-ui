@@ -4,7 +4,7 @@ import {
   PipelineApiResult,
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
-import {Link} from "wouter";
+import { Link } from "wouter";
 
 // TODO: improve props, receive list of instances/scores + spec
 export interface ResultViewerProps {
@@ -113,17 +113,26 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
           placeholder="Select a file format"
           data={["csv", "fasta", "json"].filter(
             (option) =>
-              results.spec.key !== "single_mutation_scan" || option !== "fasta",
+              results.spec?.key !== "single_mutation_scan" ||
+              option !== "fasta",
           )}
           value={downloadFormat}
           onOptionSubmit={setDownloadFormat}
         />
         {downloadButton}
       </Group>
-      <Space />
-      <Button disabled={true}>Analyze and cluster designs (coming soon)</Button>
-      <Space />
-      <Button component={Link} href="/dna">Generate DNA sequences...</Button>
+      {results.spec?.key === "pipeline" ? (
+        <>
+          <Space />
+          <Button disabled={true}>
+            Analyze and cluster designs (coming soon)
+          </Button>
+          <Space />
+          <Button component={Link} href="/dna">
+            Generate DNA sequences...
+          </Button>
+        </>
+      ) : null}
     </Stack>
   );
 };
