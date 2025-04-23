@@ -14,11 +14,6 @@ import {
   Textarea,
   Title,
 } from "@mantine/core";
-import {
-  PipelineApiResult,
-  ProteinToDnaApiResult,
-  SingleMutationScanApiResult,
-} from "../../models/api.ts";
 import { RESTRICTION_SITES, validTranslation } from "../../utils/bio.ts";
 import { useDisclosure } from "@mantine/hooks";
 import { useSubmission } from "../../api/modal.ts";
@@ -32,13 +27,10 @@ import { SubmissionModal } from "../../components/submission/modal.tsx";
 
 export const DNA_SEQ_REGEXP = RegExp("^[ACGT]+$");
 
-// TODO: improve props, receive list of instances
 export interface DNAGenerationDialogProps {
   id: string;
-  results:
-    | PipelineApiResult
-    | SingleMutationScanApiResult
-    | ProteinToDnaApiResult;
+  system: EntitySpec[];
+  instances: SystemInstanceSpec[];
 }
 
 const DEFAULT_MIN_GC_CONTENT = 40;
@@ -126,8 +118,9 @@ const buildSpec = (
 };
 
 export const DNAGenerationDialog = ({
-  results,
   id,
+  system,
+  instances,
 }: DNAGenerationDialogProps) => {
   // basic settings
   const [upstreamDna, setUpstreamDna] = useState<string>("");
@@ -173,8 +166,7 @@ export const DNAGenerationDialog = ({
   const isValidDownstream = isValidDnaSeq(downstreamDnaNorm);
   const isValidRef = isValidDnaSeq(refDnaNorm);
   const isValidTranslation =
-    refDnaNorm === "" ||
-    validTranslation(refDnaNorm, results.spec.system[0].rep);
+    refDnaNorm === "" || validTranslation(refDnaNorm, system[0].rep);
 
   return (
     <>
@@ -397,13 +389,8 @@ export const DNAGenerationDialog = ({
             token.length === 0
           }
           onClick={() => {
-            // TODO: prepare instances in right format also for single mutation matrix
-            console.log("INSTANCES", results.instances); // TODO: remove
-            const instances =
-              results.spec.key === "pipeline" ? results.instances : [];
-
             const spec = buildSpec(
-              results.spec.system,
+              system,
               instances,
               upstreamDna,
               downstreamDna,
@@ -417,8 +404,6 @@ export const DNAGenerationDialog = ({
               maxHomopolymerLengthEnabled ? maxHomopolymerLength : null,
               maxRepeatLengthEnabled ? maxRepeatLength : null,
             );
-            console.log("SPEC ARGS", spec.args); // TODO: remove
-            console.log("SPEC OPTIMIZER", spec.optimizer); // TODO: remove
 
             // perform submission
             submission.mutate({
@@ -426,7 +411,7 @@ export const DNAGenerationDialog = ({
               token: token,
               parentId: id,
             });
-            console.log("SUBMITTED"); // TODO: remove
+
             openSubmitting();
           }}
         >

@@ -31,7 +31,7 @@ export const FinishedResultsPageWrapper = ({
   return (
     <>
       <Route path="/results/:id/dna">
-        <DNAGenerationDialog id={id} results={results!} />
+        <DNAGenerationDialog id={id} system={results.spec.system!} instances={results.instances} />
       </Route>
       <Route path="/results/:id">
         <ResultViewer results={results!} id={id} />
