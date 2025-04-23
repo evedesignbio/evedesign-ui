@@ -121,7 +121,7 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
         {downloadButton}
       </Group>
       <Space />
-      <Button disabled={true}>Analyze and cluster designs</Button>
+      <Button disabled={true}>Analyze and cluster designs (coming soon)</Button>
       <Space />
       <Button component={Link} href="/dna">Generate DNA sequences...</Button>
     </Stack>

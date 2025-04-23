@@ -1,8 +1,11 @@
 import { useState } from "react";
 import {
   Button,
+  Collapse,
   MultiSelect,
+  NumberInput,
   RangeSlider,
+  Select,
   Space,
   Stack,
   Switch,
@@ -14,7 +17,8 @@ import {
   PipelineApiResult,
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
-import { RESTRICTION_SITES } from "../../utils/bio.ts";
+import { RESTRICTION_SITES, validTranslation } from "../../utils/bio.ts";
+import { useDisclosure } from "@mantine/hooks";
 
 export const DNA_SEQ_REGEXP = RegExp("^[ACGT]+$");
 
@@ -27,6 +31,21 @@ export interface DNAGenerationDialogProps {
 const DEFAULT_MIN_GC_CONTENT = 40;
 const DEFAULT_MAX_GC_CONTENT = 60;
 const GC_CONTENT_MIN_RANGE = 20;
+const GC_CONTENT_WINDOW_SIZE = 20;
+const MAX_HOMOPOLYMER_LENGTH = 5;
+const MAX_REPEAT_LENGTH = 9;
+
+const CODON_TARGET_SPECIES = [
+  "e_coli",
+  "h_sapiens",
+  "s_cerevisiae",
+  "b_subtilis",
+  "d_melanogaster",
+  // "m_musculus_domesticus",
+  "m_musculus",
+  "g_gallus",
+  "c_elegans",
+];
 
 const normalizeDnaSeq = (seq: string) => seq.replace(/\s/g, "").toUpperCase();
 const isValidDnaSeq = (seq: string): boolean => {
@@ -41,6 +60,23 @@ export const DNAGenerationDialog = ({
   const [downstreamDna, setDownstreamDna] = useState<string>("");
   const [refEnabled, setRefEnabled] = useState(false);
   const [refDna, setRefDna] = useState<string>("");
+  const [optimizationMethod, setOptimizationMethod] =
+    useState<string>("match_codon_usage");
+  const [targetSpecies, setTargetSpecies] = useState<string>("e_coli");
+  const [expertOpen, { toggle: toggleExpert }] = useDisclosure(false);
+  const [gcWindowSize, setGcWindowSize] = useState<number>(
+    GC_CONTENT_WINDOW_SIZE,
+  );
+  const [gcWindowEnabled, setgcWindowEnabled] = useState<boolean>(true);
+  const [maxHomopolymerLengthEnabled, setMaxHomopolymerLengthEnabled] =
+    useState<boolean>(true);
+  const [maxHomopolymerLength, setMaxHomopolymerLength] = useState<number>(
+    MAX_HOMOPOLYMER_LENGTH,
+  );
+  const [maxRepeatLengthEnabled, setMaxRepeatLengthEnabled] =
+    useState<boolean>(true);
+  const [maxRepeatLength, setMaxRepeatLength] =
+    useState<number>(MAX_REPEAT_LENGTH);
 
   const [avoidSites, setAvoidSites] = useState<string[]>([]);
   const [gcContentRange, setGcContentRange] = useState<[number, number]>([
@@ -48,38 +84,18 @@ export const DNAGenerationDialog = ({
     DEFAULT_MAX_GC_CONTENT,
   ]);
 
-  console.log(results, id);
-  /*
+  console.log(results.spec.key, id); // TODO: Remove
 
-  class DnaChiselArgsSpec(BaseModel):
-    """
-    Constructor arguments to instantiate
-    """
-    method: Literal["use_best_codon", "match_codon_usage"]
-    codon_usage_table: Literal[
-        "b_subtilis",
-        "d_melanogaster",
-        "m_musculus_domesticus",
-        "m_musculus",
-        "e_coli",
-        "g_gallus",
-        "c_elegans",
-        "s_cerevisiae",
-        "h_sapiens",
-    ] | str
-
-    gc_window: int | None = Field(30)
-    max_homopolymer_length: int | None = Field(5)
-    max_repeat_length: int | None = Field(9)
-
-   */
-
+  // input sequence normalization and validation
   const upstreamDnaNorm = normalizeDnaSeq(upstreamDna);
   const downstreamDnaNorm = normalizeDnaSeq(downstreamDna);
   const refDnaNorm = normalizeDnaSeq(refDna);
   const isValidUpstream = isValidDnaSeq(upstreamDnaNorm);
   const isValidDownstream = isValidDnaSeq(downstreamDnaNorm);
   const isValidRef = isValidDnaSeq(refDnaNorm);
+  const isValidTranslation =
+    refDnaNorm === "" ||
+    validTranslation(refDnaNorm, results.spec.system[0].rep);
 
   return (
     <Stack>
@@ -121,14 +137,52 @@ export const DNAGenerationDialog = ({
           autosize
           value={refDna}
           onChange={(e) => setRefDna(e.target.value)}
-          error={isValidRef ? undefined : "Invalid DNA sequence"}
+          error={
+            isValidRef
+              ? isValidTranslation
+                ? undefined
+                : "DNA sequence does not translate into reference sequence"
+              : "Invalid DNA sequence"
+          }
         />
       ) : null}
 
       <Space />
       <Title order={4} c="blue">
-        Specify codon optimization settings
+        Specify codon optimization strategy
       </Title>
+      <Select
+        label={"Optimization method"}
+        description={
+          "Determines whether most frequent codons or balanced distribution will be preferred"
+        }
+        value={optimizationMethod}
+        onOptionSubmit={setOptimizationMethod}
+        data={[
+          {
+            value: "match_codon_usage",
+            label: "Match codon usage profile of target organism",
+          },
+          {
+            value: "use_best_codon",
+            label: "Prefer most frequent codons (codon adaption index)",
+          },
+        ]}
+      />
+      <Select
+        label={"Target species"}
+        description={
+          "Sequence will be optimized based on codon frequency distribution for this species"
+        }
+        value={targetSpecies}
+        onOptionSubmit={setTargetSpecies}
+        data={CODON_TARGET_SPECIES.map((species) => ({
+          value: species,
+          label:
+            species.charAt(0).toUpperCase() +
+            species.slice(1).replace("_", ". "),
+        }))}
+      />
       <MultiSelect
         label="Avoid sites"
         description="Selected restriction enzyme motifs will be avoided on both strands"
@@ -156,8 +210,98 @@ export const DNAGenerationDialog = ({
           label: `${pct}%`,
         }))}
       />
+      <Space />
+      <Button onClick={toggleExpert} variant="subtle">
+        {expertOpen ? "Hide" : "Show"} expert settings
+      </Button>
+      <Collapse in={expertOpen}>
+        <Stack>
+          <Switch
+            checked={gcWindowEnabled}
+            onChange={(event) =>
+              setgcWindowEnabled(event.currentTarget.checked)
+            }
+            label="Compute GC content using local sliding window instead of full sequence"
+            // description="If inactive, GC content will be calculated across entire DNA sequence"
+          />
+          {gcWindowEnabled ? (
+            <>
+              <NumberInput
+                label="GC content sliding window size"
+                description="Increasing window may help to resolve optimization issues if GC content range is narrow"
+                min={20}
+                step={10}
+                value={gcWindowSize}
+                onChange={(value) => {
+                  if (typeof value === "string") return;
+                  setGcWindowSize(value);
+                }}
+                thousandSeparator={true}
+                allowDecimal={false}
+              />
+              <Space />
+            </>
+          ) : null}
+
+          <Switch
+            checked={maxHomopolymerLengthEnabled}
+            onChange={(event) =>
+              setMaxHomopolymerLengthEnabled(event.currentTarget.checked)
+            }
+            label="Constrain homopolymer occurrences"
+          />
+          {maxHomopolymerLengthEnabled ? (
+            <>
+              <NumberInput
+                label="Maximum homopolymer length"
+                description="Upper limit on acceptable length of homopolymers (e.g. AAAAA)"
+                min={4}
+                step={1}
+                value={maxHomopolymerLength}
+                onChange={(value) => {
+                  if (typeof value === "string") return;
+                  setMaxHomopolymerLength(value);
+                }}
+                thousandSeparator={true}
+                allowDecimal={false}
+              />
+              <Space />
+            </>
+          ) : null}
+
+          <Switch
+            checked={maxRepeatLengthEnabled}
+            onChange={(event) =>
+              setMaxRepeatLengthEnabled(event.currentTarget.checked)
+            }
+            label="Constrain arbitrary repeat occurrences"
+          />
+          {maxRepeatLengthEnabled ? (
+            <NumberInput
+              label="Maximum repeat length"
+              description="Upper limit on acceptable length of arbitrary repeated sequence motifs"
+              min={4}
+              step={1}
+              value={maxRepeatLength}
+              onChange={(value) => {
+                if (typeof value === "string") return;
+                setMaxRepeatLength(value);
+              }}
+              thousandSeparator={true}
+              allowDecimal={false}
+            />
+          ) : null}
+        </Stack>
+      </Collapse>
       <Space h="xl" />
-      <Button disabled={!isValidUpstream || !isValidDownstream || !isValidRef}>
+      <Button
+        disabled={
+          !isValidUpstream ||
+          !isValidDownstream ||
+          !isValidRef ||
+          !isValidTranslation
+        }
+      >
         Generate DNA sequences
       </Button>
     </Stack>
