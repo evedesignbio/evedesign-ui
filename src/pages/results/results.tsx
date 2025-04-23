@@ -11,16 +11,21 @@ import {
 import { useJobData } from "../../api/modal.ts";
 import { useQueryClient } from "@tanstack/react-query";
 import { ResultViewer } from "./viewer.tsx";
-import { Route, useRoute } from "wouter";
+import { Route, Switch, useRoute } from "wouter";
 import {
-  PipelineApiResult, ProteinToDnaApiResult,
+  PipelineApiResult,
+  ProteinToDnaApiResult,
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
 import { DNAGenerationDialog } from "./dna.tsx";
+import { SystemInstanceSpec } from "../../models/design.ts";
 
 export interface FinishedResultsWrapperProps {
   id: string;
-  results: PipelineApiResult | SingleMutationScanApiResult | ProteinToDnaApiResult;
+  results:
+    | PipelineApiResult
+    | SingleMutationScanApiResult
+    | ProteinToDnaApiResult;
 }
 
 export const FinishedResultsPageWrapper = ({
@@ -28,15 +33,39 @@ export const FinishedResultsPageWrapper = ({
   results,
 }: FinishedResultsWrapperProps) => {
   // note that nested routes create problems with links and trailing slash, so use absolute routes here again
+  const isDesignJob =
+    results.spec.key === "pipeline" ||
+    results.spec.key === "single_mutation_scan";
+
+  const system = isDesignJob
+    ? (results as PipelineApiResult | SingleMutationScanApiResult).spec.system
+    : (results as ProteinToDnaApiResult).spec.args.system;
+
+  let instances: SystemInstanceSpec[] | null = null;
+
+  // gather instances if available
+  // TODO: create instances from single mutants for single mutation scan
+  if (results.spec.key === "pipeline") {
+    instances = (results as PipelineApiResult).instances;
+  }
+
+  // TODO: eventually render based on type of results, separate page for DNA download...
   return (
-    <>
+    <Switch>
       <Route path="/results/:id/dna">
-        <DNAGenerationDialog id={id} system={results.spec.system!} instances={results.instances} />
+        {isDesignJob && system !== null && instances !== null ? (
+          <DNAGenerationDialog id={id} system={system} instances={instances} />
+        ) : (
+          <Text>Error: Invalid route</Text>
+        )}
       </Route>
       <Route path="/results/:id">
         <ResultViewer results={results!} id={id} />
       </Route>
-    </>
+      <Route>
+        <Text>Error: Invalid route</Text>
+      </Route>
+    </Switch>
   );
 };
 
@@ -114,7 +143,9 @@ export const ResultsPageWrapper = ({ id }: ResultsWrapperProps) => {
   return (
     <Container size="sm" pt="xl">
       <Stack>
-        <Title order={1}>{isDnaView ? "DNA Generation" : "Job result"}</Title>
+        <Title order={1}>
+          {isDnaView ? "DNA library generation" : "Job result"}
+        </Title>
         <Title order={4} c="blue">
           ID: {id}
         </Title>

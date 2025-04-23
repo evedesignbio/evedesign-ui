@@ -1,6 +1,7 @@
 import { useJobList } from "../../api/local.ts";
 import {
   Anchor,
+  Badge,
   Container,
   Group,
   Space,
@@ -26,7 +27,9 @@ export const JobListPage = () => {
               <Anchor component={Link} href={"/results/" + job.jobId}>
                 {job.jobId}
               </Anchor>
-              <Text>{job.specType}</Text>
+              <Badge variant={"outline"}>
+                {job.specType?.replace("_", " ").replace("_", " ")}
+              </Badge>
               <Text>{job.submissionDate}</Text>
             </Group>
           ))}

@@ -33,6 +33,20 @@ export interface SystemInstanceSpec {
   metadata: object | null;
 }
 
+export const systemInstanceFromSystem = (
+  system: EntitySpec[],
+): SystemInstanceSpec => {
+  return {
+    entity_instances: system.map((entity) => ({
+      rep: entity.rep,
+      models: null,
+    })),
+    score: null,
+    confidence: null,
+    metadata: null,
+  };
+};
+
 export interface GenerateArgsSpec {
   num_designs: number;
   entities: number[] | null;

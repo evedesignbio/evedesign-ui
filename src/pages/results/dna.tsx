@@ -21,6 +21,7 @@ import {
   CodonOptimizationMethod,
   EntitySpec,
   ProteinToDnaSpec,
+  systemInstanceFromSystem,
   SystemInstanceSpec,
 } from "../../models/design.ts";
 import { SubmissionModal } from "../../components/submission/modal.tsx";
@@ -74,17 +75,7 @@ const buildSpec = (
 ): ProteinToDnaSpec => {
   // reference instance based on target sequence
   const referenceInstance: SystemInstanceSpec | null = refEnabled
-    ? {
-        entity_instances: [
-          {
-            rep: system[0].rep,
-            models: null,
-          },
-        ],
-        score: null,
-        confidence: null,
-        metadata: null,
-      }
+    ? systemInstanceFromSystem(system)
     : null;
 
   return {

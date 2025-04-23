@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Button, Group, Select, Space, Stack } from "@mantine/core";
 import {
-  PipelineApiResult, ProteinToDnaApiResult,
+  PipelineApiResult,
+  ProteinToDnaApiResult,
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
 import { Link } from "wouter";
@@ -9,13 +10,19 @@ import { Link } from "wouter";
 // TODO: improve props, receive list of instances/scores + spec
 export interface ResultViewerProps {
   id: string;
-  results: PipelineApiResult | SingleMutationScanApiResult | ProteinToDnaApiResult;
+  results:
+    | PipelineApiResult
+    | SingleMutationScanApiResult
+    | ProteinToDnaApiResult;
 }
 
 const SCORE_NUM_DIGITS = 3;
 
 const useDownloadButton = (
-  results: PipelineApiResult | SingleMutationScanApiResult | ProteinToDnaApiResult,
+  results:
+    | PipelineApiResult
+    | SingleMutationScanApiResult
+    | ProteinToDnaApiResult,
   format: string | null,
   id: string,
 ) => {
@@ -121,14 +128,19 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
         />
         {downloadButton}
       </Group>
-      {results.spec?.key === "pipeline" ? (
+      {results.spec?.key === "pipeline" ||
+      results.spec?.key === "single_mutation_scan" ? (
         <>
           <Space />
           <Button disabled={true}>
             Analyze and cluster designs (coming soon)
           </Button>
           <Space />
-          <Button component={Link} href={`/results/${id}/dna`}>
+          <Button
+            component={Link}
+            href={`/results/${id}/dna`}
+            disabled={results.spec?.key === "single_mutation_scan"}
+          >
             Generate DNA sequences...
           </Button>
         </>
