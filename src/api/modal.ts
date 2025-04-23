@@ -1,5 +1,9 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { PipelineSpec, SingleMutationScanSpec } from "../models/design.ts";
+import {
+  PipelineSpec,
+  ProteinToDnaSpec,
+  SingleMutationScanSpec,
+} from "../models/design.ts";
 import { useJobList } from "./local.ts";
 import { ApiJobResult } from "../models/api.ts";
 
@@ -7,7 +11,7 @@ export const getBackendUrl = () =>
   "https://deboramarkslab--designserver-api-fastapi-app.modal.run/";
 
 interface SubmissionParams {
-  spec: PipelineSpec | SingleMutationScanSpec;
+  spec: PipelineSpec | SingleMutationScanSpec | ProteinToDnaSpec;
   token: string;
   parentId: string | null;
 }
