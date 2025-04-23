@@ -89,9 +89,11 @@ export interface ProteinToDnaOptimizerArgsSpec {
   reference_dna: string | null;
 }
 
+export type CodonOptimizationMethod = "use_best_codon" | "match_codon_usage";
+
 export interface DnaChiselArgsSpec {
-  method: "use_best_codon" | "match_codon_usage";
-  codon_usage_table: string;  // do not use literal as we might allow TaxIDs as well eventually
+  method: CodonOptimizationMethod;
+  codon_usage_table: string; // do not use literal as we might allow TaxIDs as well eventually
   avoid_sites: string[];
   gc_min: number | null;
   gc_max: number | null;
@@ -101,9 +103,15 @@ export interface DnaChiselArgsSpec {
   genetic_code: "Standard";
 }
 
+export interface DnaChiselSpec {
+  key: "dnachisel";
+  variant: "default";
+  args: DnaChiselArgsSpec;
+}
+
 export interface ProteinToDnaSpec {
   key: "protein_to_dna";
   schema_version: string;
-  optimizer: DnaChiselArgsSpec;
+  optimizer: DnaChiselSpec;
   args: ProteinToDnaOptimizerArgsSpec;
 }

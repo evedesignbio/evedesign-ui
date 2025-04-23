@@ -12,7 +12,6 @@ import { Link } from "wouter";
 
 export const JobListPage = () => {
   const [jobList] = useJobList();
-  console.log("JOBLIST", jobList);  // TODO: remove
   return (
     <Container size="sm" pt="xl">
       <Stack>

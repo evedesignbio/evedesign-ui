@@ -4,6 +4,7 @@ import {
   Collapse,
   MultiSelect,
   NumberInput,
+  PasswordInput,
   RangeSlider,
   Select,
   Space,
@@ -19,6 +20,13 @@ import {
 } from "../../models/api.ts";
 import { RESTRICTION_SITES, validTranslation } from "../../utils/bio.ts";
 import { useDisclosure } from "@mantine/hooks";
+import { useSubmission } from "../../api/modal.ts";
+import {
+  CodonOptimizationMethod,
+  EntitySpec,
+  ProteinToDnaSpec,
+  SystemInstanceSpec,
+} from "../../models/design.ts";
 
 export const DNA_SEQ_REGEXP = RegExp("^[ACGT]+$");
 
@@ -52,10 +60,71 @@ const isValidDnaSeq = (seq: string): boolean => {
   return seq === "" || DNA_SEQ_REGEXP.test(seq);
 };
 
+const buildSpec = (
+  system: EntitySpec[],
+  instances: SystemInstanceSpec[],
+  upstreamDna: string,
+  downstreamDna: string,
+  refEnabled: boolean,
+  refDna: string,
+  optimizationMethod: CodonOptimizationMethod,
+  targetSpecies: string,
+  avoidSites: string[],
+  gcContentRange: number[],
+  gcWindowSize: number | null,
+  maxHomopolymerLength: number | null,
+  maxRepeatLength: number | null,
+): ProteinToDnaSpec => {
+  // reference instance based on target sequence
+  const referenceInstance: SystemInstanceSpec | null = refEnabled
+    ? {
+        entity_instances: [
+          {
+            rep: system[0].rep,
+            models: null,
+          },
+        ],
+        score: null,
+        confidence: null,
+        metadata: null,
+      }
+    : null;
+
+  return {
+    key: "protein_to_dna",
+    schema_version: "0.1",
+    optimizer: {
+      key: "dnachisel",
+      variant: "default",
+      args: {
+        method: optimizationMethod,
+        codon_usage_table: targetSpecies,
+        avoid_sites: avoidSites,
+        gc_min: gcContentRange[0] / 100.0,
+        gc_max: gcContentRange[1] / 100.0,
+        gc_window: gcWindowSize,
+        max_homopolymer_length: maxHomopolymerLength,
+        max_repeat_length: maxRepeatLength,
+        genetic_code: "Standard",
+      },
+    },
+    args: {
+      system: system,
+      system_instances: instances,
+      entity: 0,
+      upstream_dna: upstreamDna,
+      downstream_dna: downstreamDna,
+      reference: referenceInstance,
+      reference_dna: refEnabled && refDna.length > 0 ? refDna : null,
+    },
+  };
+};
+
 export const DNAGenerationDialog = ({
   results,
   id,
 }: DNAGenerationDialogProps) => {
+  // basic settings
   const [upstreamDna, setUpstreamDna] = useState<string>("");
   const [downstreamDna, setDownstreamDna] = useState<string>("");
   const [refEnabled, setRefEnabled] = useState(false);
@@ -63,6 +132,13 @@ export const DNAGenerationDialog = ({
   const [optimizationMethod, setOptimizationMethod] =
     useState<string>("match_codon_usage");
   const [targetSpecies, setTargetSpecies] = useState<string>("e_coli");
+  const [avoidSites, setAvoidSites] = useState<string[]>([]);
+  const [gcContentRange, setGcContentRange] = useState<[number, number]>([
+    DEFAULT_MIN_GC_CONTENT,
+    DEFAULT_MAX_GC_CONTENT,
+  ]);
+
+  // expert settings
   const [expertOpen, { toggle: toggleExpert }] = useDisclosure(false);
   const [gcWindowSize, setGcWindowSize] = useState<number>(
     GC_CONTENT_WINDOW_SIZE,
@@ -78,11 +154,11 @@ export const DNAGenerationDialog = ({
   const [maxRepeatLength, setMaxRepeatLength] =
     useState<number>(MAX_REPEAT_LENGTH);
 
-  const [avoidSites, setAvoidSites] = useState<string[]>([]);
-  const [gcContentRange, setGcContentRange] = useState<[number, number]>([
-    DEFAULT_MIN_GC_CONTENT,
-    DEFAULT_MAX_GC_CONTENT,
-  ]);
+  // submission-related
+  const [token, setToken] = useState("");
+  const submission = useSubmission();
+  const [isSubmitting, { open: openSubmitting, close: closeSubmitting }] =
+    useDisclosure(false);
 
   console.log(results.spec.key, id); // TODO: Remove
 
@@ -293,17 +369,62 @@ export const DNAGenerationDialog = ({
           ) : null}
         </Stack>
       </Collapse>
-      <Space h="xl" />
+      <Space />
+      <PasswordInput
+        label="Submission token"
+        description="Valid token is required for submission to prevent unauthorized access"
+        placeholder="Enter token"
+        value={token}
+        onChange={(event) => setToken(event.currentTarget.value)}
+      />
+      <Space />
       <Button
+        size={"md"}
         disabled={
           !isValidUpstream ||
           !isValidDownstream ||
           !isValidRef ||
-          !isValidTranslation
+          !isValidTranslation ||
+          token.length === 0
         }
+        onClick={() => {
+          // TODO: prepare instances in right format also for single mutation matrix
+          console.log("INSTANCES", results.instances); // TODO: remove
+          const instances = results.spec.key === "pipeline" ? results.instances : [];
+
+          const spec = buildSpec(
+            results.spec.system,
+            instances,
+            upstreamDna,
+            downstreamDna,
+            refEnabled,
+            refDna,
+            optimizationMethod as CodonOptimizationMethod,
+            targetSpecies,
+            avoidSites,
+            gcContentRange,
+            gcWindowEnabled ? gcWindowSize : null,
+            maxHomopolymerLengthEnabled ? maxHomopolymerLength : null,
+            maxRepeatLengthEnabled ? maxRepeatLength : null,
+          );
+          console.log("SPEC ARGS", spec.args); // TODO: remove
+          console.log("SPEC OPTIMIZER", spec.optimizer); // TODO: remove
+
+          // perform submission
+          submission.mutate({
+            spec: spec,
+            token: token,
+            parentId: id,
+          });
+          console.log("SUBMITTED"); // TODO: remove
+          openSubmitting();
+        }}
       >
-        Generate DNA sequences
+        {token.length > 0
+          ? "Generate DNA sequences"
+          : "Submission token required"}
       </Button>
+      <Space />
     </Stack>
   );
 };
