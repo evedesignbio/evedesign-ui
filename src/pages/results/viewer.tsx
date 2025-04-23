@@ -64,8 +64,10 @@ const useDownloadButton = (
       if (format === "json") {
         dataOut = JSON.stringify(scores);
       } else if (format === "csv") {
-        // header first
-        const aaOrdered = scores[0].subs.map((s) => s.to);
+        // header first, exclude gaps for now
+        const aaOrdered = scores[0].subs
+          .filter((s) => s.to !== "-")
+          .map((s) => s.to);
         dataOut = ["pos", "ref"].concat(aaOrdered).join(",") + "\n";
 
         // then data rows
@@ -73,14 +75,16 @@ const useDownloadButton = (
           .map((row) =>
             [row.pos, row.ref]
               .concat(
-                row.subs.map((s, index) => {
-                  if (aaOrdered[index] !== s.to) {
-                    throw new Error(
-                      "Mutations out of order, need better implementation of file writing",
-                    );
-                  }
-                  return s.score.toFixed(SCORE_NUM_DIGITS);
-                }),
+                row.subs
+                  .filter((s) => s.to !== "-") // exclude gaps for now
+                  .map((s, index) => {
+                    if (aaOrdered[index] !== s.to) {
+                      throw new Error(
+                        "Mutations out of order, need better implementation of file writing",
+                      );
+                    }
+                    return s.score.toFixed(SCORE_NUM_DIGITS);
+                  }),
               )
               .join(","),
           )
@@ -154,11 +158,7 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
             Analyze and cluster designs (coming soon)
           </Button>
           <Space />
-          <Button
-            component={Link}
-            href={`/results/${id}/dna`}
-            disabled={results.spec?.key === "single_mutation_scan"}
-          >
+          <Button component={Link} href={`/results/${id}/dna`}>
             Generate DNA sequences...
           </Button>
         </>
