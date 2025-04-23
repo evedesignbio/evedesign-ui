@@ -115,3 +115,9 @@ export interface ProteinToDnaSpec {
   optimizer: DnaChiselSpec;
   args: ProteinToDnaOptimizerArgsSpec;
 }
+
+export interface ProteinToDnaResult {
+  rep: string;
+  dna: string;
+  score: number | null;
+}

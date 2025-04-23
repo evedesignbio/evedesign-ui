@@ -1,5 +1,5 @@
 import {
-  PipelineSpec,
+  PipelineSpec, ProteinToDnaResult, ProteinToDnaSpec,
   SingleMutationScanResult,
   SingleMutationScanSpec,
   SystemInstanceSpec,
@@ -15,7 +15,12 @@ export interface SingleMutationScanApiResult {
   scores: SingleMutationScanResult[];
 }
 
+export interface ProteinToDnaApiResult {
+  spec: ProteinToDnaSpec;
+  dna_sequences: ProteinToDnaResult[];
+}
+
 export interface ApiJobResult {
   status: "initialized" | "running" | "failed" | "finished" | "invalid";
-  results: PipelineApiResult | SingleMutationScanApiResult | null;
+  results: PipelineApiResult | SingleMutationScanApiResult | ProteinToDnaApiResult | null;
 }

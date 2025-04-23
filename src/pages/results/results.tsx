@@ -54,6 +54,7 @@ export const ResultsPageWrapper = ({ id }: ResultsWrapperProps) => {
     let color;
     let label = qJob.data.status as string;
     let resultView = null;
+    let jobType = qJob.data.results?.spec.key;
 
     switch (qJob.data.status) {
       case "finished":
@@ -83,11 +84,11 @@ export const ResultsPageWrapper = ({ id }: ResultsWrapperProps) => {
         <Group>
           <Text>Job status:</Text>
           <Badge color={color}>{label}</Badge>
-          <Badge variant={"outline"}>
-            {qJob.data.results!.spec
-              ? qJob.data.results!.spec.key.replace("_", " ").replace("_", " ")
-              : "protein to dna"}
-          </Badge>
+          {jobType ? (
+            <Badge variant={"outline"}>
+              {jobType.replace("_", " ").replace("_", " ")}
+            </Badge>
+          ) : null}
         </Group>
         {resultView}
       </>
