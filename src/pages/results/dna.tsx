@@ -37,7 +37,7 @@ export interface DNAGenerationDialogProps {
 const DEFAULT_MIN_GC_CONTENT = 40;
 const DEFAULT_MAX_GC_CONTENT = 60;
 const GC_CONTENT_MIN_RANGE = 20;
-const GC_CONTENT_WINDOW_SIZE = 20;
+const GC_CONTENT_WINDOW_SIZE = 40;
 const MAX_HOMOPOLYMER_LENGTH = 5;
 const MAX_REPEAT_LENGTH = 9;
 
@@ -72,11 +72,16 @@ const buildSpec = (
   gcWindowSize: number | null,
   maxHomopolymerLength: number | null,
   maxRepeatLength: number | null,
+  includeTarget: boolean,
 ): ProteinToDnaSpec => {
   // reference instance based on target sequence
   const referenceInstance: SystemInstanceSpec | null = refEnabled
     ? systemInstanceFromSystem(system)
     : null;
+
+  const finalInstances = includeTarget
+    ? [systemInstanceFromSystem(system)].concat(instances)
+    : instances;
 
   return {
     key: "protein_to_dna",
@@ -98,7 +103,7 @@ const buildSpec = (
     },
     args: {
       system: system,
-      system_instances: instances,
+      system_instances: finalInstances,
       entity: 0,
       upstream_dna: upstreamDna,
       downstream_dna: downstreamDna,
@@ -114,6 +119,7 @@ export const DNAGenerationDialog = ({
   instances,
 }: DNAGenerationDialogProps) => {
   // basic settings
+  const [includeTarget, setIncludeTarget] = useState(true);
   const [upstreamDna, setUpstreamDna] = useState<string>("");
   const [downstreamDna, setDownstreamDna] = useState<string>("");
   const [refEnabled, setRefEnabled] = useState(false);
@@ -169,7 +175,7 @@ export const DNAGenerationDialog = ({
       <Stack>
         <Space />
         <Title order={4} c="blue">
-          Define your nucleotide vector
+          Define your library settings
         </Title>
         <Textarea
           label="Upstream DNA sequence"
@@ -191,6 +197,12 @@ export const DNAGenerationDialog = ({
         />
 
         <Space />
+        <Switch
+          checked={includeTarget}
+          onChange={(event) => setIncludeTarget(event.currentTarget.checked)}
+          label="Include target sequence in library"
+          description="If enabled, the target sequence will be added as first sequence in the DNA sequence list"
+        />
         <Switch
           checked={refEnabled}
           onChange={(event) => setRefEnabled(event.currentTarget.checked)}
@@ -383,10 +395,10 @@ export const DNAGenerationDialog = ({
             const spec = buildSpec(
               system,
               instances,
-              upstreamDna,
-              downstreamDna,
+              upstreamDnaNorm,
+              downstreamDnaNorm,
               refEnabled,
-              refDna,
+              refDnaNorm,
               optimizationMethod as CodonOptimizationMethod,
               targetSpecies,
               avoidSites,
@@ -394,6 +406,7 @@ export const DNAGenerationDialog = ({
               gcWindowEnabled ? gcWindowSize : null,
               maxHomopolymerLengthEnabled ? maxHomopolymerLength : null,
               maxRepeatLengthEnabled ? maxRepeatLength : null,
+              includeTarget,
             );
 
             // perform submission

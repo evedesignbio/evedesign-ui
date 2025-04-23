@@ -6,6 +6,7 @@ import {
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
 import { Link } from "wouter";
+import { validTranslation } from "../../utils/bio.ts";
 
 // TODO: improve props, receive list of instances/scores + spec
 export interface ResultViewerProps {
@@ -87,6 +88,25 @@ const useDownloadButton = (
       } else {
         throw new Error("Unsupported format");
       }
+    } else if (results.spec.key === "protein_to_dna") {
+      const dnaResult = results as ProteinToDnaApiResult;
+      const upstream = dnaResult.spec.args.upstream_dna;
+      const downstream = dnaResult.spec.args.downstream_dna;
+
+      if (format === "json") {
+        dataOut = JSON.stringify(dnaResult.dna_sequences);
+      } else if (format === "csv") {
+        dataOut = dnaResult.dna_sequences
+          .map((x, index) => {
+            if (!validTranslation(x.dna, x.rep))
+              throw new Error(
+                "DNA sequence does not translate into AA sequence, this should never happen",
+              );
+            return `${index + 1},${upstream + x.dna + downstream},${x.rep},${x.score?.toFixed(SCORE_NUM_DIGITS)}`;
+          })
+          .join("\n");
+        dataOut = "id,dna_seq,aa_seq,codon_optimization_score\n" + dataOut;
+      }
     } else {
       throw new Error("invalid spec key");
     }
@@ -119,9 +139,7 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
         <Select
           placeholder="Select a file format"
           data={["csv", "fasta", "json"].filter(
-            (option) =>
-              results.spec?.key !== "single_mutation_scan" ||
-              option !== "fasta",
+            (option) => results.spec?.key === "pipeline" || option !== "fasta",
           )}
           value={downloadFormat}
           onOptionSubmit={setDownloadFormat}
