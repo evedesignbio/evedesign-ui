@@ -78,3 +78,32 @@ export interface SingleMutationScanResult {
   ref: string;
   subs: SingleMutWithScore[];
 }
+
+export interface ProteinToDnaOptimizerArgsSpec {
+  system: EntitySpec[];
+  system_instances: SystemInstanceSpec[];
+  entity: number;
+  upstream_dna: string;
+  downstream_dna: string;
+  reference: SystemInstanceSpec | null;
+  reference_dna: string | null;
+}
+
+export interface DnaChiselArgsSpec {
+  method: "use_best_codon" | "match_codon_usage";
+  codon_usage_table: string;  // do not use literal as we might allow TaxIDs as well eventually
+  avoid_sites: string[];
+  gc_min: number | null;
+  gc_max: number | null;
+  gc_window: number | null;
+  max_homopolymer_length: number | null;
+  max_repeat_length: number | null;
+  genetic_code: "Standard";
+}
+
+export interface ProteinToDnaSpec {
+  key: "protein_to_dna";
+  schema_version: string;
+  optimizer: DnaChiselArgsSpec;
+  args: ProteinToDnaOptimizerArgsSpec;
+}
