@@ -27,12 +27,13 @@ export const FinishedResultsPageWrapper = ({
   id,
   results,
 }: FinishedResultsWrapperProps) => {
+  // note that nested routes create problems with links and trailing slash, so use absolute routes here again
   return (
     <>
-      <Route path="/dna">
+      <Route path="/results/:id/dna">
         <DNAGenerationDialog id={id} results={results!} />
       </Route>
-      <Route path="/">
+      <Route path="/results/:id">
         <ResultViewer results={results!} id={id} />
       </Route>
     </>
@@ -47,7 +48,7 @@ export const ResultsPageWrapper = ({ id }: ResultsWrapperProps) => {
   // status options: initialized, running, failed, finished, invalid
   const qJob = useJobData(id);
   const queryClient = useQueryClient();
-  const [isDnaView, _] = useRoute("/dna");
+  const [isDnaView, _] = useRoute("*/dna");
 
   let content;
   if (qJob.isSuccess) {

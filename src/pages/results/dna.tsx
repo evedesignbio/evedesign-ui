@@ -165,8 +165,6 @@ export const DNAGenerationDialog = ({
   const [isSubmitting, { open: openSubmitting, close: closeSubmitting }] =
     useDisclosure(false);
 
-  console.log(results.spec.key, id); // TODO: Remove
-
   // input sequence normalization and validation
   const upstreamDnaNorm = normalizeDnaSeq(upstreamDna);
   const downstreamDnaNorm = normalizeDnaSeq(downstreamDna);
