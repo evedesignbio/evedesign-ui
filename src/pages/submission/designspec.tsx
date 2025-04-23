@@ -736,6 +736,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
             : "Submission token required"
           : "Must select at least one position to design"}
       </Button>
+      <Space />
     </>
   );
 };
