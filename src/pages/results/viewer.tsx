@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Button, Group, Select, Space, Stack } from "@mantine/core";
 import {
-  PipelineApiResult,
+  PipelineApiResult, ProteinToDnaApiResult,
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
 import { Link } from "wouter";
@@ -9,13 +9,13 @@ import { Link } from "wouter";
 // TODO: improve props, receive list of instances/scores + spec
 export interface ResultViewerProps {
   id: string;
-  results: PipelineApiResult | SingleMutationScanApiResult;
+  results: PipelineApiResult | SingleMutationScanApiResult | ProteinToDnaApiResult;
 }
 
 const SCORE_NUM_DIGITS = 3;
 
 const useDownloadButton = (
-  results: PipelineApiResult | SingleMutationScanApiResult,
+  results: PipelineApiResult | SingleMutationScanApiResult | ProteinToDnaApiResult,
   format: string | null,
   id: string,
 ) => {

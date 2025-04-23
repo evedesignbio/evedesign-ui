@@ -4,11 +4,8 @@ import {
   Button,
   Card,
   CloseButton,
-  Code,
   Collapse,
   Group,
-  Loader,
-  Modal,
   NumberInput,
   PasswordInput,
   SegmentedControl,
@@ -28,7 +25,7 @@ import { SequenceViewer } from "../../components/sequenceviewer";
 import { range } from "../../utils/helpers.ts";
 import { useDisclosure, useViewportSize } from "@mantine/hooks";
 import { useSubmission } from "../../api/modal.ts";
-import { Link } from "wouter";
+import { SubmissionModal } from "../../components/submission/modal.tsx";
 
 const MIN_NUM_DESIGNS = 1;
 const MAX_NUM_DESIGNS = 20000;
@@ -558,63 +555,11 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
 
   return (
     <>
-      <Modal
-        opened={isSubmitting}
-        onClose={closeSubmitting}
-        withCloseButton={false}
-        closeOnClickOutside={false}
-        closeOnEscape={false}
-        // title="Job submission"
-        overlayProps={{
-          // backgroundOpacity: 0.55,
-          blur: 3,
-        }}
-      >
-        <Stack align={"center"}>
-          {submission.isPending ? (
-            <>
-              <Loader type="dots" size="xl"></Loader>
-              <Text>Submitting your job...</Text>
-            </>
-          ) : null}
-          {submission.isSuccess ? (
-            <>
-              <Title order={2}>Submission successful!</Title>
-              <Group>
-                <Text>Your job ID is</Text>
-                <Code>{submission.data?.job_id}</Code>
-              </Group>
-              <Group>
-                <Button variant="default" onClick={closeSubmitting}>
-                  Submit another job
-                </Button>
-                <Button
-                  component={Link}
-                  href={`/results/${submission.data?.job_id}`}
-                >
-                  Go to results
-                </Button>
-              </Group>
-            </>
-          ) : null}
-          {submission.isError ? (
-            <>
-              <Title order={1}>Error :(</Title>
-
-              <Text>
-                Submission failed with error code {submission.error.message}.{" "}
-                {submission.error.message === "401"
-                  ? " Please make sure to use a valid submission token."
-                  : " Please try again later."}
-              </Text>
-
-              <Group>
-                <Button onClick={closeSubmitting}>Close</Button>
-              </Group>
-            </>
-          ) : null}
-        </Stack>
-      </Modal>
+      <SubmissionModal
+        isSubmitting={isSubmitting}
+        close={closeSubmitting}
+        submission={submission}
+      />
       <Title order={1}>Specify design parameters</Title>
       <Title order={4} c="blue">
         Your sequence
@@ -726,7 +671,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
           submission.mutate({
             spec: spec,
             token: token,
-            parentId: null
+            parentId: null,
           });
           openSubmitting();
         }}

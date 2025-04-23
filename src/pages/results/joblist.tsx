@@ -26,6 +26,7 @@ export const JobListPage = () => {
               <Anchor component={Link} href={"/results/" + job.jobId}>
                 {job.jobId}
               </Anchor>
+              <Text>{job.specType}</Text>
               <Text>{job.submissionDate}</Text>
             </Group>
           ))}

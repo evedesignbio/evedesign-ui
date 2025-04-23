@@ -10,7 +10,7 @@ import { ApiJobResult } from "../models/api.ts";
 export const getBackendUrl = () =>
   "https://deboramarkslab--designserver-api-fastapi-app.modal.run/";
 
-interface SubmissionParams {
+export interface SubmissionParams {
   spec: PipelineSpec | SingleMutationScanSpec | ProteinToDnaSpec;
   token: string;
   parentId: string | null;

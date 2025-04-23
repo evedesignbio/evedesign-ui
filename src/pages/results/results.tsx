@@ -13,14 +13,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ResultViewer } from "./viewer.tsx";
 import { Route, useRoute } from "wouter";
 import {
-  PipelineApiResult,
+  PipelineApiResult, ProteinToDnaApiResult,
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
 import { DNAGenerationDialog } from "./dna.tsx";
 
 export interface FinishedResultsWrapperProps {
   id: string;
-  results: PipelineApiResult | SingleMutationScanApiResult;
+  results: PipelineApiResult | SingleMutationScanApiResult | ProteinToDnaApiResult;
 }
 
 export const FinishedResultsPageWrapper = ({
