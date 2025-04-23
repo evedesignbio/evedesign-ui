@@ -74,7 +74,7 @@ export interface SingleMutationScanSpec {
   key: "single_mutation_scan";
   schema_version: string;
   system: EntitySpec[];
-  // system_instances: SystemInstanceSpec;
+  system_instance: SystemInstanceSpec;
   scorer: object;
   entity: number | null;
   positions: number[] | null;

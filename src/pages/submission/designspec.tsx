@@ -18,7 +18,7 @@ import {
 import {
   PipelineSpec,
   Sequence,
-  SingleMutationScanSpec,
+  SingleMutationScanSpec, systemInstanceFromSystem,
 } from "../../models/design.ts";
 import { SeqWithRegion } from "./sequence.tsx";
 import { SequenceViewer } from "../../components/sequenceviewer";
@@ -180,15 +180,7 @@ const buildSpec = (
       key: "single_mutation_scan",
       schema_version: "0.1",
       system: system,
-      system_instance: {
-        entity_instances: [
-          {
-            rep: targetSeqCut,
-            models: null,
-          },
-        ],
-      },
-
+      system_instance: systemInstanceFromSystem(system),
       scorer: modelSpec,
       entity: 0,
       positions: null,
