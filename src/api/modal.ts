@@ -9,11 +9,14 @@ export const getBackendUrl = () =>
 interface SubmissionParams {
   spec: PipelineSpec | SingleMutationScanSpec;
   token: string;
+  parentId: string | null;
 }
 
 export interface JobListEntry {
   jobId: string;
   submissionDate: string;
+  parentId: string | null;
+  specType: string;
 }
 
 export const JOB_LIST_STORAGE_KEY = "design-job-list";
@@ -41,7 +44,8 @@ export const useSubmission = () => {
         return res.json();
       });
     },
-    onSuccess: (data) => {
+    onSuccess: (data, params) => {
+      const { parentId, spec } = params;
       if (typeof data?.job_id !== "string") {
         return;
       }
@@ -50,6 +54,8 @@ export const useSubmission = () => {
         jobList.concat({
           jobId: data.job_id,
           submissionDate: new Date().toJSON(),
+          parentId: parentId,
+          specType: spec.key,
         }),
       );
     },

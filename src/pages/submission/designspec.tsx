@@ -726,6 +726,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
           submission.mutate({
             spec: spec,
             token: token,
+            parentId: null
           });
           openSubmitting();
         }}
