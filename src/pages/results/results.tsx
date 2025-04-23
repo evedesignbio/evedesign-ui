@@ -98,7 +98,7 @@ export const FinishedResultsPageWrapper = ({
   let instances: SystemInstanceSpec[] | null = useMemo(() => {
     // gather instances if available
     if (results.spec.key === "pipeline") {
-      instances = (results as PipelineApiResult).instances;
+      return (results as PipelineApiResult).instances;
     } else if (results.spec.key === "single_mutation_scan") {
       return singleMutationScanToInstances(
         system,
