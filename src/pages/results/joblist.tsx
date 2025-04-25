@@ -3,9 +3,8 @@ import {
   Anchor,
   Badge,
   Container,
-  Group,
-  Space,
   Stack,
+  Table,
   Text,
   Title,
 } from "@mantine/core";
@@ -20,20 +19,36 @@ export const JobListPage = () => {
         <Text c="dimmed">
           Only jobs submitted in the same browser will be listed here
         </Text>
-        <Space h="md" />
-        <Stack>
-          {[...jobList].reverse().map((job, index) => (
-            <Group key={index}>
-              <Anchor component={Link} href={"/results/" + job.jobId}>
-                {job.jobId}
-              </Anchor>
-              <Badge variant={"outline"}>
-                {job.specType?.replace("_", " ").replace("_", " ")}
-              </Badge>
-              <Text>{job.submissionDate}</Text>
-            </Group>
-          ))}
-        </Stack>
+        <Table>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Job ID</Table.Th>
+              <Table.Th>Job type</Table.Th>
+              <Table.Th>Submission date</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {[...jobList].reverse().map((job, index) => (
+              <Table.Tr key={index}>
+                <Table.Td>
+                  <Anchor component={Link} href={"/results/" + job.jobId}>
+                    {job.jobId}
+                  </Anchor>
+                </Table.Td>
+                <Table.Td>
+                  <Badge variant={"outline"}>
+                    {job.specType?.replace("_", " ").replace("_", " ")}
+                  </Badge>
+                </Table.Td>
+                <Table.Td>
+                  <Text size={"sm"} c={"dimmed"}>
+                    {job.submissionDate.replace("T", " (").split(".")[0] + ")"}
+                  </Text>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
       </Stack>
     </Container>
   );
