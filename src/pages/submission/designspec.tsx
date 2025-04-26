@@ -29,7 +29,7 @@ import { SubmissionModal } from "../../components/submission/modal.tsx";
 
 const MIN_NUM_DESIGNS = 1;
 const MAX_NUM_DESIGNS = 20000;
-const DEFAULT_NUM_DESIGNS = 16; // TODO: increase again
+const DEFAULT_NUM_DESIGNS = 32; // TODO: increase again
 
 // Gibbs sampler params
 const MIN_NUM_SWEEPS = 1; // TODO: raise to minimum sensible value
@@ -266,7 +266,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
   const [model, setModel] = useState<string>("evmutation2_ensembled");
   const [sampler, setSampler] = useState("single_mutation_scan");
   const [numDesigns, setNumDesigns] = useState<number>(DEFAULT_NUM_DESIGNS);
-  const [temperature, setTemperature] = useState<string>("0.1");
+  const [temperature, setTemperature] = useState<string>("0.5");
   const [posSelection, setPosSelection] = useState<number[]>([]);
 
   // Gibbs settings
@@ -296,6 +296,10 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
   useEffect(() => {
     if (model.startsWith("esm2") && sampler === "model") setSampler("gibbs");
   }, [model]);
+
+  useEffect(() => {
+    if (sampler === "gibbs") setTemperature("1.0");
+  }, [sampler]);
 
   const numSeqs = msa.length;
   const evoModelOk = numSeqs / targetSeqCut.length > 1;
@@ -492,7 +496,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
             { value: "0.05", label: "0.05 (low)" },
             { value: "0.1", label: "0.1 (normal-low)" },
             { value: "0.2", label: "0.2 (normal-low)" },
-            { value: "0.5", label: "0.5 (normal-high)" },
+            { value: "0.5", label: "0.5 (normal)" },
             { value: "1.0", label: "1.0 (normal-high)" },
             { value: "2.0", label: "2.0 (high)" },
           ]}
