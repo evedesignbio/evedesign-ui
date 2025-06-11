@@ -18,7 +18,8 @@ import {
 import {
   PipelineSpec,
   Sequence,
-  SingleMutationScanSpec, systemInstanceFromSystem,
+  SingleMutationScanSpec,
+  systemInstanceFromSystem,
 } from "../../models/design.ts";
 import { SeqWithRegion } from "./sequence.tsx";
 import { SequenceViewer } from "../../components/sequenceviewer";
@@ -204,10 +205,11 @@ const buildSpec = (
       }
       const weights = [1.0].concat(restraints.map((r) => r.weight));
 
-      // use linear schedule by default, set temperatureFactor to 1 for constant temperature
+      // use linear schedule by default, set temperatureFactor to 1 for constant temperature;
+      // note we do not update temperature in first step so use numSweeps - 1 (unless we only have a single sweep)
       const temperatureUpdate =
         (temperatureNumeric - temperatureNumeric / temperatureFactor) /
-        numSweeps;
+        Math.max(numSweeps - 1, 1);
 
       generator = {
         key: "gibbs",
