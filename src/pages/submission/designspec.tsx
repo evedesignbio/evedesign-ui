@@ -35,8 +35,8 @@ const DEFAULT_NUM_DESIGNS = 32; // TODO: increase again
 // Gibbs sampler params
 const MIN_NUM_SWEEPS = 1; // TODO: raise to minimum sensible value
 const MAX_NUM_SWEEPS = 1000;
-const DEFAULT_NUM_SWEEPS = 100;
-const DEFAULT_TEMPERATURE_FACTOR = 10;
+const DEFAULT_NUM_SWEEPS = 50;
+const DEFAULT_TEMPERATURE_FACTOR = 1;
 const MIN_TEMPERATURE_FACTOR = 1;
 const MAX_TEMPERATURE_FACTOR = 1000;
 
@@ -275,7 +275,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
   const [restraints, setRestraints] = useState<RestraintSpec[]>([]);
   const [expertOpen, { toggle: toggleExpert }] = useDisclosure(false);
   const [numSweeps, setNumSweeps] = useState<number>(DEFAULT_NUM_SWEEPS);
-  const [initStrategy, setInitStrategy] = useState<string>("system");
+  const [initStrategy, setInitStrategy] = useState<string>("random");
   const [temperatureFactor, setTemperatureFactor] = useState(
     DEFAULT_TEMPERATURE_FACTOR,
   );
@@ -296,12 +296,19 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
 
   // set only viable sampler option if ESM2 selected
   useEffect(() => {
-    if (model.startsWith("esm2") && sampler === "model") setSampler("gibbs");
-  }, [model]);
+    if (model.startsWith("esm2")) {
+      if (sampler === "model") {
+        setSampler("gibbs");
+      }
+      setInitStrategy("system");
+    } else if (model.startsWith("evmutation2")) {
+      setInitStrategy("random");
+    }
+  }, [model, sampler]);
 
-  useEffect(() => {
-    if (sampler === "gibbs") setTemperature("1.0");
-  }, [sampler]);
+  // useEffect(() => {
+  //   if (sampler === "gibbs") setTemperature("1.0");
+  // }, [sampler]);
 
   const numSeqs = msa.length;
   const evoModelOk = numSeqs / targetSeqCut.length > 1;
@@ -448,7 +455,7 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
             />
             <Select
               label="Gibbs initialization strategy"
-              description="Random initialization may yield more diversity at the expense of needing more sweeps"
+              description="Random initialization may yield more diversity at the expense of needing more sweeps (not recommended for LLMs)"
               data={[
                 {
                   value: "random",
@@ -494,10 +501,10 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
           onOptionSubmit={setTemperature}
           allowDeselect={false}
           data={[
-            { value: "0.01", label: "0.01 (very low)" },
-            { value: "0.05", label: "0.05 (low)" },
-            { value: "0.1", label: "0.1 (normal-low)" },
-            { value: "0.2", label: "0.2 (normal-low)" },
+            // { value: "0.01", label: "0.01 (very low)" },
+            // { value: "0.05", label: "0.05 (low)" },
+            { value: "0.1", label: "0.1 (very low)" },
+            { value: "0.3", label: "0.3 (normal-low)" },
             { value: "0.5", label: "0.5 (normal)" },
             { value: "1.0", label: "1.0 (normal-high)" },
             { value: "2.0", label: "2.0 (high)" },
