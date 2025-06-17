@@ -32,6 +32,9 @@ const MIN_NUM_DESIGNS = 1;
 const MAX_NUM_DESIGNS = 20000;
 const DEFAULT_NUM_DESIGNS = 32; // TODO: increase again
 
+// maximum FoldSeek structure hits forwarded to API
+const MAX_NUM_STRUCTURE_HITS = 100;
+
 // Gibbs sampler params
 const MIN_NUM_SWEEPS = 1; // TODO: raise to minimum sensible value
 const MAX_NUM_SWEEPS = 1000;
@@ -43,6 +46,9 @@ const MAX_TEMPERATURE_FACTOR = 1000;
 export interface DesignSpecProps {
   targetSeq: SeqWithRegion;
   msa: Sequence[];
+  structures: object,
+  seqSearchId: string;
+  structSearchId: string;
 }
 
 interface RestraintSpec {
@@ -125,6 +131,9 @@ const buildSpec = (
   temperatureFactor: number,
   numSweeps: number,
   initStrategy: string,
+  seqSearchId: string,
+  structSearchId: string,
+  structSearchResult: object,
 ): PipelineSpec | SingleMutationScanSpec => {
   const temperatureNumeric = parseFloat(temperature);
   // instantiate core molecular model (used for any type of pipeline)
@@ -176,6 +185,23 @@ const buildSpec = (
     },
   ];
 
+  // pass MMseqs and FoldSeek IDs, as well as top structure hits
+  // TODO: add proper typing here
+  // @ts-ignore
+  const topStructures = structSearchResult.results.map(
+      // @ts-ignore
+      dbHits => ({
+        db: dbHits.db,
+        alignments: dbHits.alignments[0].slice(0, MAX_NUM_STRUCTURE_HITS)
+      })
+  );
+
+  const metadata = {
+    msa_search_job_id: seqSearchId,
+    structure_search_job_id: structSearchId,
+    structure_search_result: topStructures,
+  };
+
   if (sampler === "single_mutation_scan") {
     return {
       key: "single_mutation_scan",
@@ -185,7 +211,7 @@ const buildSpec = (
       scorer: modelSpec,
       entity: 0,
       positions: null,
-      metadata: null,
+      metadata: metadata,
     } as SingleMutationScanSpec;
   } else {
     let generator;
@@ -224,7 +250,7 @@ const buildSpec = (
             type: "linear",
             update: temperatureUpdate,
           },
-          record_full_chain: true
+          record_full_chain: true,
         },
       };
     }
@@ -237,7 +263,7 @@ const buildSpec = (
     return {
       key: "pipeline",
       schema_version: "0.1",
-      metadata: null,
+      metadata: metadata,
 
       system: system,
       system_instances: null,
@@ -260,7 +286,13 @@ const buildSpec = (
   }
 };
 
-export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
+export const DesignSpecInput = ({
+  targetSeq,
+  msa,
+  structures,
+  seqSearchId,
+  structSearchId,
+}: DesignSpecProps) => {
   const targetSeqCut = targetSeq.seq.substring(
     targetSeq.start - 1,
     targetSeq.end,
@@ -671,6 +703,9 @@ export const DesignSpecInput = ({ targetSeq, msa }: DesignSpecProps) => {
             temperatureFactor,
             numSweeps,
             initStrategy,
+            seqSearchId,
+            structSearchId,
+            structures,
           );
 
           // perform submission

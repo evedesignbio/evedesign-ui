@@ -66,7 +66,15 @@ export const SubmissionPage = () => {
       </>
     );
   } else if (allCompleted) {
-    render = <DesignSpecInput targetSeq={targetSeq} msa={msa.data!} />;
+    render = (
+      <DesignSpecInput
+        targetSeq={targetSeq}
+        msa={msa.data!}
+        structures={foldseekResult.data!}
+        seqSearchId={seqSearch.id}
+        structSearchId={foldseekSearch.id}
+      />
+    );
   } else {
     render = <MsaOrStructureError reset={() => setTargetSeq(null)} />;
   }

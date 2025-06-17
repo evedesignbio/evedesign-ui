@@ -27,7 +27,7 @@ export const useFoldseekSearch = (seq: string | null) => {
     foldseekBaseUrl() + "api/ticket/",
     {
       q: `>target\n${seq}\n>3DI\n${q3di.data}\n`,
-      database: ["pdb100"], // ["afdb50", "afdb-swissprot", "afdb-proteome"], // TODO
+      database: ["pdb100", "afdb50"], // , "afdb-swissprot", "afdb-proteome"], // TODO
       mode: "3diaa-print3di",
     },
   );

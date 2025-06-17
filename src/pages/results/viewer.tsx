@@ -1,4 +1,4 @@
-import {useMemo, useRef, useState} from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Button,
   Group,
@@ -16,7 +16,8 @@ import {
 import { Link } from "wouter";
 import { validTranslation } from "../../utils/bio.ts";
 import {
-  Molstar, MolstarHandle,
+  Molstar,
+  MolstarHandle,
   RawStructure,
   Representation,
 } from "../../components/structureviewer/molstar.tsx";
@@ -151,6 +152,7 @@ const DEFAULT_STYLE: Representation[] = [
     component: "protein",
     props: {
       type: "cartoon",
+      color: "sequence-id",
       // color: "sequencemap-custom",
       // color: "secondary-structure",
       // colorParams: { default: Color(0xff0000) },
@@ -217,6 +219,13 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
             : Color(0x000000) // cf. https://mantine.dev/styles/css-variables-list/
         }
         ref={molstarRef}
+        getData={(allStructures) =>
+          allStructures.forEach((s) => {
+            // const sse = extractSecondaryStructure(s.structure.obj);
+            console.log("STRUCTURE", s);
+          })
+        }
+        handleClick={(s) => console.log("click", s.atomInfo[0])}
       />
     </div>
   );
