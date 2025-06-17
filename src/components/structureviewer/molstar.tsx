@@ -10,7 +10,7 @@
 import React, {
   useEffect,
   useRef,
-  MutableRefObject,
+  RefObject,
   useImperativeHandle,
   useState,
 } from "react";
@@ -86,8 +86,8 @@ type ViewerProps = {
   stereo?: boolean;
   resetCameraKey?: number;
   getRefs?: (
-    pluginRef: MutableRefObject<PluginContext | null>,
-    structureRef: MutableRefObject<StructureHandle[]>
+    pluginRef: RefObject<PluginContext | null>,
+    structureRef: RefObject<StructureHandle[]>
   ) => void;
   getData?: DataUpdateCallback;
 };

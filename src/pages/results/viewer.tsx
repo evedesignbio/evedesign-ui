@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import {useMemo, useRef, useState} from "react";
 import {
   Button,
   Group,
@@ -16,7 +16,7 @@ import {
 import { Link } from "wouter";
 import { validTranslation } from "../../utils/bio.ts";
 import {
-  Molstar,
+  Molstar, MolstarHandle,
   RawStructure,
   Representation,
 } from "../../components/structureviewer/molstar.tsx";
@@ -181,6 +181,7 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
   const computedColorScheme = useComputedColorScheme("light", {
     getInitialValueInEffect: true,
   });
+  const molstarRef = useRef<MolstarHandle>(null);
 
   const qs = useQuery({
     queryKey: ["structure"],
@@ -213,8 +214,9 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
         backgroundColor={
           computedColorScheme === "dark"
             ? Color.fromHexStyle(theme.colors.dark[7]) // cf. https://mantine.dev/styles/css-variables-list/
-            : Color(0x000000)  // cf. https://mantine.dev/styles/css-variables-list/
+            : Color(0x000000) // cf. https://mantine.dev/styles/css-variables-list/
         }
+        ref={molstarRef}
       />
     </div>
   );
