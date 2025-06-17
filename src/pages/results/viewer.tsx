@@ -1,5 +1,13 @@
 import { useMemo, useState } from "react";
-import { Button, Group, Select, Space, Stack } from "@mantine/core";
+import {
+  Button,
+  Group,
+  Select,
+  Space,
+  Stack,
+  useComputedColorScheme,
+  useMantineTheme,
+} from "@mantine/core";
 import {
   PipelineApiResult,
   ProteinToDnaApiResult,
@@ -7,6 +15,13 @@ import {
 } from "../../models/api.ts";
 import { Link } from "wouter";
 import { validTranslation } from "../../utils/bio.ts";
+import {
+  Molstar,
+  RawStructure,
+  Representation,
+} from "../../components/structureviewer/molstar.tsx";
+import { Color } from "molstar/lib/mol-util/color";
+import { useQuery } from "@tanstack/react-query";
 
 // TODO: improve props, receive list of instances/scores + spec
 export interface ResultViewerProps {
@@ -131,10 +146,79 @@ const useDownloadButton = (
   }, [results, format, id]);
 };
 
+const DEFAULT_STYLE: Representation[] = [
+  {
+    component: "protein",
+    props: {
+      type: "cartoon",
+      // color: "sequencemap-custom",
+      // color: "secondary-structure",
+      // colorParams: { default: Color(0xff0000) },
+      //
+      // color: "sequence-id",
+      // colorParams: def,
+    },
+    // props: { type: "cartoon", color: "residue-id", colorParams: def },
+  },
+  {
+    component: "ligand",
+    props: {
+      type: "ball-and-stick",
+      color: "uniform",
+      colorParams: { value: Color(0x676767) },
+    },
+  },
+];
+
 export const ResultViewer = ({ results, id }: ResultViewerProps) => {
   const [downloadFormat, setDownloadFormat] = useState<string | null>(null);
   // create download conditionally to avoid using to many resources in browser
   const downloadButton = useDownloadButton(results, downloadFormat, id);
+
+  // TODO: dummy molstar visual
+  // TODO: reenable debounced resizing
+  const theme = useMantineTheme();
+  const computedColorScheme = useComputedColorScheme("light", {
+    getInitialValueInEffect: true,
+  });
+
+  const qs = useQuery({
+    queryKey: ["structure"],
+    queryFn: () =>
+      // axios
+      fetch("https://files.rcsb.org/view/6gj7.cif")
+        .then((res) => res.text())
+        .then((res): RawStructure[] => [
+          { id: "6gj7_custom", data: res, format: "mmcif", visible: true },
+        ]),
+    staleTime: Infinity,
+  });
+
+  const structure = (
+    <div
+      style={{
+        height: "35vh",
+        width: "100%",
+        position: "relative",
+        resize: "both",
+        overflow: "auto",
+      }}
+    >
+      <Molstar
+        structures={qs.isSuccess ? qs.data : []}
+        representations={DEFAULT_STYLE}
+        siteHighlights={[]}
+        pairHighlights={[]}
+        showAxes={false}
+        backgroundColor={
+          computedColorScheme === "dark"
+            ? Color.fromHexStyle(theme.colors.dark[7]) // cf. https://mantine.dev/styles/css-variables-list/
+            : Color(0x000000)  // cf. https://mantine.dev/styles/css-variables-list/
+        }
+      />
+    </div>
+  );
+  // TODO: end dummy molstar wrapper
 
   return (
     <Stack>
@@ -163,6 +247,7 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
           </Button>
         </>
       ) : null}
+      {structure}
     </Stack>
   );
 };

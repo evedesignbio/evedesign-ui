@@ -13,6 +13,7 @@
     "@mantine/core": "^7.17.3",
     "@mantine/hooks": "^7.17.3",
     "@tanstack/react-query": "^5.72.0",
+    "molstar": "^4.18.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "wouter": "^3.6.0"
