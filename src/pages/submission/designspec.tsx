@@ -224,6 +224,7 @@ const buildSpec = (
             type: "linear",
             update: temperatureUpdate,
           },
+          record_full_chain: true
         },
       };
     }
