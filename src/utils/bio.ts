@@ -1,3 +1,5 @@
+export const GAP = "-";
+
 export const STANDARD_GENETIC_CODE = new Map([
   ["TTT", "F"],
   ["TTC", "F"],

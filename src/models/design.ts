@@ -1,3 +1,5 @@
+import { StructureAlignment } from "./structure.ts";
+
 export interface Sequence {
   seq: string;
   id: string | null;
@@ -47,6 +49,12 @@ export const systemInstanceFromSystem = (
   };
 };
 
+export interface JobSpecMetadata {
+  msa_search_job_id: string;
+  structure_search_job_id: string;
+  structure_search_result: StructureAlignment[];
+}
+
 export interface GenerateArgsSpec {
   num_designs: number;
   entities: number[] | null;
@@ -64,7 +72,7 @@ export interface GenerationStepSpec {
 export interface PipelineSpec {
   key: "pipeline";
   schema_version: string;
-  metadata: object | null;
+  metadata: JobSpecMetadata | null;
   system: EntitySpec[];
   system_instances: SystemInstanceSpec[] | null;
   steps: GenerationStepSpec[]; // TODO: implement other step types from backend
@@ -78,7 +86,7 @@ export interface SingleMutationScanSpec {
   scorer: object;
   entity: number | null;
   positions: number[] | null;
-  metadata: object | null;
+  metadata: JobSpecMetadata | null;
 }
 
 export interface SingleMutWithScore {

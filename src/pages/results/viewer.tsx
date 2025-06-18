@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Button,
   Group,
@@ -15,14 +15,8 @@ import {
 } from "../../models/api.ts";
 import { Link } from "wouter";
 import { validTranslation } from "../../utils/bio.ts";
-import {
-  Molstar,
-  MolstarHandle,
-  RawStructure,
-  Representation,
-} from "../../components/structureviewer/molstar.tsx";
-import { Color } from "molstar/lib/mol-util/color";
-import { useQuery } from "@tanstack/react-query";
+import { PipelineSpec, SingleMutationScanSpec } from "../../models/design.ts";
+import { StructurePanel } from "../../features/structurepanel";
 
 // TODO: improve props, receive list of instances/scores + spec
 export interface ResultViewerProps {
@@ -147,89 +141,48 @@ const useDownloadButton = (
   }, [results, format, id]);
 };
 
-const DEFAULT_STYLE: Representation[] = [
-  {
-    component: "protein",
-    props: {
-      type: "cartoon",
-      color: "sequence-id",
-      // color: "sequencemap-custom",
-      // color: "secondary-structure",
-      // colorParams: { default: Color(0xff0000) },
-      //
-      // color: "sequence-id",
-      // colorParams: def,
-    },
-    // props: { type: "cartoon", color: "residue-id", colorParams: def },
-  },
-  {
-    component: "ligand",
-    props: {
-      type: "ball-and-stick",
-      color: "uniform",
-      colorParams: { value: Color(0x676767) },
-    },
-  },
-];
-
 export const ResultViewer = ({ results, id }: ResultViewerProps) => {
   const [downloadFormat, setDownloadFormat] = useState<string | null>(null);
   // create download conditionally to avoid using to many resources in browser
   const downloadButton = useDownloadButton(results, downloadFormat, id);
 
-  // TODO: dummy molstar visual
-  // TODO: reenable debounced resizing
   const theme = useMantineTheme();
   const computedColorScheme = useComputedColorScheme("light", {
     getInitialValueInEffect: true,
   });
-  const molstarRef = useRef<MolstarHandle>(null);
 
-  const qs = useQuery({
-    queryKey: ["structure"],
-    queryFn: () =>
-      // axios
-      fetch("https://files.rcsb.org/view/6gj7.cif")
-        .then((res) => res.text())
-        .then((res): RawStructure[] => [
-          { id: "6gj7_custom", data: res, format: "mmcif", visible: true },
-        ]),
-    staleTime: Infinity,
-  });
+  const isDesignJob =
+    results.spec?.key === "pipeline" ||
+    results.spec?.key === "single_mutation_scan";
 
-  const structure = (
-    <div
-      style={{
-        height: "35vh",
-        width: "100%",
-        position: "relative",
-        resize: "both",
-        overflow: "auto",
-      }}
-    >
-      <Molstar
-        structures={qs.isSuccess ? qs.data : []}
-        representations={DEFAULT_STYLE}
-        siteHighlights={[]}
-        pairHighlights={[]}
-        showAxes={false}
-        backgroundColor={
-          computedColorScheme === "dark"
-            ? Color.fromHexStyle(theme.colors.dark[7]) // cf. https://mantine.dev/styles/css-variables-list/
-            : Color(0x000000) // cf. https://mantine.dev/styles/css-variables-list/
-        }
-        ref={molstarRef}
-        getData={(allStructures) =>
-          allStructures.forEach((s) => {
-            // const sse = extractSecondaryStructure(s.structure.obj);
-            console.log("STRUCTURE", s);
-          })
-        }
-        handleClick={(s) => console.log("click", s.atomInfo[0])}
-      />
-    </div>
-  );
-  // TODO: end dummy molstar wrapper
+  let viewer = null;
+  if (isDesignJob) {
+    const spec = results.spec as SingleMutationScanSpec | PipelineSpec;
+    viewer = spec.metadata?.structure_search_result ? (
+      <div
+        style={{
+          height: "35vh",
+          width: "100%",
+          position: "relative",
+          resize: "both",
+          overflow: "auto",
+        }}
+      >
+        <StructurePanel
+          structureHits={spec.metadata.structure_search_result}
+          backgroundColor={
+            computedColorScheme === "dark"
+              ? theme.colors.dark[7] // cf. https://mantine.dev/styles/css-variables-list/
+              : "#000000" // cf. https://mantine.dev/styles/css-variables-list/
+          }
+          useFullStructureModel={true}
+          useStructureAssembly={true}
+        />
+      </div>
+    ) : (
+      <div>Old job - no structure info available</div>
+    );
+  }
 
   return (
     <Stack>
@@ -245,8 +198,7 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
         />
         {downloadButton}
       </Group>
-      {results.spec?.key === "pipeline" ||
-      results.spec?.key === "single_mutation_scan" ? (
+      {isDesignJob ? (
         <>
           <Space />
           <Button disabled={true}>
@@ -256,9 +208,9 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
           <Button component={Link} href={`/results/${id}/dna`}>
             Generate DNA sequences...
           </Button>
+          {viewer}
         </>
       ) : null}
-      {structure}
     </Stack>
   );
 };

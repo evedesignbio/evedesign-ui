@@ -190,11 +190,11 @@ const buildSpec = (
   // @ts-ignore
   const topStructures = structSearchResult.results.map(
       // @ts-ignore
-      dbHits => ({
-        db: dbHits.db,
-        alignments: dbHits.alignments[0].slice(0, MAX_NUM_STRUCTURE_HITS)
-      })
-  );
+      dbHits => dbHits.alignments[0].slice(0, MAX_NUM_STRUCTURE_HITS).map(
+          // @ts-ignore
+          ali => ({db: dbHits.db, ...ali})
+      )
+  ).flat();
 
   const metadata = {
     msa_search_job_id: seqSearchId,
