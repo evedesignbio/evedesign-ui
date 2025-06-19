@@ -1,5 +1,11 @@
 import { StructureAlignment } from "../../models/structure.ts";
-import {RawStructure} from "../../components/structureviewer/molstar-utils.tsx";
+import {
+  AtomInfo,
+  MolstarEventHandlerArgs,
+  RawStructure,
+} from "../../components/structureviewer/molstar-utils.tsx";
+import { encodeStructurePosSeqres } from "./data.ts";
+import { ModifiersKeys } from "molstar/lib/mol-util/input/input-observer";
 
 const PREDICTED_DEFAULT_CHAIN = "A";
 
@@ -133,7 +139,7 @@ export const generateStructureQueries = (
   structureSelection: SelectedStructureMap,
 ) => {
   // iterate through selected structures to define queries and how they map to output
-  const queries = Array.from(structureSelection).map(([id, sel]) => {
+  return Array.from(structureSelection).map(([id, sel]) => {
     let url: string;
     if (sel.database === "afdb") {
       // predicted AlphaFold structure
@@ -182,90 +188,51 @@ export const generateStructureQueries = (
       staleTime: Infinity,
     };
   });
-
-  return queries;
 };
 
-// /**
-//  * Compute explicit position mapping between target sequence and structure
-//  * @param s Structure for which target-to-structure mapping should be computed
-//  * @returns New enhanced object with position mapping
-//  */
-// export const expandPositionMapping = (s: SelectedStructure) => {
-//   // initialize mappings
-//   const mapSeqToStruct = new Map<number, StructurePosition[]>();
-//   const mapStructToSeq = new Map<string, number>();
-//
-//   // identify relevant chains
-//   let chains: string[];
-//
-//   if (s.useAssembly) {
-//     if (!s.assembly) {
-//       throw new Error(
-//         `No assembly specified for ${s.targetToStructure.pdb_id} but useAssembly is true`,
-//       );
-//     }
-//
-//     const targetEntity = s.assembly.entity_map
-//       .filter((ent) => ent.is_target)
-//       .at(0);
-//     if (!targetEntity) {
-//       throw new Error(
-//         `Invalid assembly specification for ${s.targetToStructure.pdb_id}, at least one entity must have is_target be True`,
-//       );
-//     }
-//
-//     chains = targetEntity.assembly_chains;
-//   } else {
-//     // use assembly as a crutch to map to label_asym_id
-//     if (s.targetToStructure.structure_type === "pdb") {
-//       const targetEntity = s.assembly?.entity_map
-//         .filter((ent) => ent.is_target)
-//         .at(0);
-//
-//       // if we can't map through target entity (We should always be able to by construction, if assembly is available);
-//       // otherwise, return empty chain set - will "grey out" structure
-//       chains = targetEntity ? targetEntity.asym_chains : [];
-//     } else {
-//       // for predicted structure assume author ID = asym ID
-//       chains = [s.targetToStructure.pdb_chain];
-//     }
-//   }
-//
-//   // iterate through continuous segments and expand into explicit position-wise mapping
-//   for (const segment of s.targetToStructure.position_mapping) {
-//     // initialize current position to start of segment in target and structure
-//     let curT = segment.target_start;
-//     let curS = segment.structure_start;
-//
-//     // go through segment step by step
-//     while (curT <= segment.target_end) {
-//       // encode chain/position pair as string for easy immutable lookup
-//       for (const chain of chains) {
-//         const encSeqres = encodeStructurePosSeqres(chain, curS);
-//         mapStructToSeq.set(encSeqres, curT);
-//       }
-//
-//       // for reverse map, we can leave value in structured form;
-//       // create position list on structure side first;
-//       // copy value from outside scope to silence ESlint warning
-//       const labelSeqId = curS;
-//       const m = chains.map((chain) => ({
-//         // authAsymId: chain,
-//         labelAsymId: chain,
-//         labelSeqId: labelSeqId,
-//       }));
-//       // then assign to mapping
-//       mapSeqToStruct.set(curT, m);
-//
-//       curT++;
-//       curS++;
-//     }
-//   }
-//
-//   return {
-//     ...s,
-//     mapSeqToStruct: mapSeqToStruct,
-//     mapStructToSeq: mapStructToSeq,
-//   };
-// };
+export const createMolstarClickHandler = (
+  structureMap: Map<string, SelectedStructureHit> | undefined,
+  handleClick?: (
+    pos: number | null,
+    modifiers: ModifiersKeys,
+    button: number,
+    buttons: number,
+    atomInfo: AtomInfo[],
+  ) => void,
+  // dispatch: (action: DataInteractionReducerAction) => void,
+  // defaultMultiSelect = false,
+) => {
+  if (!structureMap || !handleClick) {
+    return undefined;
+  }
+
+  // return handler function
+  return ({
+    atomInfo,
+    modifiers,
+    button,
+    buttons,
+  }: MolstarEventHandlerArgs) => {
+    // guard clauses so we don't process any invalid input (shouldn't happen)
+    if (atomInfo.length === 0) return;
+    const info = atomInfo[0];
+    if (!info.inputStructureId || !structureMap.has(info.inputStructureId))
+      return;
+
+    // get sequence index mapping
+    const curMap = structureMap.get(info.inputStructureId);
+
+    // encode current position in structure so it fits to map above
+    const encodedPos = encodeStructurePosSeqres(
+      info.labelAsymId,
+      info.labelSeqId,
+    );
+
+    // only handle residue selections that can be mapped, anything else will be ignored
+    let targetPos = null;
+    if (curMap?.mapStructToSeq?.has(encodedPos)) {
+      targetPos = curMap.mapStructToSeq.get(encodedPos)!;
+    }
+    handleClick(targetPos, modifiers, button, buttons, atomInfo);
+  };
+};

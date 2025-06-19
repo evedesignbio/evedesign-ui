@@ -1,4 +1,5 @@
 import {
+  AtomInfo,
   RawStructure,
   Representation,
   StructureHandle,
@@ -14,6 +15,7 @@ import {
   useState,
 } from "react";
 import {
+  createMolstarClickHandler,
   createStructureSelectionPayload,
   generateStructureQueries,
   SelectedStructureHit,
@@ -29,6 +31,7 @@ import {
   Molstar,
   MolstarHandle,
 } from "../../components/structureviewer/molstar.tsx";
+import { ModifiersKeys } from "molstar/lib/mol-util/input/input-observer";
 
 const DEFAULT_STYLE: Representation[] = [
   {
@@ -61,6 +64,13 @@ export interface StructurePanelProps {
   useFullStructureModel: boolean;
   useStructureAssembly: boolean;
   backgroundColor: string;
+  handleClick?: (
+    pos: number | null,
+    modifiers: ModifiersKeys,
+    button: number,
+    buttons: number,
+    atomInfo: AtomInfo[]
+  ) => void;
 }
 
 /*
@@ -72,6 +82,7 @@ export const StructurePanel = ({
   backgroundColor = "white",
   useFullStructureModel = true,
   useStructureAssembly = true,
+  handleClick = undefined,
 }: StructurePanelProps) => {
   // initialize structure selection reducer
   const [structureSelection, dispatchStructureSelection] = useReducer(
@@ -118,8 +129,17 @@ export const StructurePanel = ({
     [structureSelection, setStructureSelectionWithMapping],
   );
 
+  // set up click handler for Molstar (needs to transform from structure coords to target seq coords),
+  // needs to be updated whenever structure selection with mapping changes
+  const molstarClickHandler = useMemo(
+    () => createMolstarClickHandler(structureSelectionWithMapping, handleClick),
+    [structureSelectionWithMapping, handleClick],
+  );
+
   const molstarRef = useRef<MolstarHandle>(null);
 
+  // TODO: implement site highlights, pair highlights
+  // TODO: make default style/color a prop
   return (
     <Molstar
       structures={loadedStructures}
@@ -130,7 +150,7 @@ export const StructurePanel = ({
       backgroundColor={Color.fromHexStyle(backgroundColor)}
       ref={molstarRef}
       getData={mappingExtractor}
-      // handleClick={(s) => console.log("click", s.atomInfo[0])}
+      handleClick={molstarClickHandler}
     />
   );
 };

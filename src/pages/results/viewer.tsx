@@ -17,6 +17,8 @@ import { Link } from "wouter";
 import { validTranslation } from "../../utils/bio.ts";
 import { PipelineSpec, SingleMutationScanSpec } from "../../models/design.ts";
 import { StructurePanel } from "../../features/structurepanel";
+import { ModifiersKeys } from "molstar/lib/mol-util/input/input-observer";
+import { AtomInfo } from "../../components/structureviewer/molstar-utils.tsx";
 
 // TODO: improve props, receive list of instances/scores + spec
 export interface ResultViewerProps {
@@ -141,6 +143,14 @@ const useDownloadButton = (
   }, [results, format, id]);
 };
 
+const handleClick = (
+  pos: number | null,
+  modifiers: ModifiersKeys,
+  _a: number,
+  _b: number,
+  ai: AtomInfo[],
+) => console.log("clicked", pos, modifiers, ai);
+
 export const ResultViewer = ({ results, id }: ResultViewerProps) => {
   const [downloadFormat, setDownloadFormat] = useState<string | null>(null);
   // create download conditionally to avoid using to many resources in browser
@@ -178,6 +188,7 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
           }
           useFullStructureModel={true}
           useStructureAssembly={true}
+          handleClick={handleClick}
         />
       </div>
     ) : (
