@@ -20,12 +20,12 @@ import {
   generateStructureQueries,
   SelectedStructureHit,
   structureSelectionReducer,
-} from "../../pages/results/reducers.ts";
+} from "./reducers.ts";
 import {
   extractMappings,
   rankStructureHits,
   selectDefaultStructureHits,
-} from "../../pages/results/data.ts";
+} from "./data.ts";
 import { useQueries } from "@tanstack/react-query";
 import {
   Molstar,
