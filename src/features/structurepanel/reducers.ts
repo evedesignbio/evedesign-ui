@@ -199,8 +199,6 @@ export const createMolstarClickHandler = (
     buttons: number,
     atomInfo: AtomInfo[],
   ) => void,
-  // dispatch: (action: DataInteractionReducerAction) => void,
-  // defaultMultiSelect = false,
 ) => {
   if (!structureMap || !handleClick) {
     return undefined;

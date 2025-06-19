@@ -16,9 +16,10 @@ import {
 import { Link } from "wouter";
 import { validTranslation } from "../../utils/bio.ts";
 import { PipelineSpec, SingleMutationScanSpec } from "../../models/design.ts";
-import { StructurePanel } from "../../features/structurepanel";
+import { DEFAULT_STYLE, StructurePanel } from "../../features/structurepanel";
 import { ModifiersKeys } from "molstar/lib/mol-util/input/input-observer";
 import { AtomInfo } from "../../components/structureviewer/molstar-utils.tsx";
+import { PositionColorCallback } from "../../utils/colormap.ts";
 
 // TODO: improve props, receive list of instances/scores + spec
 export interface ResultViewerProps {
@@ -151,6 +152,18 @@ const handleClick = (
   ai: AtomInfo[],
 ) => console.log("clicked", pos, modifiers, ai);
 
+const colorPos: PositionColorCallback = (pos: number | null) => {
+  if (pos === null) {
+    return "#aaaaaa";
+  } else {
+    if (pos > 30) {
+      return "#ff0000";
+    } else {
+      return "#00ff00";
+    }
+  }
+};
+
 export const ResultViewer = ({ results, id }: ResultViewerProps) => {
   const [downloadFormat, setDownloadFormat] = useState<string | null>(null);
   // create download conditionally to avoid using to many resources in browser
@@ -179,6 +192,7 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
         }}
       >
         <StructurePanel
+          structureStyle={DEFAULT_STYLE}
           structureHits={spec.metadata.structure_search_result}
           firstIndex={spec.system[0].first_index}
           backgroundColor={
@@ -189,6 +203,7 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
           useFullStructureModel={true}
           useStructureAssembly={true}
           handleClick={handleClick}
+          colorCallback={colorPos}
         />
       </div>
     ) : (

@@ -23,6 +23,7 @@ import {
 } from "./reducers.ts";
 import {
   extractMappings,
+  makeMolstarColorCallback,
   rankStructureHits,
   selectDefaultStructureHits,
 } from "./data.ts";
@@ -32,14 +33,15 @@ import {
   MolstarHandle,
 } from "../../components/structureviewer/molstar.tsx";
 import { ModifiersKeys } from "molstar/lib/mol-util/input/input-observer";
+import { PositionColorCallback } from "../../utils/colormap.ts";
 
-const DEFAULT_STYLE: Representation[] = [
+export const DEFAULT_STYLE: Representation[] = [
   {
     component: "protein",
     props: {
       type: "cartoon",
-      color: "sequence-id",
-      // color: "sequencemap-custom",
+      // color: "sequence-id",
+      color: "sequencemap-custom",
       // color: "secondary-structure",
       // colorParams: { default: Color(0xff0000) },
       //
@@ -59,6 +61,7 @@ const DEFAULT_STYLE: Representation[] = [
 ];
 
 export interface StructurePanelProps {
+  structureStyle: Representation[];
   structureHits: StructureAlignment[];
   firstIndex: number;
   useFullStructureModel: boolean;
@@ -69,20 +72,23 @@ export interface StructurePanelProps {
     modifiers: ModifiersKeys,
     button: number,
     buttons: number,
-    atomInfo: AtomInfo[]
+    atomInfo: AtomInfo[],
   ) => void;
+  colorCallback?: PositionColorCallback;
 }
 
 /*
  Wrapper around Molstar component that connects "raw" viewer to structure loading, selection and mapping
  */
 export const StructurePanel = ({
+  structureStyle,
   structureHits,
   firstIndex,
   backgroundColor = "white",
   useFullStructureModel = true,
   useStructureAssembly = true,
   handleClick = undefined,
+  colorCallback = undefined,
 }: StructurePanelProps) => {
   // initialize structure selection reducer
   const [structureSelection, dispatchStructureSelection] = useReducer(
@@ -136,21 +142,27 @@ export const StructurePanel = ({
     [structureSelectionWithMapping, handleClick],
   );
 
+  const molstarColorMap = useMemo(
+    () =>
+      makeMolstarColorCallback(structureSelectionWithMapping, colorCallback),
+    [structureSelectionWithMapping],
+  );
+
   const molstarRef = useRef<MolstarHandle>(null);
 
   // TODO: implement site highlights, pair highlights
-  // TODO: make default style/color a prop
   return (
     <Molstar
       structures={loadedStructures}
-      representations={DEFAULT_STYLE}
-      siteHighlights={[]}
-      pairHighlights={[]}
+      representations={structureStyle}
+      siteHighlights={[]} // TODO
+      pairHighlights={[]} // TODO
       showAxes={false}
       backgroundColor={Color.fromHexStyle(backgroundColor)}
       ref={molstarRef}
       getData={mappingExtractor}
       handleClick={molstarClickHandler}
+      colorMap={molstarColorMap}
     />
   );
 };

@@ -1,11 +1,19 @@
 import { StructureAlignment } from "../../models/structure.ts";
 import { GAP } from "../../utils/bio.ts";
 import {
+  AtomInfo,
   extractSecondaryStructure,
   StructureHandle,
 } from "../../components/structureviewer/molstar-utils.tsx";
-import { SelectedStructureHit, StructurePosition } from "./reducers.ts";
+import {
+  SelectedStructureHit,
+  SelectedStructureMap,
+  StructurePosition,
+} from "./reducers.ts";
 import { getProteinOneLetterCode } from "molstar/lib/mol-model/sequence/constants";
+import { ColorCallback } from "../../components/structureviewer/molstar-color.tsx";
+import { Color } from "molstar/lib/mol-util/color";
+import { PositionColorCallback } from "../../utils/colormap.ts";
 
 /**
  * Rank a list of structure hits from FoldSeek, with highest priority structures at the top.
@@ -214,7 +222,7 @@ export const extractMappings = (
     if (!structureSelection.has(s.id))
       throw new Error("Structure mapping is missing, should never happen");
 
-    const curStructureSelection = structureSelection.get(s.id)!
+    const curStructureSelection = structureSelection.get(s.id)!;
     const hit = curStructureSelection.targetToStructure;
 
     // find relevant chain IDs by sequence-based lookup
@@ -252,7 +260,10 @@ export const extractMappings = (
           );
 
           // seq to structure chain/pos is 1:n relationship
-          const newPosObj: StructurePosition = { labelAsymId: chain, labelSeqId: curPos.labelSeqId };
+          const newPosObj: StructurePosition = {
+            labelAsymId: chain,
+            labelSeqId: curPos.labelSeqId,
+          };
           if (!mapSeqToStruct.has(qIdxSeq)) {
             mapSeqToStruct.set(qIdxSeq, [newPosObj]);
           } else {
@@ -270,9 +281,39 @@ export const extractMappings = (
     updatedStructureSelection.set(s.id, {
       ...curStructureSelection,
       mapSeqToStruct: mapSeqToStruct,
-      mapStructToSeq: mapStructToSeq
-    })
+      mapStructToSeq: mapStructToSeq,
+    });
   });
 
   return updatedStructureSelection;
+};
+
+export const makeMolstarColorCallback = (
+  structureSelection?: SelectedStructureMap,
+  colorCallback?: PositionColorCallback,
+): ColorCallback | undefined => {
+  if (!structureSelection || !colorCallback) {
+    return undefined;
+  }
+
+  return (atomInfo: AtomInfo[]) => {
+    const info = atomInfo[0];
+    // default to unmappable position
+    let pos: number | null = null;
+
+    // try to map position
+    const strucMap = structureSelection.get(info.inputStructureId!);
+    if (strucMap) {
+      const targetPos = strucMap.mapStructToSeq!.get(
+        encodeStructurePosSeqres(info.labelAsymId, info.labelSeqId),
+      );
+
+      if (targetPos) {
+        pos = targetPos;
+      }
+    }
+
+    // push position (null or number) through mapping function
+    return Color.fromHexStyle(colorCallback(pos));
+  };
 };
