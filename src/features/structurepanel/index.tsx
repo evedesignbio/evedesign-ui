@@ -7,6 +7,7 @@ import {
 import { Color } from "molstar/lib/mol-util/color";
 import { StructureAlignment } from "../../models/structure.ts";
 import {
+  ReactNode,
   useCallback,
   useEffect,
   useMemo,
@@ -40,8 +41,8 @@ export const DEFAULT_STYLE: Representation[] = [
     component: "protein",
     props: {
       type: "cartoon",
-      // color: "sequence-id",
-      color: "sequencemap-custom",
+      color: "sequence-id",
+      // color: "sequencemap-custom",
       // color: "secondary-structure",
       // colorParams: { default: Color(0xff0000) },
       //
@@ -75,6 +76,8 @@ export interface StructurePanelProps {
     atomInfo: AtomInfo[],
   ) => void;
   colorCallback?: PositionColorCallback;
+  loadingOverlay?: ReactNode;
+  errorOverlay?: ReactNode;
 }
 
 /*
@@ -89,6 +92,8 @@ export const StructurePanel = ({
   useStructureAssembly = true,
   handleClick = undefined,
   colorCallback = undefined,
+  loadingOverlay = undefined,
+  errorOverlay = undefined,
 }: StructurePanelProps) => {
   // initialize structure selection reducer
   const [structureSelection, dispatchStructureSelection] = useReducer(
@@ -122,6 +127,9 @@ export const StructurePanel = ({
     .filter((s) => s.isSuccess)
     .map((s) => s.data as RawStructure);
 
+  const anyLoading = structures.filter((q) => q.isLoading).length > 0;
+  const anyError = structures.filter((q) => q.isError).length > 0;
+
   // holds structure hits with mappings once 3D info is loaded
   const [structureSelectionWithMapping, setStructureSelectionWithMapping] =
     useState<Map<string, SelectedStructureHit>>();
@@ -149,20 +157,24 @@ export const StructurePanel = ({
   );
 
   const molstarRef = useRef<MolstarHandle>(null);
+  const overlay = anyError ? errorOverlay : anyLoading ? loadingOverlay : null;
 
   // TODO: implement site highlights, pair highlights
   return (
-    <Molstar
-      structures={loadedStructures}
-      representations={structureStyle}
-      siteHighlights={[]} // TODO
-      pairHighlights={[]} // TODO
-      showAxes={false}
-      backgroundColor={Color.fromHexStyle(backgroundColor)}
-      ref={molstarRef}
-      getData={mappingExtractor}
-      handleClick={molstarClickHandler}
-      colorMap={molstarColorMap}
-    />
+    <>
+      <Molstar
+        structures={loadedStructures}
+        representations={structureStyle}
+        siteHighlights={[]} // TODO
+        pairHighlights={[]} // TODO
+        showAxes={false}
+        backgroundColor={Color.fromHexStyle(backgroundColor)}
+        ref={molstarRef}
+        getData={mappingExtractor}
+        handleClick={molstarClickHandler}
+        colorMap={molstarColorMap}
+      />
+      {overlay}
+    </>
   );
 };
