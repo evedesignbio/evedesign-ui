@@ -170,6 +170,7 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
       >
         <StructurePanel
           structureHits={spec.metadata.structure_search_result}
+          firstIndex={spec.system[0].first_index}
           backgroundColor={
             computedColorScheme === "dark"
               ? theme.colors.dark[7] // cf. https://mantine.dev/styles/css-variables-list/

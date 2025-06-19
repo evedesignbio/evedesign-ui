@@ -1,10 +1,18 @@
 import {
   RawStructure,
   Representation,
+  StructureHandle,
 } from "../../components/structureviewer/molstar-utils.tsx";
 import { Color } from "molstar/lib/mol-util/color";
 import { StructureAlignment } from "../../models/structure.ts";
-import { useEffect, useMemo, useReducer, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import {
   createStructureSelectionPayload,
   generateStructureQueries,
@@ -12,6 +20,7 @@ import {
   structureSelectionReducer,
 } from "../../pages/results/reducers.ts";
 import {
+  extractMappings,
   rankStructureHits,
   selectDefaultStructureHits,
 } from "../../pages/results/data.ts";
@@ -48,6 +57,7 @@ const DEFAULT_STYLE: Representation[] = [
 
 export interface StructurePanelProps {
   structureHits: StructureAlignment[];
+  firstIndex: number;
   useFullStructureModel: boolean;
   useStructureAssembly: boolean;
   backgroundColor: string;
@@ -58,6 +68,7 @@ export interface StructurePanelProps {
  */
 export const StructurePanel = ({
   structureHits,
+  firstIndex,
   backgroundColor = "white",
   useFullStructureModel = true,
   useStructureAssembly = true,
@@ -89,9 +100,23 @@ export const StructurePanel = ({
   const structures = useQueries({
     queries: generateStructureQueries(structureSelection),
   });
+
   const loadedStructures = structures
     .filter((s) => s.isSuccess)
     .map((s) => s.data as RawStructure);
+
+  // holds structure hits with mappings once 3D info is loaded
+  const [structureSelectionWithMapping, setStructureSelectionWithMapping] =
+    useState<Map<string, SelectedStructureHit>>();
+
+  // establish position mappings based on loaded structures via callback
+  const mappingExtractor = useCallback(
+    (structures: StructureHandle[]) =>
+      setStructureSelectionWithMapping(
+        extractMappings(structures, structureSelection, firstIndex),
+      ),
+    [structureSelection, setStructureSelectionWithMapping],
+  );
 
   const molstarRef = useRef<MolstarHandle>(null);
 
@@ -104,12 +129,7 @@ export const StructurePanel = ({
       showAxes={false}
       backgroundColor={Color.fromHexStyle(backgroundColor)}
       ref={molstarRef}
-      getData={(allStructures) =>
-        allStructures.forEach((s) => {
-          // const sse = extractSecondaryStructure(s.structure.obj);
-          console.log("STRUCTURE", s);
-        })
-      }
+      getData={mappingExtractor}
       // handleClick={(s) => console.log("click", s.atomInfo[0])}
     />
   );

@@ -4,7 +4,7 @@ import {RawStructure} from "../../components/structureviewer/molstar-utils.tsx";
 const PREDICTED_DEFAULT_CHAIN = "A";
 
 // encode a position in a protein chain using seqres numbering
-interface StructurePosition {
+export interface StructurePosition {
   labelAsymId: string;
   labelSeqId: number;
 }

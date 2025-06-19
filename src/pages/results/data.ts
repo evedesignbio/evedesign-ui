@@ -1,5 +1,11 @@
 import { StructureAlignment } from "../../models/structure.ts";
 import { GAP } from "../../utils/bio.ts";
+import {
+  extractSecondaryStructure,
+  StructureHandle,
+} from "../../components/structureviewer/molstar-utils.tsx";
+import { SelectedStructureHit, StructurePosition } from "./reducers.ts";
+import { getProteinOneLetterCode } from "molstar/lib/mol-model/sequence/constants";
 
 /**
  * Rank a list of structure hits from FoldSeek, with highest priority structures at the top.
@@ -93,7 +99,7 @@ export const rankStructureHits = (
     // rescale score
     const scoreAdj = hit.score * (goodPairs / alignedPairs);
 
-    return { ...hit, scoreAdj: scoreAdj};
+    return { ...hit, scoreAdj: scoreAdj };
   });
 
   const sortFunc = (a: StructureAlignment, b: StructureAlignment) => {
@@ -119,7 +125,7 @@ export const rankStructureHits = (
  * @param structureHits All available structures, sorted by preference in descending order
  */
 export const selectDefaultStructureHits = (
-    structureHits: StructureAlignment[]
+  structureHits: StructureAlignment[],
 ) => {
   if (structureHits.length === 0) {
     return [];
@@ -129,4 +135,144 @@ export const selectDefaultStructureHits = (
   return [structureHits[0]];
 };
 
+interface ChainPos {
+  labelSeqId: number;
+  labelCompId: string;
+}
 
+/**
+ * Encode chain/seqres pair as unique string of form chain:pos (e.g. A:123)
+ * @param chain PDB chain identifier
+ * @param seqresIndex PDB residue seqres index (*not* author ID)
+ * @returns Uniquely encoded chain-position pair
+ */
+export const encodeStructurePosSeqres = (
+  chain: string,
+  seqresIndex: number,
+) => {
+  return `${chain}:${seqresIndex}`;
+};
+
+/**
+ * From loaded structures and query to structure alignments, infer position mappings
+ * (as with FoldSeek we don't have a direct mapping to seqres indices as we did for popEVE)
+ * @param structures
+ * @param structureSelection
+ * @param firstIndex
+ */
+export const extractMappings = (
+  structures: StructureHandle[],
+  structureSelection: Map<string, SelectedStructureHit>,
+  firstIndex: number,
+) => {
+  const updatedStructureSelection = new Map<string, SelectedStructureHit>();
+
+  // iterate loaded structures
+  structures.forEach((s) => {
+    // initialize mappings
+    const mapSeqToStruct = new Map<number, StructurePosition[]>();
+    const mapStructToSeq = new Map<string, number>();
+
+    // badly named function extracts all needed info, not just secondary structure
+    const residues = extractSecondaryStructure(s.structure.obj);
+
+    // group residues by chain ID
+    const chainMap = new Map<string, ChainPos[]>();
+    residues.forEach((r) => {
+      if (!r.isResidue) {
+        return;
+      }
+
+      if (!chainMap.has(r.labelAsymId)) {
+        chainMap.set(r.labelAsymId, []);
+      }
+
+      chainMap
+        .get(r.labelAsymId)!
+        .push({ labelSeqId: r.labelSeqId, labelCompId: r.labelCompId });
+
+      // console.log(r.isResidue, r.labelAsymId, r.labelSeqId, r.labelCompId);
+    });
+
+    // create mapping from one-letter code AA sequence to chain IDs,
+    // this will be used for sequence-based lookup to find all chains matching the FoldSeek hit
+    // (this avoids any ambiguity whether authAsymId or labelAsymId is used, which can be tricky for assemblies)
+    const seqToChainId = new Map<string, string[]>();
+    chainMap.forEach((value, key) => {
+      const seqMerged = value
+        .map((pos) => getProteinOneLetterCode(pos.labelCompId))
+        .join("");
+
+      if (!seqToChainId.has(seqMerged)) {
+        seqToChainId.set(seqMerged, [key]);
+      } else {
+        seqToChainId.get(seqMerged)!.push(key);
+      }
+    });
+
+    // get corresponding FoldSeek mapping
+    if (!structureSelection.has(s.id))
+      throw new Error("Structure mapping is missing, should never happen");
+
+    const curStructureSelection = structureSelection.get(s.id)!
+    const hit = curStructureSelection.targetToStructure;
+
+    // find relevant chain IDs by sequence-based lookup
+    const chains = seqToChainId.get(hit!.tSeq);
+    // in case no chain found (could happen due to PDB handling/version inconsistencies) avoid mapping creation
+    if (!chains) return;
+
+    // build up mappping one chain at a time
+    for (const chain of chains) {
+      const chainPos = chainMap.get(chain)!;
+
+      // current positions in query and database sequence; local alignment
+      // should not start with gaps in either pos
+      let qIdxSeq = firstIndex; // 1-based index in target sequence
+      let dbIdx = hit.dbStartPos - 1; // 0-based index in string
+
+      // iterate through pairwise alignment
+      for (let i = 0; i < hit.alnLength; i++) {
+        // symbols at current alignment position
+        const qSymbol = hit.qAln.charAt(i);
+        const dbSymbol = hit.dbAln.charAt(i);
+
+        // establish residue mapping if two residues are aligned (no gap in either sequence)
+        if (qSymbol !== GAP && dbSymbol !== GAP) {
+          // check we are tracking position in db sequence correctly
+          if (hit.tSeq.charAt(dbIdx) !== dbSymbol) {
+            throw new Error("Sequence mismatch that should never occur");
+          }
+
+          const curPos = chainPos[dbIdx];
+          // structure chain/pos to seq is 1:1 relationship
+          mapStructToSeq.set(
+            encodeStructurePosSeqres(chain, curPos.labelSeqId),
+            qIdxSeq,
+          );
+
+          // seq to structure chain/pos is 1:n relationship
+          const newPosObj: StructurePosition = { labelAsymId: chain, labelSeqId: curPos.labelSeqId };
+          if (!mapSeqToStruct.has(qIdxSeq)) {
+            mapSeqToStruct.set(qIdxSeq, [newPosObj]);
+          } else {
+            mapSeqToStruct.get(qIdxSeq)!.push(newPosObj);
+          }
+        }
+
+        // increase index in either sequence if position was not a gap
+        if (qSymbol !== GAP) qIdxSeq++;
+        if (dbSymbol !== GAP) dbIdx++;
+      }
+    }
+
+    // store into updated mapping
+    updatedStructureSelection.set(s.id, {
+      ...curStructureSelection,
+      mapSeqToStruct: mapSeqToStruct,
+      mapStructToSeq: mapStructToSeq
+    })
+  });
+
+  return updatedStructureSelection;
+};
