@@ -16,6 +16,7 @@
     "molstar": "^4.18.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-tooltip": "^5.29.1",
     "wouter": "^3.6.0"
   },
   "devDependencies": {

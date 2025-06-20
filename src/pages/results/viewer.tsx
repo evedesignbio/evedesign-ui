@@ -21,6 +21,7 @@ import { ModifiersKeys } from "molstar/lib/mol-util/input/input-observer";
 import { AtomInfo } from "../../components/structureviewer/molstar-utils.tsx";
 import { PositionColorCallback } from "../../utils/colormap.ts";
 import { SiteHighlightTargetPos } from "../../features/structurepanel/data.ts";
+import { AutowrapHeatmap } from "../../components/autowrapheatmap";
 
 // TODO: improve props, receive list of instances/scores + spec
 export interface ResultViewerProps {
@@ -186,6 +187,10 @@ const exampleSiteHighlights: SiteHighlightTargetPos[] = [
   // },
 ];
 
+// @ts-ignore
+const heatmapColorMap = (value: number | null, i?: number, j?: number) =>
+  "#aa0000";
+
 export const ResultViewer = ({ results, id }: ResultViewerProps) => {
   const [downloadFormat, setDownloadFormat] = useState<string | null>(null);
   // create download conditionally to avoid using to many resources in browser
@@ -234,6 +239,23 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
     );
   }
 
+  // if single mutation matrix, create temp visual
+  let matrix = null;
+  if (results.spec?.key === "single_mutation_scan") {
+    // TODO: careful about div
+    matrix = (
+      <AutowrapHeatmap
+        data={[
+          [1, 1, 1, 1, 1],
+          [2, 2, 2, 2, 2],
+        ]}
+        colorMap={heatmapColorMap}
+        yLabels={["a", "b", "c", "d", "e"]}
+        labelRenderer={(labelData) => <span>{labelData.value}</span>}
+      />
+    );
+  }
+
   return (
     <Stack>
       <Space />
@@ -259,6 +281,7 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
             Generate DNA sequences...
           </Button>
           {viewer}
+          {matrix}
         </>
       ) : null}
     </Stack>
