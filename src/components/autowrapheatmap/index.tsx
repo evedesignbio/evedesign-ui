@@ -8,9 +8,11 @@ import {
   useState,
   useEffect,
   useMemo,
-  CSSProperties, ReactNode,
+  CSSProperties,
+  ReactNode,
 } from "react";
 
+import { useResizeObserver, useDebouncedCallback } from "@mantine/hooks";
 import { Tooltip, ChildrenType } from "react-tooltip";
 import { extractModifiers, Modifiers } from "../../utils/events";
 
@@ -18,9 +20,6 @@ type LabelRenderFunc = (render: {
   content: string | null;
   activeAnchor: HTMLElement | null;
 }) => ChildrenType;
-
-// import useResizeObserver from "use-resize-observer";
-// import { useDebouncedCallback } from "use-debounce";
 
 export type HeatmapProps = {
   data: NullableArray2D;
@@ -88,7 +87,7 @@ export type HeatmapColorMap = (
   j?: number,
 ) => string;
 
-// const DEFAULT_DEBOUNCE_TIME = 1;
+const DEFAULT_DEBOUNCE_TIME = 1;
 
 // custom properties for outer flexbox
 const DEFAULT_CONTAINER_STYLE = {
@@ -656,21 +655,18 @@ export const AutowrapHeatmap = ({
   yLabelSpacing = "5px",
   annotationTracks = EMPTY_TRACKS,
   selectionStyles = DEFAULT_SELECTION_STYLES,
-  // resizeDebounceTime = DEFAULT_DEBOUNCE_TIME,
+  resizeDebounceTime = DEFAULT_DEBOUNCE_TIME,
   scrollToElement = undefined,
   containerStyle = DEFAULT_CONTAINER_STYLE as CSSProperties,
   // tooltipProps = undefined,
 }: HeatmapProps) => {
-  const parentRef = useRef<HTMLDivElement | null>(null);
+  // const parentRef = useRef<HTMLDivElement | null>(null);
   const [rowBoundaries, setRowBoundaries] = useState<RowBoundaries[]>([]);
   // store if component is currently visible or not (different scrolling behaviour necessary e.g. if used in tabbed mode
   // rather than always visible)
-  const [isVisible, _setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
   // store last index we scrolled to, to avoid repeated scrolling if component is used in tabs
   const lastScrollIdxRef = useRef<number | null>(null);
-
-  /*
-  TODO: bring back resizing and debouncing
 
   // console.log("#### heatmap renders");
   // observe resizes of parent div to trigger label relayout
@@ -689,20 +685,14 @@ export const AutowrapHeatmap = ({
     setIsVisible(true);
   }, resizeDebounceTime);
 
-  // TODO: how to pass current state, or better, use reducer?
-  useResizeObserver({
-    ref: parentRef,
-    onResize: debouncedResize,
-    // needed so zoom events are also accounted for?! but crashed Safari so deactivate again
-    // box: "device-pixel-content-box"
-  });
-
-   */
+  const [parentRef, rect] = useResizeObserver();
+  useEffect(() => {
+    debouncedResize(rect);
+  }, [parentRef, rect.width, rect.height]);
 
   // trigger label relayout based on data change (resizing of container handeled using
   // ResizeObserver triggering the same function)
   useLayoutEffect(() => {
-    // console.log("!!! USELAYOUTEFFECT");
     if (parentRef.current) {
       setRowBoundaries(getRowBoundaries(parentRef.current));
     }
@@ -828,17 +818,7 @@ export const AutowrapHeatmap = ({
 
   return (
     <>
-      <Tooltip
-        id="heatmapLabel"
-        render={wrappedLabelRenderer}
-
-        // getContent={(dataTip) => {
-        //   if (!labelRenderer || !dataTip) return null;
-        //
-        //   const dataTipParsed = JSON.parse(dataTip);
-        //   return labelRenderer(dataTipParsed);
-        // }}
-      />
+      <Tooltip id="heatmapLabel" render={wrappedLabelRenderer} />
       <div
         style={{
           display: "flex",

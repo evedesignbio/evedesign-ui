@@ -244,15 +244,24 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
   if (results.spec?.key === "single_mutation_scan") {
     // TODO: careful about div
     matrix = (
-      <AutowrapHeatmap
-        data={[
-          [1, 1, 1, 1, 1],
-          [2, 2, 2, 2, 2],
-        ]}
-        colorMap={heatmapColorMap}
-        yLabels={["a", "b", "c", "d", "e"]}
-        labelRenderer={(labelData) => <span>{labelData.value}</span>}
-      />
+      <div
+        style={{
+          height: "100%",
+          overflow: "auto",
+          position: "relative",
+          fontFamily: "Arial",
+        }}
+      >
+        <AutowrapHeatmap
+          data={[
+            [1, 1, 1, 1, 1],
+            [2, 2, 2, 2, 2],
+          ]}
+          colorMap={heatmapColorMap}
+          yLabels={["a", "b", "c", "d", "e"]}
+          labelRenderer={(labelData) => <span>{labelData.value}</span>}
+        />
+      </div>
     );
   }
 
