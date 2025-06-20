@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Alert,
   Button,
   Collapse,
   MultiSelect,
@@ -58,6 +59,35 @@ const isValidDnaSeq = (seq: string): boolean => {
   return seq === "" || DNA_SEQ_REGEXP.test(seq);
 };
 
+const isStartCodon = (codon: string) => codon === "ATG";
+const isStopCodon = (codon: string) =>
+  codon === "TAA" || codon === "TGA" || codon === "TAG";
+
+const validOpenOrf = (upstreamDnaNorm: string) => {
+  // walk from end of sequence and look for in-frame start codon; there shouldn't be any stop codons on the way
+  for (let i = upstreamDnaNorm.length; i >= 0; i = i - 3) {
+    const currentCodon = upstreamDnaNorm.substring(i - 3, i);
+    if (isStartCodon(currentCodon)) {
+      return true;
+    }
+    if (isStopCodon(currentCodon)) {
+      return false;
+    }
+  }
+  return false;
+};
+
+const validCloseOrf = (downstreamDnaNorm: string) => {
+  // walk from start of sequence and look for in-frame stop codon
+  for (let i = 0; i < downstreamDnaNorm.length; i = i + 3) {
+    const currentCodon = downstreamDnaNorm.substring(i, i + 3);
+    if (isStopCodon(currentCodon)) {
+      return true;
+    }
+  }
+  return false;
+};
+
 const buildSpec = (
   system: EntitySpec[],
   instances: SystemInstanceSpec[],
@@ -98,6 +128,7 @@ const buildSpec = (
         gc_window: gcWindowSize,
         max_homopolymer_length: maxHomopolymerLength,
         max_repeat_length: maxRepeatLength,
+        avoid_hairpins: true,
         genetic_code: "Standard",
       },
     },
@@ -165,6 +196,9 @@ export const DNAGenerationDialog = ({
   const isValidTranslation =
     refDnaNorm === "" || validTranslation(refDnaNorm, system[0].rep);
 
+  const hasStartCodon = validOpenOrf(upstreamDnaNorm);
+  const hasStopCodon = validCloseOrf(downstreamDnaNorm);
+
   return (
     <>
       <SubmissionModal
@@ -179,23 +213,34 @@ export const DNAGenerationDialog = ({
         </Title>
         <Textarea
           label="Upstream DNA sequence"
-          description="Sequence upstream from start of your library DNA insert to include during codon optimization"
+          description="Sequence upstream from start of your library DNA insert to include as context during codon optimization"
           placeholder="Enter DNA sequence (optional, e.g. 20 bp)"
           autosize
           value={upstreamDna}
           onChange={(e) => setUpstreamDna(e.target.value)}
           error={isValidUpstream ? undefined : "Invalid DNA sequence"}
         />
+        {!hasStartCodon ? (
+          <Alert variant={"light"}>
+            Warning: your upstream sequence does create a valid ORF (no in-frame
+            start codon).
+          </Alert>
+        ) : null}
         <Textarea
           label="Downstream DNA sequence"
-          description="Sequence downstream from end of your library DNA insert to include during codon optimization"
+          description="Sequence downstream from end of your library DNA insert to include as context during codon optimization"
           placeholder="Enter DNA sequence (optional, e.g. 20 bp)"
           autosize
           value={downstreamDna}
           onChange={(e) => setDownstreamDna(e.target.value)}
           error={isValidDownstream ? undefined : "Invalid DNA sequence"}
         />
-
+        {!hasStopCodon ? (
+          <Alert variant={"light"}>
+            Warning: your downstream sequence does not end the ORF (no in-frame
+            stop codon).
+          </Alert>
+        ) : null}
         <Space />
         <Switch
           checked={includeTarget}
