@@ -122,6 +122,7 @@ export interface DnaChiselArgsSpec {
   gc_window: number | null;
   max_homopolymer_length: number | null;
   max_repeat_length: number | null;
+  avoid_hairpins: boolean;
   genetic_code: "Standard";
 }
 

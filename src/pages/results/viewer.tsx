@@ -20,6 +20,8 @@ import { DEFAULT_STYLE, StructurePanel } from "../../features/structurepanel";
 import { ModifiersKeys } from "molstar/lib/mol-util/input/input-observer";
 import { AtomInfo } from "../../components/structureviewer/molstar-utils.tsx";
 import { PositionColorCallback } from "../../utils/colormap.ts";
+import { SiteHighlightTargetPos } from "../../features/structurepanel/data.ts";
+import {Color} from "molstar/lib/mol-util/color";
 
 // TODO: improve props, receive list of instances/scores + spec
 export interface ResultViewerProps {
@@ -164,6 +166,27 @@ const colorPos: PositionColorCallback = (pos: number | null) => {
   }
 };
 
+const exampleSiteHighlights: SiteHighlightTargetPos[] = [
+  // {
+  //   pos: 100,
+  //   representationId: "100_sphere",
+  //   props: {
+  //     type: "spacefill",
+  //     color: "uniform",
+  //     colorParams: { value: Color(0xfffff) },
+  //   },
+  // },
+  // {
+  //   pos: 50,
+  //   representationId: "50_sphere",
+  //   props: {
+  //     type: "spacefill",
+  //     color: "uniform",
+  //     colorParams: { value: Color(0xaaaaaa) },
+  //   },
+  // },
+];
+
 export const ResultViewer = ({ results, id }: ResultViewerProps) => {
   const [downloadFormat, setDownloadFormat] = useState<string | null>(null);
   // create download conditionally to avoid using to many resources in browser
@@ -204,6 +227,7 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
           useStructureAssembly={true}
           handleClick={handleClick}
           colorCallback={colorPos}
+          siteHighlights={exampleSiteHighlights}
         />
       </div>
     ) : (

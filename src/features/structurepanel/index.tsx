@@ -25,8 +25,10 @@ import {
 import {
   extractMappings,
   makeMolstarColorCallback,
+  mapSiteHighlights,
   rankStructureHits,
   selectDefaultStructureHits,
+  SiteHighlightTargetPos,
 } from "./data.ts";
 import { useQueries } from "@tanstack/react-query";
 import {
@@ -76,6 +78,7 @@ export interface StructurePanelProps {
     atomInfo: AtomInfo[],
   ) => void;
   colorCallback?: PositionColorCallback;
+  siteHighlights?: SiteHighlightTargetPos[];
   loadingOverlay?: ReactNode;
   errorOverlay?: ReactNode;
 }
@@ -92,6 +95,7 @@ export const StructurePanel = ({
   useStructureAssembly = true,
   handleClick = undefined,
   colorCallback = undefined,
+  siteHighlights = undefined,
   loadingOverlay = undefined,
   errorOverlay = undefined,
 }: StructurePanelProps) => {
@@ -156,17 +160,21 @@ export const StructurePanel = ({
     [structureSelectionWithMapping],
   );
 
+  const siteHighlightsMapped = useMemo(
+    () => mapSiteHighlights(siteHighlights, structureSelectionWithMapping),
+    [siteHighlights, structureSelectionWithMapping],
+  );
+
   const molstarRef = useRef<MolstarHandle>(null);
   const overlay = anyError ? errorOverlay : anyLoading ? loadingOverlay : null;
-
-  // TODO: implement site highlights, pair highlights
+  
   return (
     <>
       <Molstar
         structures={loadedStructures}
         representations={structureStyle}
-        siteHighlights={[]} // TODO
-        pairHighlights={[]} // TODO
+        siteHighlights={siteHighlightsMapped}
+        pairHighlights={[]} // pass as empty by default for now since only using site highlights in application
         showAxes={false}
         backgroundColor={Color.fromHexStyle(backgroundColor)}
         ref={molstarRef}

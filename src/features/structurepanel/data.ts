@@ -3,6 +3,7 @@ import { GAP } from "../../utils/bio.ts";
 import {
   AtomInfo,
   extractSecondaryStructure,
+  SiteHighlight,
   StructureHandle,
 } from "../../components/structureviewer/molstar-utils.tsx";
 import {
@@ -316,4 +317,44 @@ export const makeMolstarColorCallback = (
     // push position (null or number) through mapping function
     return Color.fromHexStyle(colorCallback(pos));
   };
+};
+
+// site highlight in target position numbering, before mapping to structures
+export interface SiteHighlightTargetPos {
+  pos: number;
+  representationId: string;
+  props: any;
+}
+
+export const mapSiteHighlights = (
+  siteHighlightsTargetPos?: SiteHighlightTargetPos[],
+  structureSelection?: SelectedStructureMap,
+): SiteHighlight[] => {
+  if (!structureSelection || !siteHighlightsTargetPos) {
+    return [];
+  }
+
+  const highlightsMapped: SiteHighlight[] = [];
+
+  siteHighlightsTargetPos.forEach((highlight: SiteHighlightTargetPos) => {
+    structureSelection.forEach((s, id) => {
+      const posMapped = s.mapSeqToStruct!.get(highlight.pos);
+      if (!posMapped) {
+        return;
+      }
+      posMapped.forEach((pm) =>
+        highlightsMapped.push({
+          // position mapped into a particular structure
+          inputStructureId: id,
+          labelAsymId: pm.labelAsymId,
+          labelResidueIds: [pm.labelSeqId],
+          // forward other props as-is
+          representationId: highlight.representationId,
+          props: highlight.props,
+        }),
+      );
+    });
+  });
+
+  return highlightsMapped;
 };
