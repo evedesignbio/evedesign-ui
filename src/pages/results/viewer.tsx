@@ -21,7 +21,6 @@ import { ModifiersKeys } from "molstar/lib/mol-util/input/input-observer";
 import { AtomInfo } from "../../components/structureviewer/molstar-utils.tsx";
 import { PositionColorCallback } from "../../utils/colormap.ts";
 import { SiteHighlightTargetPos } from "../../features/structurepanel/data.ts";
-import {Color} from "molstar/lib/mol-util/color";
 
 // TODO: improve props, receive list of instances/scores + spec
 export interface ResultViewerProps {
