@@ -222,8 +222,8 @@ export const DNAGenerationDialog = ({
         />
         {!hasStartCodon ? (
           <Alert variant={"light"}>
-            Warning: your upstream sequence does create a valid ORF (no in-frame
-            start codon).
+            Warning: your upstream sequence does not create a valid ORF (no in-frame
+            start codon)
           </Alert>
         ) : null}
         <Textarea
@@ -238,7 +238,7 @@ export const DNAGenerationDialog = ({
         {!hasStopCodon ? (
           <Alert variant={"light"}>
             Warning: your downstream sequence does not end the ORF (no in-frame
-            stop codon).
+            stop codon)
           </Alert>
         ) : null}
         <Space />
