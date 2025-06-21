@@ -22,7 +22,7 @@ import { ModifiersKeys } from "molstar/lib/mol-util/input/input-observer";
 import { AtomInfo } from "../../components/structureviewer/molstar-utils.tsx";
 import { PositionColorCallback } from "../../utils/colormap.ts";
 import { SiteHighlightTargetPos } from "../../features/structurepanel/data.ts";
-import { AutowrapHeatmap } from "../../components/autowrapheatmap";
+import { AutowrapHeatmap, ClickEvent } from "../../components/autowrapheatmap";
 
 // TODO: improve props, receive list of instances/scores + spec
 export interface ResultViewerProps {
@@ -188,9 +188,116 @@ const exampleSiteHighlights: SiteHighlightTargetPos[] = [
   // },
 ];
 
+// https://stackoverflow.com/questions/1484506/random-color-generator
+// TODO: remove again once actual data shown
+function getRandomColor() {
+  var letters = '0123456789ABCDEF';
+  var color = '#';
+  for (var i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+}
+
 // @ts-ignore
 const heatmapColorMap = (value: number | null, i?: number, j?: number) =>
-  "#aa0000";
+  getRandomColor();
+
+const heatmapClickHandler = ({
+  locationType,
+  payload,
+  modifiers,
+}: ClickEvent) => {
+  console.log("heatmap click", locationType, payload, modifiers);
+};
+
+// const labelRenderer = (labelData: LabelData) => {
+//   if (labelData.type === "data") {
+//     if (!mutations.data) return null;
+//
+//     const i = labelData.column!;
+//     const j = labelData.row!;
+//
+//     // guard clauses against label being out of sync with data
+//     if (i >= mutations.data[typeIndex].length) {
+//       return;
+//     }
+//
+//     const rawEffect = mutations.data[typeIndex][i][j];
+//     const effect =
+//         rawEffect !== undefined && rawEffect !== null
+//             ? rawEffect.toFixed(2)
+//             : "n/a";
+//
+//     // rounding trick: https://stackoverflow.com/questions/11832914/how-to-round-to-at-most-2-decimal-places-if-necessary
+//     return (
+//         <span>
+//           Mutant: <b>{`${wt[i!]} ${pos[i!]} ${subs[j!]}`}</b>
+//           <br />
+//           Effect: <b>{effect}</b>
+//         </span>
+//     );
+//   } else {
+//     return null;
+//   }
+// };
+
+const annotationTracks = [
+  // {
+  //   id: "secstruct",
+  //   above: true,
+  //   height: "45pt",
+  //   yLabel: "SS",
+  //   render: () => <span>x</span>,
+  // },
+  {
+    id: "spacer_above",
+    above: true,
+    height: "10pt",
+  },
+  {
+    id: "spacer_below",
+    above: false,
+    height: "5pt",
+  },
+  {
+    id: "xlabel",
+    above: false,
+    height: "30pt",
+    yLabel: "",
+    render: (i: number, selected: boolean) => {
+      // if (!mutations.data) return null;
+
+      // note background color is set on complete flexbox column div
+      return (
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            // color: "white",
+            display: "flex",
+            alignItems: "center", // keep
+            justifyContent: "flex-end",
+            // alignItems: "flex-top",
+            fontSize: "7pt",
+            fontWeight: selected ? "bold" : "normal",
+            // color: selected ? "white" : "black",  // TODO: dynamic based on color theme
+            writingMode: "vertical-lr",
+            // verticalAlign: "top",
+            transform: "rotate(180deg)",
+            cursor: "default",
+            // backgroundColor: "yellow",
+          }}
+        >
+          {/*<span>{`${wt[i]} ${*/}
+          {/*    positionAlias ? positionAlias(pos[i]) : pos[i]*/}
+          {/*}`}</span>*/}
+          <span>{i}</span>
+        </div>
+      );
+    },
+  },
+];
 
 export const ResultViewer = ({ results, id }: ResultViewerProps) => {
   const [downloadFormat, setDownloadFormat] = useState<string | null>(null);
@@ -270,11 +377,22 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
           ]}
           colorMap={heatmapColorMap}
           yLabels={["a", "b", "c", "d", "e"]}
+          cellWidth="7pt"
+          cellHeight="7pt"
+          yLabelSpacing="5pt"
+          annotationTracks={annotationTracks}
+          handleEvent={heatmapClickHandler}
           labelRenderer={(labelData) => <Text>{labelData.value}</Text>}
           tooltipStyle={{
             backgroundColor: computedColorScheme === "dark" ? "#fff" : "#000",
             color: computedColorScheme === "dark" ? "#000" : "#fff",
+            zIndex: 9999,
           }}
+          // TODO: selection styling (label backgrounds dynamic on light/dark theme)
+          // selectedCells={transformedSelections.heatmapMuts}
+          // selectedColumns={transformedSelections.heatmapPos}
+          // selectedRows={transformedSelections.heatmapSubs}
+          // scrollToElement={transformedSelections.heatmapJump}
         />
       </div>
     );
