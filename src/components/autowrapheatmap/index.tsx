@@ -38,7 +38,7 @@ export type HeatmapProps = {
   resizeDebounceTime?: number;
   scrollToElement?: number;
   containerStyle?: CSSProperties;
-  // tooltipProps?: TooltipProps;
+  tooltipStyle?: CSSProperties;
 };
 
 export type CellCoords = {
@@ -658,7 +658,7 @@ export const AutowrapHeatmap = ({
   resizeDebounceTime = DEFAULT_DEBOUNCE_TIME,
   scrollToElement = undefined,
   containerStyle = DEFAULT_CONTAINER_STYLE as CSSProperties,
-  // tooltipProps = undefined,
+  tooltipStyle = undefined
 }: HeatmapProps) => {
   // const parentRef = useRef<HTMLDivElement | null>(null);
   const [rowBoundaries, setRowBoundaries] = useState<RowBoundaries[]>([]);
@@ -818,7 +818,11 @@ export const AutowrapHeatmap = ({
 
   return (
     <>
-      <Tooltip id="heatmapLabel" render={wrappedLabelRenderer} />
+      <Tooltip
+        id="heatmapLabel"
+        render={wrappedLabelRenderer}
+        style={tooltipStyle}
+      />
       <div
         style={{
           display: "flex",

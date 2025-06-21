@@ -5,6 +5,7 @@ import {
   Select,
   Space,
   Stack,
+  Text,
   useComputedColorScheme,
   useMantineTheme,
 } from "@mantine/core";
@@ -225,7 +226,7 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
           backgroundColor={
             computedColorScheme === "dark"
               ? theme.colors.dark[7] // cf. https://mantine.dev/styles/css-variables-list/
-              : "#000000" // cf. https://mantine.dev/styles/css-variables-list/
+              : "#ffffff" // cf. https://mantine.dev/styles/css-variables-list/
           }
           useFullStructureModel={true}
           useStructureAssembly={true}
@@ -256,10 +257,24 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
           data={[
             [1, 1, 1, 1, 1],
             [2, 2, 2, 2, 2],
+            [1, 1, 1, 1, 1],
+            [2, 2, 2, 2, 2],
+            [1, 1, 1, 1, 1],
+            [2, 2, 2, 2, 2],
+            [1, 1, 1, 1, 1],
+            [2, 2, 2, 2, 2],
+            [1, 1, 1, 1, 1],
+            [2, 2, 2, 2, 2],
+            [1, 1, 1, 1, 1],
+            [2, 2, 2, 2, 2],
           ]}
           colorMap={heatmapColorMap}
           yLabels={["a", "b", "c", "d", "e"]}
-          labelRenderer={(labelData) => <span>{labelData.value}</span>}
+          labelRenderer={(labelData) => <Text>{labelData.value}</Text>}
+          tooltipStyle={{
+            backgroundColor: computedColorScheme === "dark" ? "#fff" : "#000",
+            color: computedColorScheme === "dark" ? "#000" : "#fff",
+          }}
         />
       </div>
     );
