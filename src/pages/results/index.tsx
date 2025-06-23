@@ -73,49 +73,61 @@ export const DownloadOnlyViewer = ({
     return null;
   }, [results]);
 
-  if (dnaOpen && instances) {
+  if (dnaOpen) {
     return (
       <>
-        <Button variant={"subtle"} onClick={toggleDnaOpen}>
-          Close DNA builder
-        </Button>
+        <BoxedLayout>
+          <Button variant={"subtle"} onClick={toggleDnaOpen}>
+            Close DNA builder
+          </Button>
+        </BoxedLayout>
 
-        <DNAGenerationDialog
-          id={id}
-          system={(results as DesignJobApiResult).spec.system}
-          instances={instances}
-        />
+        <BoxedLayout title={"DNA library generation"}>
+          <DNAGenerationDialog
+            id={id}
+            system={(results as DesignJobApiResult).spec.system}
+            instances={instances!}
+          />
+        </BoxedLayout>
       </>
     );
   }
 
   return (
-    <Stack>
-      {message ? (
-        <>
-          <Space />
-          <Alert>{message}</Alert>
-        </>
-      ) : null}
-      <Space />
-      <Group>
-        <Select
-          placeholder="Select a file format"
-          data={["csv", "fasta", "json"].filter(
-            (option) => results.spec?.key === "pipeline" || option !== "fasta",
-          )}
-          value={downloadFormat}
-          onOptionSubmit={setDownloadFormat}
-        />
-        {downloadButton}
-      </Group>
-      {isDesignJob ? (
-        <>
-          <Space />
-          <Button onClick={toggleDnaOpen}>Build DNA sequences...</Button>
-        </>
-      ) : null}
-    </Stack>
+    <BoxedLayout id={id} title={"Job result"}>
+      <JobStatusBadge
+        label={"finished"}
+        color={"green"}
+        jobType={results.spec.key}
+      />
+      <Stack>
+        {message ? (
+          <>
+            <Space />
+            <Alert>{message}</Alert>
+          </>
+        ) : null}
+        <Space />
+        <Group>
+          <Select
+            placeholder="Select a file format"
+            data={["csv", "fasta", "json"].filter(
+              (option) =>
+                results.spec?.key === "pipeline" || option !== "fasta",
+            )}
+            value={downloadFormat}
+            onOptionSubmit={setDownloadFormat}
+          />
+          {downloadButton}
+        </Group>
+        {isDesignJob ? (
+          <>
+            <Space />
+            <Button onClick={toggleDnaOpen}>Build DNA sequences...</Button>
+          </>
+        ) : null}
+      </Stack>
+    </BoxedLayout>
   );
 };
 
@@ -140,18 +152,15 @@ export const FinishedResultsPageWrapper = ({
     return <AnalysisViewer id={id} results={results! as DesignJobApiResult} />;
   } else {
     return (
-      <BoxedLayout id={id} title={"Job result"}>
-        <JobStatusBadge label={"finished"} color={"green"} jobType={jobType} />
-        <DownloadOnlyViewer
-          results={results!}
-          id={id}
-          message={
-            isDesignJob
-              ? "Use a device with a larger screen or resize your browser window to display full analysis viewer"
-              : undefined
-          }
-        />
-      </BoxedLayout>
+      <DownloadOnlyViewer
+        results={results!}
+        id={id}
+        message={
+          isDesignJob
+            ? "Use a device with a larger screen or resize your browser window to display full analysis viewer"
+            : undefined
+        }
+      />
     );
   }
 };
