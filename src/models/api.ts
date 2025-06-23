@@ -15,6 +15,8 @@ export interface SingleMutationScanApiResult {
   scores: SingleMutationScanResult[];
 }
 
+export type DesignJobApiResult = PipelineApiResult | SingleMutationScanApiResult;
+
 export interface ProteinToDnaApiResult {
   spec: ProteinToDnaSpec;
   dna_sequences: ProteinToDnaResult[];

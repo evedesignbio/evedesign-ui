@@ -1,10 +1,6 @@
-import { useState } from "react";
 import {
+  Badge,
   Button,
-  Group,
-  Select,
-  Space,
-  Stack,
   Text,
   useComputedColorScheme,
   useMantineTheme,
@@ -13,15 +9,15 @@ import {
   PipelineApiResult,
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
-import { Link } from "wouter";
-import { PipelineSpec, SingleMutationScanSpec } from "../../models/design.ts";
 import { DEFAULT_STYLE, StructurePanel } from "../../features/structurepanel";
 import { ModifiersKeys } from "molstar/lib/mol-util/input/input-observer";
 import { AtomInfo } from "../../components/structureviewer/molstar-utils.tsx";
 import { PositionColorCallback } from "../../utils/colormap.ts";
 import { SiteHighlightTargetPos } from "../../features/structurepanel/data.ts";
 import { AutowrapHeatmap, ClickEvent } from "../../components/autowrapheatmap";
-import { useDownloadButton } from "./helpers.tsx";
+import "./viewer.css";
+import { useInstances } from "./data.ts";
+import { InstanceTable } from "./table.tsx";
 
 export interface AnalysisViewerProps {
   id: string;
@@ -180,129 +176,100 @@ const annotationTracks = [
   },
 ];
 
-export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
-  const [downloadFormat, setDownloadFormat] = useState<string | null>(null);
+export const AnalysisViewer = ({ results }: AnalysisViewerProps) => {
+  // const [downloadFormat, setDownloadFormat] = useState<string | null>(null);
   // create download conditionally to avoid using to many resources in browser
-  const downloadButton = useDownloadButton(results, downloadFormat, id);
+  // const downloadButton = useDownloadButton(results, downloadFormat, id);
 
   const theme = useMantineTheme();
   const computedColorScheme = useComputedColorScheme("light", {
     getInitialValueInEffect: true,
   });
 
-  const isDesignJob =
-    results.spec?.key === "pipeline" ||
-    results.spec?.key === "single_mutation_scan";
+  const spec = results.spec;
+  const isMutationScan = spec.key === "single_mutation_scan";
+  const instances = useInstances(results);
 
-  let viewer = null;
-  if (isDesignJob) {
-    const spec = results.spec as SingleMutationScanSpec | PipelineSpec;
-    viewer = spec.metadata?.structure_search_result ? (
-      <div
-        style={{
-          height: "35vh",
-          width: "100%",
-          position: "relative",
-          resize: "both",
-          overflow: "auto",
-        }}
-      >
-        <StructurePanel
-          structureStyle={DEFAULT_STYLE}
-          structureHits={spec.metadata.structure_search_result}
-          firstIndex={spec.system[0].first_index}
-          backgroundColor={
-            computedColorScheme === "dark"
-              ? theme.colors.dark[7] // cf. https://mantine.dev/styles/css-variables-list/
-              : "#ffffff" // cf. https://mantine.dev/styles/css-variables-list/
-          }
-          useFullStructureModel={true}
-          useStructureAssembly={true}
-          handleClick={handleClick}
-          colorCallback={colorPos}
-          siteHighlights={exampleSiteHighlights}
-        />
-      </div>
-    ) : (
-      <div>Old job - no structure info available</div>
-    );
-  }
+  const tablePanel = <InstanceTable instances={instances} />;
+
+  const structurePanel = (
+    <StructurePanel
+      structureStyle={DEFAULT_STYLE}
+      structureHits={spec.metadata ? spec.metadata.structure_search_result : []}
+      firstIndex={spec.system[0].first_index}
+      backgroundColor={
+        computedColorScheme === "dark"
+          ? theme.colors.dark[7] // cf. https://mantine.dev/styles/css-variables-list/
+          : "#ffffff" // cf. https://mantine.dev/styles/css-variables-list/
+      }
+      useFullStructureModel={true}
+      useStructureAssembly={true}
+      handleClick={handleClick}
+      colorCallback={colorPos}
+      siteHighlights={exampleSiteHighlights}
+    />
+  );
 
   // if single mutation matrix, create temp visual
-  let matrix = null;
-  if (results.spec?.key === "single_mutation_scan") {
-    // TODO: careful about div
-    matrix = (
-      <div
-        style={{
-          height: "100%",
-          overflow: "auto",
-          position: "relative",
-          fontFamily: "Arial",
+  let heatmapPanel = null;
+  if (isMutationScan) {
+    heatmapPanel = (
+      <AutowrapHeatmap
+        data={[
+          [1, 1, 1, 1, 1],
+          [2, 2, 2, 2, 2],
+          [1, 1, 1, 1, 1],
+          [2, 2, 2, 2, 2],
+          [1, 1, 1, 1, 1],
+          [2, 2, 2, 2, 2],
+          [1, 1, 1, 1, 1],
+          [2, 2, 2, 2, 2],
+          [1, 1, 1, 1, 1],
+          [2, 2, 2, 2, 2],
+          [1, 1, 1, 1, 1],
+          [2, 2, 2, 2, 2],
+        ]}
+        colorMap={heatmapColorMap}
+        yLabels={["a", "b", "c", "d", "e"]}
+        cellWidth="7pt"
+        cellHeight="7pt"
+        yLabelSpacing="5pt"
+        annotationTracks={annotationTracks}
+        handleEvent={heatmapClickHandler}
+        labelRenderer={(labelData) => <Text>{labelData.value}</Text>}
+        tooltipStyle={{
+          backgroundColor: computedColorScheme === "dark" ? "#fff" : "#000",
+          color: computedColorScheme === "dark" ? "#000" : "#fff",
+          zIndex: 9999,
         }}
-      >
-        <AutowrapHeatmap
-          data={[
-            [1, 1, 1, 1, 1],
-            [2, 2, 2, 2, 2],
-            [1, 1, 1, 1, 1],
-            [2, 2, 2, 2, 2],
-            [1, 1, 1, 1, 1],
-            [2, 2, 2, 2, 2],
-            [1, 1, 1, 1, 1],
-            [2, 2, 2, 2, 2],
-            [1, 1, 1, 1, 1],
-            [2, 2, 2, 2, 2],
-            [1, 1, 1, 1, 1],
-            [2, 2, 2, 2, 2],
-          ]}
-          colorMap={heatmapColorMap}
-          yLabels={["a", "b", "c", "d", "e"]}
-          cellWidth="7pt"
-          cellHeight="7pt"
-          yLabelSpacing="5pt"
-          annotationTracks={annotationTracks}
-          handleEvent={heatmapClickHandler}
-          labelRenderer={(labelData) => <Text>{labelData.value}</Text>}
-          tooltipStyle={{
-            backgroundColor: computedColorScheme === "dark" ? "#fff" : "#000",
-            color: computedColorScheme === "dark" ? "#000" : "#fff",
-            zIndex: 9999,
-          }}
-          // TODO: selection styling (label backgrounds dynamic on light/dark theme)
-          // selectedCells={transformedSelections.heatmapMuts}
-          // selectedColumns={transformedSelections.heatmapPos}
-          // selectedRows={transformedSelections.heatmapSubs}
-          // scrollToElement={transformedSelections.heatmapJump}
-        />
-      </div>
+        // TODO: selection styling (label backgrounds dynamic on light/dark theme)
+        // selectedCells={transformedSelections.heatmapMuts}
+        // selectedColumns={transformedSelections.heatmapPos}
+        // selectedRows={transformedSelections.heatmapSubs}
+        // scrollToElement={transformedSelections.heatmapJump}
+      />
     );
   }
 
+  const menuPanel = (
+    <>
+      <Badge variant={"outline"}>
+        {spec.key.replace("_", " ").replace("_", " ")}
+      </Badge>
+      <Button disabled={true}>Build DNA...</Button>
+    </>
+  );
+
   return (
-    <Stack>
-      <Space />
-      <Group>
-        <Select
-          placeholder="Select a file format"
-          data={["csv", "fasta", "json"].filter(
-            (option) => results.spec?.key === "pipeline" || option !== "fasta",
-          )}
-          value={downloadFormat}
-          onOptionSubmit={setDownloadFormat}
-        />
-        {downloadButton}
-      </Group>
-      {isDesignJob ? (
-        <>
-          <Space />
-          <Button component={Link} href={`/results/${id}/dna`}>
-            Generate DNA sequences...
-          </Button>
-          {viewer}
-          {matrix}
-        </>
-      ) : null}
-    </Stack>
+    <div className="outer-wrapper">
+      <div className="menubar-wrapper">{menuPanel}</div>
+      <div className="resizable-viewer-wrapper">
+        <div className="resizable-viewer-box">{tablePanel}</div>
+        <div className="resizable-viewer-box">
+          <div className="heatmap-wrapper">{heatmapPanel}</div>
+        </div>
+        <div className="resizable-viewer-box">{structurePanel}</div>
+      </div>
+    </div>
   );
 };

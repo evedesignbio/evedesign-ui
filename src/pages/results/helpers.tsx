@@ -45,16 +45,18 @@ interface JobStatusBadgeProps {
   label: string;
   jobType?: string;
   color: string;
+  hideText?: boolean;
 }
 
 export const JobStatusBadge = ({
   label,
   jobType,
   color,
+  hideText,
 }: JobStatusBadgeProps) => {
   return (
     <Group>
-      <Text>Status:</Text>
+      {!hideText ? <Text>Status:</Text> : null}
       <Badge color={color}>{label}</Badge>
       {jobType ? (
         <Badge variant={"outline"}>
