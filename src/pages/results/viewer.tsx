@@ -1,6 +1,7 @@
 import {
   Badge,
   Button,
+  Modal,
   Text,
   useComputedColorScheme,
   useMantineTheme,
@@ -196,25 +197,24 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   const instances = useInstances(results);
   const instancesFilt = instances; // TODO: compute based on selection eventually
 
-  if (dnaOpen) {
-    return (
-      <>
-        <BoxedLayout>
-          <Button variant={"subtle"} onClick={toggleDnaOpen}>
-            Close DNA builder
-          </Button>
-        </BoxedLayout>
-
-        <BoxedLayout title={"DNA library generation"}>
-          <DNAGenerationDialog
-            id={id}
-            system={spec.system}
-            instances={instancesFilt}
-          />
-        </BoxedLayout>
-      </>
-    );
-  }
+  const dnaModal = (
+    <Modal
+      opened={dnaOpen}
+      onClose={toggleDnaOpen}
+      size={"auto"}
+      overlayProps={{
+        blur: 3,
+      }}
+    >
+      <BoxedLayout title={"DNA library generation"}>
+        <DNAGenerationDialog
+          id={id}
+          system={spec.system}
+          instances={instancesFilt}
+        />
+      </BoxedLayout>
+    </Modal>
+  );
 
   const tablePanel = <InstanceTable instances={instances} />;
 
@@ -287,15 +287,18 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   );
 
   return (
-    <div className="outer-wrapper">
-      <div className="menubar-wrapper">{menuPanel}</div>
-      <div className="resizable-viewer-wrapper">
-        <div className="resizable-viewer-box">{tablePanel}</div>
-        <div className="resizable-viewer-box">
-          <div className="heatmap-wrapper">{heatmapPanel}</div>
+    <>
+      {dnaModal}
+      <div className="outer-wrapper">
+        <div className="menubar-wrapper">{menuPanel}</div>
+        <div className="resizable-viewer-wrapper">
+          <div className="resizable-viewer-box">{tablePanel}</div>
+          <div className="resizable-viewer-box">
+            <div className="heatmap-wrapper">{heatmapPanel}</div>
+          </div>
+          <div className="resizable-viewer-box">{structurePanel}</div>
         </div>
-        <div className="resizable-viewer-box">{structurePanel}</div>
       </div>
-    </div>
+    </>
   );
 };

@@ -3,6 +3,7 @@ import {
   Button,
   Group,
   Loader,
+  Modal,
   Select,
   Space,
   Stack,
@@ -73,61 +74,65 @@ export const DownloadOnlyViewer = ({
     return null;
   }, [results]);
 
-  if (dnaOpen) {
-    return (
-      <>
-        <BoxedLayout>
-          <Button variant={"subtle"} onClick={toggleDnaOpen}>
-            Close DNA builder
-          </Button>
-        </BoxedLayout>
-
-        <BoxedLayout title={"DNA library generation"}>
-          <DNAGenerationDialog
-            id={id}
-            system={(results as DesignJobApiResult).spec.system}
-            instances={instances!}
-          />
-        </BoxedLayout>
-      </>
-    );
-  }
+  const dnaModal = (
+    <Modal
+      opened={dnaOpen}
+      onClose={toggleDnaOpen}
+      size={"auto"}
+      overlayProps={{
+        blur: 3,
+      }}
+      fullScreen={true}
+      transitionProps={{ transition: "fade", duration: 200 }}
+    >
+      <BoxedLayout title={"DNA library generation"}>
+        <DNAGenerationDialog
+          id={id}
+          system={(results as DesignJobApiResult).spec.system}
+          instances={instances!}
+        />
+      </BoxedLayout>
+    </Modal>
+  );
 
   return (
-    <BoxedLayout id={id} title={"Job result"}>
-      <JobStatusBadge
-        label={"finished"}
-        color={"green"}
-        jobType={results.spec.key}
-      />
-      <Stack>
-        {message ? (
-          <>
-            <Space />
-            <Alert>{message}</Alert>
-          </>
-        ) : null}
-        <Space />
-        <Group>
-          <Select
-            placeholder="Select a file format"
-            data={["csv", "fasta", "json"].filter(
-              (option) =>
-                results.spec?.key === "pipeline" || option !== "fasta",
-            )}
-            value={downloadFormat}
-            onOptionSubmit={setDownloadFormat}
-          />
-          {downloadButton}
-        </Group>
-        {isDesignJob ? (
-          <>
-            <Space />
-            <Button onClick={toggleDnaOpen}>Build DNA sequences...</Button>
-          </>
-        ) : null}
-      </Stack>
-    </BoxedLayout>
+    <>
+      {dnaModal}
+      <BoxedLayout id={id} title={"Job result"}>
+        <JobStatusBadge
+          label={"finished"}
+          color={"green"}
+          jobType={results.spec.key}
+        />
+        <Stack>
+          {message ? (
+            <>
+              <Space />
+              <Alert>{message}</Alert>
+            </>
+          ) : null}
+          <Space />
+          <Group>
+            <Select
+              placeholder="Select a file format"
+              data={["csv", "fasta", "json"].filter(
+                (option) =>
+                  results.spec?.key === "pipeline" || option !== "fasta",
+              )}
+              value={downloadFormat}
+              onOptionSubmit={setDownloadFormat}
+            />
+            {downloadButton}
+          </Group>
+          {isDesignJob ? (
+            <>
+              <Space />
+              <Button onClick={toggleDnaOpen}>Build DNA sequences...</Button>
+            </>
+          ) : null}
+        </Stack>
+      </BoxedLayout>
+    </>
   );
 };
 
@@ -148,7 +153,7 @@ export const FinishedResultsPageWrapper = ({
   // don't render anything until we have a defined width
   if (viewportProps.screenSize.width === 0) return <></>;
 
-  if (isDesignJob && viewportProps.isDesktop && 1 + 1 === 3) {
+  if (isDesignJob && viewportProps.isDesktop) {
     return <AnalysisViewer id={id} results={results! as DesignJobApiResult} />;
   } else {
     return (
