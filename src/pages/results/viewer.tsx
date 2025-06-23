@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   Button,
   Group,
@@ -15,7 +15,6 @@ import {
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
 import { Link } from "wouter";
-import { validTranslation } from "../../utils/bio.ts";
 import { PipelineSpec, SingleMutationScanSpec } from "../../models/design.ts";
 import { DEFAULT_STYLE, StructurePanel } from "../../features/structurepanel";
 import { ModifiersKeys } from "molstar/lib/mol-util/input/input-observer";
@@ -23,6 +22,7 @@ import { AtomInfo } from "../../components/structureviewer/molstar-utils.tsx";
 import { PositionColorCallback } from "../../utils/colormap.ts";
 import { SiteHighlightTargetPos } from "../../features/structurepanel/data.ts";
 import { AutowrapHeatmap, ClickEvent } from "../../components/autowrapheatmap";
+import { useDownloadButton } from "./helpers.tsx";
 
 // TODO: improve props, receive list of instances/scores + spec
 export interface ResultViewerProps {
@@ -32,120 +32,6 @@ export interface ResultViewerProps {
     | SingleMutationScanApiResult
     | ProteinToDnaApiResult;
 }
-
-const SCORE_NUM_DIGITS = 3;
-
-const useDownloadButton = (
-  results:
-    | PipelineApiResult
-    | SingleMutationScanApiResult
-    | ProteinToDnaApiResult,
-  format: string | null,
-  id: string,
-) => {
-  return useMemo(() => {
-    if (format === null) {
-      return (
-        <Button variant="default" disabled={true}>
-          Download
-        </Button>
-      );
-    }
-
-    let dataOut = "";
-    if (results.spec.key === "pipeline") {
-      const instances = (results as PipelineApiResult).instances;
-      if (format === "json") {
-        dataOut = JSON.stringify(instances);
-      } else if (format === "csv") {
-        dataOut = instances
-          .map(
-            (x, index) =>
-              `${index + 1},${x.score?.toFixed(SCORE_NUM_DIGITS)},${x.entity_instances[0].rep}`,
-          )
-          .join("\n");
-        dataOut = "id,score,sequence\n" + dataOut;
-      } else if (format === "fasta") {
-        dataOut = instances
-          .map(
-            (x, index) =>
-              `>${index + 1} score=${x.score?.toFixed(SCORE_NUM_DIGITS)}\n${x.entity_instances[0].rep}\n`,
-          )
-          .join("");
-      } else {
-        throw new Error("Unsupported format");
-      }
-    } else if (results.spec.key === "single_mutation_scan") {
-      const scores = (results as SingleMutationScanApiResult).scores;
-      if (format === "json") {
-        dataOut = JSON.stringify(scores);
-      } else if (format === "csv") {
-        // header first, exclude gaps for now
-        const aaOrdered = scores[0].subs
-          .filter((s) => s.to !== "-")
-          .map((s) => s.to);
-        dataOut = ["pos", "ref"].concat(aaOrdered).join(",") + "\n";
-
-        // then data rows
-        dataOut += scores
-          .map((row) =>
-            [row.pos, row.ref]
-              .concat(
-                row.subs
-                  .filter((s) => s.to !== "-") // exclude gaps for now
-                  .map((s, index) => {
-                    if (aaOrdered[index] !== s.to) {
-                      throw new Error(
-                        "Mutations out of order, need better implementation of file writing",
-                      );
-                    }
-                    return s.score.toFixed(SCORE_NUM_DIGITS);
-                  }),
-              )
-              .join(","),
-          )
-          .join("\n");
-      } else {
-        throw new Error("Unsupported format");
-      }
-    } else if (results.spec.key === "protein_to_dna") {
-      const dnaResult = results as ProteinToDnaApiResult;
-      const upstream = dnaResult.spec.args.upstream_dna;
-      const downstream = dnaResult.spec.args.downstream_dna;
-
-      if (format === "json") {
-        dataOut = JSON.stringify(dnaResult.dna_sequences);
-      } else if (format === "csv") {
-        dataOut = dnaResult.dna_sequences
-          .map((x, index) => {
-            if (!validTranslation(x.dna, x.rep))
-              throw new Error(
-                "DNA sequence does not translate into AA sequence, this should never happen",
-              );
-            return `${index + 1},${upstream + x.dna + downstream},${x.rep},${x.score?.toFixed(SCORE_NUM_DIGITS)}`;
-          })
-          .join("\n");
-        dataOut = "id,dna_seq,aa_seq,codon_optimization_score\n" + dataOut;
-      }
-    } else {
-      throw new Error("invalid spec key");
-    }
-
-    const blob = new Blob([dataOut], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-
-    return (
-      <Button
-        variant="default"
-        component="a"
-        href={url}
-        download={`${id}.${format}`}
-      >
-        Download
-      </Button>
-    );
-  }, [results, format, id]);
-};
 
 const handleClick = (
   pos: number | null,
@@ -191,8 +77,8 @@ const exampleSiteHighlights: SiteHighlightTargetPos[] = [
 // https://stackoverflow.com/questions/1484506/random-color-generator
 // TODO: remove again once actual data shown
 function getRandomColor() {
-  var letters = '0123456789ABCDEF';
-  var color = '#';
+  var letters = "0123456789ABCDEF";
+  var color = "#";
   for (var i = 0; i < 6; i++) {
     color += letters[Math.floor(Math.random() * 16)];
   }
@@ -299,7 +185,7 @@ const annotationTracks = [
   },
 ];
 
-export const ResultViewer = ({ results, id }: ResultViewerProps) => {
+export const AnalysisViewer = ({ results, id }: ResultViewerProps) => {
   const [downloadFormat, setDownloadFormat] = useState<string | null>(null);
   // create download conditionally to avoid using to many resources in browser
   const downloadButton = useDownloadButton(results, downloadFormat, id);
@@ -414,10 +300,6 @@ export const ResultViewer = ({ results, id }: ResultViewerProps) => {
       </Group>
       {isDesignJob ? (
         <>
-          <Space />
-          <Button disabled={true}>
-            Analyze and cluster designs (coming soon)
-          </Button>
           <Space />
           <Button component={Link} href={`/results/${id}/dna`}>
             Generate DNA sequences...

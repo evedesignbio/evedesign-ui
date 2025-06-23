@@ -3,7 +3,7 @@ import { MantineProvider } from "@mantine/core";
 import { Route, Switch } from "wouter";
 import { SubmissionPage } from "./pages/submission";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ResultsPageWrapper } from "./pages/results/results.tsx";
+import { ResultsPageWrapper } from "./pages/results";
 import {JobListPage} from "./pages/results/joblist.tsx";
 import {NavBar} from "./features/navbar";
 
