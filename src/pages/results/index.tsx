@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Group,
   Loader,
@@ -9,7 +10,7 @@ import {
 } from "@mantine/core";
 import { useJobData } from "../../api/modal.ts";
 import { useQueryClient } from "@tanstack/react-query";
-import { AnalysisViewer, ResultViewerProps } from "./viewer.tsx";
+import { AnalysisViewer } from "./viewer.tsx";
 import { Link, Route, Switch } from "wouter";
 import {
   PipelineApiResult,
@@ -24,9 +25,7 @@ import {
 } from "../../models/design.ts";
 import { useMemo, useState } from "react";
 import { BoxedLayout, JobStatusBadge, useDownloadButton } from "./helpers.tsx";
-import { useViewportSize } from "@mantine/hooks";
-
-const MIN_WIDTH_FOR_FULL_VIEWER = 800;
+import { useViewportProperties } from "../../utils/ui.ts";
 
 export interface FinishedResultsWrapperProps {
   id: string;
@@ -34,6 +33,16 @@ export interface FinishedResultsWrapperProps {
     | PipelineApiResult
     | SingleMutationScanApiResult
     | ProteinToDnaApiResult;
+}
+
+// TODO: improve props, receive list of instances/scores + spec
+export interface DownloadViewerProps {
+  id: string;
+  results:
+    | PipelineApiResult
+    | SingleMutationScanApiResult
+    | ProteinToDnaApiResult;
+  message?: string;
 }
 
 const singleMutationScanToInstances = (
@@ -86,7 +95,11 @@ const singleMutationScanToInstances = (
   return instances;
 };
 
-export const DownloadOnlyViewer = ({ results, id }: ResultViewerProps) => {
+export const DownloadOnlyViewer = ({
+  results,
+  id,
+  message,
+}: DownloadViewerProps) => {
   const [downloadFormat, setDownloadFormat] = useState<string | null>(null);
   // create download conditionally to avoid using to many resources in browser
   const downloadButton = useDownloadButton(results, downloadFormat, id);
@@ -97,6 +110,12 @@ export const DownloadOnlyViewer = ({ results, id }: ResultViewerProps) => {
 
   return (
     <Stack>
+      {message ? (
+        <>
+          <Space />
+          <Alert>{message}</Alert>
+        </>
+      ) : null}
       <Space />
       <Group>
         <Select
@@ -113,20 +132,21 @@ export const DownloadOnlyViewer = ({ results, id }: ResultViewerProps) => {
         <>
           <Space />
           <Button component={Link} href={`/results/${id}/dna`}>
-            Generate DNA sequences...
+            Build DNA sequences...
           </Button>
         </>
       ) : null}
     </Stack>
   );
 };
+
 export const FinishedResultsPageWrapper = ({
   id,
   results,
 }: FinishedResultsWrapperProps) => {
   // render result view depending on screen size; only display
   // full result viewer when minimal width is available, otherwise display download view only
-  const { width } = useViewportSize();
+  const viewportProps = useViewportProperties();
 
   const jobType = results.spec.key;
 
@@ -156,13 +176,11 @@ export const FinishedResultsPageWrapper = ({
   }, [results]);
 
   // don't render anything until we have a defined width
-  if (width === 0) return <></>;
+  if (viewportProps.screenSize.width === 0) return <></>;
 
-  const showFullInstanceViewer = isDesignJob && width >= MIN_WIDTH_FOR_FULL_VIEWER;
+  const showFullInstanceViewer = isDesignJob && viewportProps.isDesktop;
 
   // TODO: eventually render based on type of results, separate page for DNA download...
-  // TODO: display message if screen size too small for protein viewer
-
   // note that nested routes create problems with links and trailing slash, so use absolute routes here again
   return (
     <Switch>
@@ -194,7 +212,15 @@ export const FinishedResultsPageWrapper = ({
               color={"green"}
               jobType={jobType}
             />
-            <DownloadOnlyViewer results={results!} id={id} />
+            <DownloadOnlyViewer
+              results={results!}
+              id={id}
+              message={
+                isDesignJob
+                  ? "Use a device with a larger screen or resize your browser window to display full analysis viewer"
+                  : undefined
+              }
+            />
           </BoxedLayout>
         )}
       </Route>

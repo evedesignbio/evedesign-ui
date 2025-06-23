@@ -11,7 +11,6 @@ import {
 } from "@mantine/core";
 import {
   PipelineApiResult,
-  ProteinToDnaApiResult,
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
 import { Link } from "wouter";
@@ -24,13 +23,9 @@ import { SiteHighlightTargetPos } from "../../features/structurepanel/data.ts";
 import { AutowrapHeatmap, ClickEvent } from "../../components/autowrapheatmap";
 import { useDownloadButton } from "./helpers.tsx";
 
-// TODO: improve props, receive list of instances/scores + spec
-export interface ResultViewerProps {
+export interface AnalysisViewerProps {
   id: string;
-  results:
-    | PipelineApiResult
-    | SingleMutationScanApiResult
-    | ProteinToDnaApiResult;
+  results: PipelineApiResult | SingleMutationScanApiResult;
 }
 
 const handleClick = (
@@ -185,7 +180,7 @@ const annotationTracks = [
   },
 ];
 
-export const AnalysisViewer = ({ results, id }: ResultViewerProps) => {
+export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   const [downloadFormat, setDownloadFormat] = useState<string | null>(null);
   // create download conditionally to avoid using to many resources in browser
   const downloadButton = useDownloadButton(results, downloadFormat, id);
