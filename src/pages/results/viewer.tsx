@@ -18,6 +18,9 @@ import { AutowrapHeatmap, ClickEvent } from "../../components/autowrapheatmap";
 import "./viewer.css";
 import { useInstances } from "./data.ts";
 import { InstanceTable } from "./table.tsx";
+import { useDisclosure } from "@mantine/hooks";
+import { DNAGenerationDialog } from "./dna.tsx";
+import { BoxedLayout } from "./helpers.tsx";
 
 export interface AnalysisViewerProps {
   id: string;
@@ -176,7 +179,9 @@ const annotationTracks = [
   },
 ];
 
-export const AnalysisViewer = ({ results }: AnalysisViewerProps) => {
+export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
+  const [dnaOpen, { toggle: toggleDnaOpen }] = useDisclosure(false);
+
   // const [downloadFormat, setDownloadFormat] = useState<string | null>(null);
   // create download conditionally to avoid using to many resources in browser
   // const downloadButton = useDownloadButton(results, downloadFormat, id);
@@ -189,6 +194,27 @@ export const AnalysisViewer = ({ results }: AnalysisViewerProps) => {
   const spec = results.spec;
   const isMutationScan = spec.key === "single_mutation_scan";
   const instances = useInstances(results);
+  const instancesFilt = instances; // TODO: compute based on selection eventually
+
+  if (dnaOpen) {
+    return (
+      <>
+        <BoxedLayout>
+          <Button variant={"subtle"} onClick={toggleDnaOpen}>
+            Close DNA builder
+          </Button>
+        </BoxedLayout>
+
+        <BoxedLayout title={"DNA library generation"}>
+          <DNAGenerationDialog
+            id={id}
+            system={spec.system}
+            instances={instancesFilt}
+          />
+        </BoxedLayout>
+      </>
+    );
+  }
 
   const tablePanel = <InstanceTable instances={instances} />;
 
@@ -256,7 +282,7 @@ export const AnalysisViewer = ({ results }: AnalysisViewerProps) => {
       <Badge variant={"outline"}>
         {spec.key.replace("_", " ").replace("_", " ")}
       </Badge>
-      <Button disabled={true}>Build DNA...</Button>
+      <Button onClick={toggleDnaOpen}>Build DNA...</Button>
     </>
   );
 

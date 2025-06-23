@@ -53,7 +53,7 @@ export const InstanceTable = ({ instances }: InstanceTableProps) => {
         };
 
         // calculate if even or odd cell for striped background (cannot use CSS; see comment above)
-        const evenIndex = index % 2 === 0;
+        // const evenIndex = index % 2 === 0;
         const style = {
           // backgroundColor: evenIndex ? "var(--table-striped-color)" : undefined,
         };
