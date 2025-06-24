@@ -28,11 +28,23 @@ export interface EntityInstanceSpec {
   models: object | null;
 }
 
+export interface Mutation {
+  entity: number;
+  pos: number;
+  ref: string;
+  to: string;
+}
+
+export interface SystemInstanceMetadata {
+  id?: string;
+  mutant?: Mutation[];
+}
+
 export interface SystemInstanceSpec {
   entity_instances: EntityInstanceSpec[];
   score: number | null;
   confidence: number | null;
-  metadata: object | null;
+  metadata: SystemInstanceMetadata | null;
 }
 
 export const systemInstanceFromSystem = (
@@ -58,7 +70,7 @@ export interface JobSpecMetadata {
 export interface GenerateArgsSpec {
   num_designs: number;
   entities: number[] | null;
-  fixed_pos: object | null; // TODO: refine definition
+  fixed_pos: Record<number, number[]> | null;
   temperature: number;
   deletions: boolean;
 }

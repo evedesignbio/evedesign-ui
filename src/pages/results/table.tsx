@@ -16,6 +16,7 @@ export const InstanceTable = ({ instances }: InstanceTableProps) => {
   // TODO: add sorting/filtering
   // TODO: memoize rendering as needed
   // TODO: striped background rendering (considering theme)
+  // TODO: check that DNA dialog doesn't use mutant field
 
   return (
     <TableVirtuoso
@@ -63,11 +64,11 @@ export const InstanceTable = ({ instances }: InstanceTableProps) => {
             <Table.Td style={style} onClick={handler}>
               {
                 //@ts-ignore  // TODO improve types
-                instance.metadata?.mutant ? instance.metadata?.mutant : index
+                instance.metadata!.id
               }
             </Table.Td>
             <Table.Td style={style} onClick={handler}>
-              1
+              {instance.metadata!.mutant!.length}
             </Table.Td>
             <Table.Td style={style} onClick={handler}>
               {instance.score?.toFixed(2)}

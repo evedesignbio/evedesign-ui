@@ -1,5 +1,6 @@
 import {
   EntitySpec,
+  Mutation,
   SingleMutationScanResult,
   SystemInstanceSpec,
 } from "../../models/design.ts";
@@ -9,11 +10,13 @@ import {
   PipelineApiResult,
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
+import { range } from "../../utils/helpers.ts";
 
 export const singleMutationScanToInstances = (
   system: EntitySpec[],
   systemInstance: SystemInstanceSpec,
   scores: SingleMutationScanResult[],
+  skipSelfSubstitution: boolean = true,
 ): SystemInstanceSpec[] => {
   const instances: SystemInstanceSpec[] = [];
 
@@ -25,7 +28,7 @@ export const singleMutationScanToInstances = (
       }
 
       // skip self substitution, otherwise would include once per position
-      if (mut.to === row.ref) {
+      if (mut.to === row.ref && skipSelfSubstitution) {
         return;
       }
 
@@ -49,7 +52,10 @@ export const singleMutationScanToInstances = (
 
       curInstance.score = mut.score;
       curInstance.metadata = {
-        mutant: `${row.entity}:${row.ref}${row.pos}${mut.to}`,
+        id: `${row.entity}:${row.ref}${row.pos}${mut.to}`,
+        mutant: row.ref != mut.to ? [
+          { entity: row.entity, pos: row.pos, ref: row.ref, to: mut.to },
+        ] : [],
       };
 
       // attach to instance list
@@ -60,16 +66,133 @@ export const singleMutationScanToInstances = (
   return instances;
 };
 
-export const useInstances = (results: DesignJobApiResult) =>
+interface DesignedPosition {
+  entity: number;
+  pos: number;
+}
+
+interface EnhancedInstanceData {
+  instances: SystemInstanceSpec[];
+  fixedLength: boolean;
+  designedPositions: DesignedPosition[];
+}
+
+// const singleMutationScanToMatrix = () => {
+// const subsOrdered = resultsCast.scores[0].subs
+//     .filter((s) => s.to !== "-")
+//     .map((s) => s.to);
+//
+// console.log(subsOrdered);
+// export const parseMutationCsv = (
+//     csvContent: string,
+//     sep = ",",
+//     mutantColName = "mutant",
+//     alphabet = "KRHEDNQTSCGAVLIMPYFW",
+//     missingValue: number | null = null
+// ): MutationMatrix => {
+//   // map from substitution to index ("column index" of pivot table)
+//   const subsToIdx = new Map([...alphabet].map((subs, i) => [subs, i]));
+//
+//   // map from position to index ("row index"), will be constructed from positions in data
+//   const posToIdx = new Map<number, number>();
+//   const posToWildtype = new Map<number, string>();
+//
+//   // map from data column name to index (and back)
+//   const headerToIdx = new Map<string, number>();
+//   const idxToHeader = new Map<number, string>();
+//
+//   // 3D data array: i) different predictions (CSV columns), ii) positions, iii) substitutions
+//   const data: NullableArray3D = [];
+//   let nextPos = 0;
+// };
+
+export const useInstances = (
+  results: DesignJobApiResult,
+): EnhancedInstanceData =>
+  // TODO: would it be beneficial to deduplicate designs / annotate this information?
   useMemo(() => {
     // gather instances if available
     if (results.spec.key === "pipeline") {
-      return (results as PipelineApiResult).instances;
+      const resultsCast = results as PipelineApiResult;
+      const fixedLength = resultsCast.instances.every((inst) =>
+        inst.entity_instances.every(
+          (ei, j) => ei.rep.length === results.spec.system[j].rep.length,
+        ),
+      );
+
+      // add mutation count and mutation info to instances (for now only fixed length for simplicity;
+      // modify in place)
+
+      resultsCast.instances.forEach((inst, instIdx) => {
+        if (!inst.metadata) {
+          inst.metadata = {};
+        }
+        inst.metadata.id = `${instIdx + 1}`;
+
+        if (fixedLength) {
+          const mutant: Mutation[] = [];
+          inst.entity_instances.forEach((ei, eiIdx) => {
+            [...ei.rep].forEach((symbol, repIdx) => {
+              console.log(
+                eiIdx,
+                repIdx,
+                symbol,
+                resultsCast.spec.system[eiIdx].rep[repIdx],
+              );
+              const ref = resultsCast.spec.system[eiIdx].rep[repIdx];
+              if (symbol !== ref) {
+                mutant.push({
+                  entity: eiIdx,
+                  pos: repIdx + resultsCast.spec.system[eiIdx].first_index,
+                  ref: ref,
+                  to: symbol,
+                });
+              }
+            });
+          });
+          inst.metadata.mutant = mutant;
+        }
+      });
+
+      return {
+        instances: resultsCast.instances,
+        fixedLength: fixedLength,
+        designedPositions: resultsCast.spec.system
+          .map((ent, entIdx) =>
+            range(ent.first_index, ent.first_index + ent.rep.length - 1, 1)
+              .filter(
+                (pos) =>
+                  !(
+                    resultsCast.spec.steps[0].args.fixed_pos
+                      ? (resultsCast.spec.steps[0].args.fixed_pos[
+                          `${entIdx}`
+                        ] as number[])
+                      : []
+                  ).includes(pos),
+              )
+              .map((pos) => ({
+                entity: entIdx,
+                pos: pos,
+              })),
+          )
+          .flat(),
+      };
     } else {
-      return singleMutationScanToInstances(
+      const resultsCast = results as SingleMutationScanApiResult;
+      const instances = singleMutationScanToInstances(
         results.spec.system,
         results.spec.system_instance,
-        (results as SingleMutationScanApiResult).scores,
+        resultsCast.scores,
+        false,
       );
+
+      return {
+        instances: instances,
+        fixedLength: true,
+        designedPositions: resultsCast.scores.map((r) => ({
+          entity: r.entity,
+          pos: r.pos,
+        })),
+      };
     }
   }, [results]);

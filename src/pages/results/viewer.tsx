@@ -194,8 +194,8 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
 
   const spec = results.spec;
   const isMutationScan = spec.key === "single_mutation_scan";
-  const instances = useInstances(results);
-  const instancesFilt = instances; // TODO: compute based on selection eventually
+  const enhancedInstances = useInstances(results);
+  console.log("enhancedInstances", enhancedInstances);  // TODO: remove
 
   const dnaModal = (
     <Modal
@@ -210,13 +210,13 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
         <DNAGenerationDialog
           id={id}
           system={spec.system}
-          instances={instancesFilt}
+          instances={enhancedInstances.instances}
         />
       </BoxedLayout>
     </Modal>
   );
 
-  const tablePanel = <InstanceTable instances={instances} />;
+  const tablePanel = <InstanceTable instances={enhancedInstances.instances} />;
 
   const structurePanel = (
     <StructurePanel
