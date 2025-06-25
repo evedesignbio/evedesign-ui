@@ -1,8 +1,10 @@
 import {
+  Position,
   EntitySpec,
-  Mutation,
   SingleMutationScanResult,
   SystemInstanceSpec,
+  SystemInstanceSpecEnhanced,
+  Mutation,
 } from "../../models/design.ts";
 import { useMemo } from "react";
 import {
@@ -12,13 +14,21 @@ import {
 } from "../../models/api.ts";
 import { range } from "../../utils/helpers.ts";
 
+export const encodePosition = (pos: Position) => {
+  return `${pos.entity}_${pos.pos}`;
+};
+
+export const encodeMutation = (mutation: Mutation) => {
+  return `${mutation.entity}_${mutation.pos}_${mutation.ref}_${mutation.to}`;
+};
+
 export const singleMutationScanToInstances = (
   system: EntitySpec[],
   systemInstance: SystemInstanceSpec,
   scores: SingleMutationScanResult[],
   skipSelfSubstitution: boolean = true,
-): SystemInstanceSpec[] => {
-  const instances: SystemInstanceSpec[] = [];
+): SystemInstanceSpecEnhanced[] => {
+  const instances: SystemInstanceSpecEnhanced[] = [];
 
   scores.forEach((row: SingleMutationScanResult) => {
     row.subs.forEach((mut) => {
@@ -33,7 +43,7 @@ export const singleMutationScanToInstances = (
       }
 
       // make deep copy of instance to be safe
-      const curInstance: SystemInstanceSpec = JSON.parse(
+      const curInstance: SystemInstanceSpecEnhanced = JSON.parse(
         JSON.stringify(systemInstance),
       );
 
@@ -51,12 +61,11 @@ export const singleMutationScanToInstances = (
         rep.substring(0, mutIndex) + mut.to + rep.substring(mutIndex + 1);
 
       curInstance.score = mut.score;
-      curInstance.metadata = {
-        id: `${row.entity}:${row.ref}${row.pos}${mut.to}`,
-        mutant: row.ref != mut.to ? [
-          { entity: row.entity, pos: row.pos, ref: row.ref, to: mut.to },
-        ] : [],
-      };
+      curInstance.id = `${row.entity}:${row.ref}${row.pos}${mut.to}`;
+      curInstance.mutant =
+        row.ref != mut.to
+          ? [{ entity: row.entity, pos: row.pos, ref: row.ref, to: mut.to }]
+          : [];
 
       // attach to instance list
       instances.push(curInstance);
@@ -66,15 +75,10 @@ export const singleMutationScanToInstances = (
   return instances;
 };
 
-interface DesignedPosition {
-  entity: number;
-  pos: number;
-}
-
-interface EnhancedInstanceData {
-  instances: SystemInstanceSpec[];
+export interface EnhancedInstanceData {
+  instances: SystemInstanceSpecEnhanced[];
   fixedLength: boolean;
-  designedPositions: DesignedPosition[];
+  designedPositions: Position[];
 }
 
 // const singleMutationScanToMatrix = () => {
@@ -123,25 +127,22 @@ export const useInstances = (
       // add mutation count and mutation info to instances (for now only fixed length for simplicity;
       // modify in place)
 
-      resultsCast.instances.forEach((inst, instIdx) => {
-        if (!inst.metadata) {
-          inst.metadata = {};
-        }
-        inst.metadata.id = `${instIdx + 1}`;
+      const instancesEnhanced: SystemInstanceSpecEnhanced[] = [];
+      resultsCast.instances.forEach((instRaw, instIdx) => {
+        // make a deep copy of instance
+        const inst: SystemInstanceSpecEnhanced = JSON.parse(
+          JSON.stringify(instRaw),
+        );
+
+        inst.id = `${instIdx + 1}`;
+        inst.mutant = [];
 
         if (fixedLength) {
-          const mutant: Mutation[] = [];
           inst.entity_instances.forEach((ei, eiIdx) => {
             [...ei.rep].forEach((symbol, repIdx) => {
-              console.log(
-                eiIdx,
-                repIdx,
-                symbol,
-                resultsCast.spec.system[eiIdx].rep[repIdx],
-              );
               const ref = resultsCast.spec.system[eiIdx].rep[repIdx];
               if (symbol !== ref) {
-                mutant.push({
+                inst.mutant.push({
                   entity: eiIdx,
                   pos: repIdx + resultsCast.spec.system[eiIdx].first_index,
                   ref: ref,
@@ -150,12 +151,12 @@ export const useInstances = (
               }
             });
           });
-          inst.metadata.mutant = mutant;
         }
+        instancesEnhanced.push(inst);
       });
 
       return {
-        instances: resultsCast.instances,
+        instances: instancesEnhanced,
         fixedLength: fixedLength,
         designedPositions: resultsCast.spec.system
           .map((ent, entIdx) =>
@@ -183,7 +184,7 @@ export const useInstances = (
         results.spec.system,
         results.spec.system_instance,
         resultsCast.scores,
-        false,
+        true,
       );
 
       return {

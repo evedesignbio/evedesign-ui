@@ -1,14 +1,28 @@
 import { TableVirtuoso } from "react-virtuoso";
-import { SystemInstanceSpec } from "../../models/design.ts";
+import {
+  SystemInstanceSpec,
+  SystemInstanceSpecEnhanced,
+} from "../../models/design.ts";
 import { Table } from "@mantine/core";
 import { forwardRef } from "react";
-import { extractModifiers } from "../../utils/events.tsx";
+import { extractModifiers, Modifiers } from "../../utils/events.tsx";
+import { DataInteractionReducerDispatchFunc } from "./reducers.ts";
+
+export type InstanceTableEventHandler = (
+  instance: SystemInstanceSpec,
+  index: number,
+  modifiers: Modifiers,
+) => void;
 
 export interface InstanceTableProps {
-  instances: SystemInstanceSpec[];
+  instances: SystemInstanceSpecEnhanced[];
+  dispatchDataSelection?: DataInteractionReducerDispatchFunc;
 }
 
-export const InstanceTable = ({ instances }: InstanceTableProps) => {
+export const InstanceTable = ({
+  instances,
+  dispatchDataSelection = undefined,
+}: InstanceTableProps) => {
   // TODO: render number of mutations
   // TODO: render sequence
   // TODO: click handler
@@ -16,7 +30,8 @@ export const InstanceTable = ({ instances }: InstanceTableProps) => {
   // TODO: add sorting/filtering
   // TODO: memoize rendering as needed
   // TODO: striped background rendering (considering theme)
-  // TODO: check that DNA dialog doesn't use mutant field
+  // TODO: prop whether to show mutants or sequence of designed positions (with ellipsis)
+  // TODO: implement selection of range of designs with shift key (all up or down from last selection)
 
   return (
     <TableVirtuoso
@@ -46,11 +61,18 @@ export const InstanceTable = ({ instances }: InstanceTableProps) => {
           <Table.Th>Score</Table.Th>
         </Table.Tr>
       )}
-      itemContent={(index, instance) => {
-        // map item to general handler
+      itemContent={(_index, instance) => {
+        // map current item to general event handler
         const handler = (event: any) => {
-          // TODO: attach proper event handler via props
-          console.log("TABLE CLICK", index, extractModifiers(event));
+          if (dispatchDataSelection) {
+            const modifiers = extractModifiers(event);
+            dispatchDataSelection({
+              type: "SELECT_INSTANCES",
+              payload: [instance.id],
+              source: "TABLE",
+              modifiers: modifiers,
+            });
+          }
         };
 
         // calculate if even or odd cell for striped background (cannot use CSS; see comment above)
@@ -64,11 +86,11 @@ export const InstanceTable = ({ instances }: InstanceTableProps) => {
             <Table.Td style={style} onClick={handler}>
               {
                 //@ts-ignore  // TODO improve types
-                instance.metadata!.id
+                instance.id
               }
             </Table.Td>
             <Table.Td style={style} onClick={handler}>
-              {instance.metadata!.mutant!.length}
+              {instance.mutant.length}
             </Table.Td>
             <Table.Td style={style} onClick={handler}>
               {instance.score?.toFixed(2)}

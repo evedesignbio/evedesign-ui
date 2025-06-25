@@ -11,8 +11,6 @@ import {
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
 import { DEFAULT_STYLE, StructurePanel } from "../../features/structurepanel";
-import { ModifiersKeys } from "molstar/lib/mol-util/input/input-observer";
-import { AtomInfo } from "../../components/structureviewer/molstar-utils.tsx";
 import { PositionColorCallback } from "../../utils/colormap.ts";
 import { SiteHighlightTargetPos } from "../../features/structurepanel/data.ts";
 import { AutowrapHeatmap, ClickEvent } from "../../components/autowrapheatmap";
@@ -22,19 +20,17 @@ import { InstanceTable } from "./table.tsx";
 import { useDisclosure } from "@mantine/hooks";
 import { DNAGenerationDialog } from "./dna.tsx";
 import { BoxedLayout } from "./helpers.tsx";
+import {
+  dataInteractionReducer,
+  emptyDataInteractionState,
+  useStructureClickHandler,
+} from "./reducers.ts";
+import { useReducer } from "react";
 
 export interface AnalysisViewerProps {
   id: string;
   results: PipelineApiResult | SingleMutationScanApiResult;
 }
-
-const handleClick = (
-  pos: number | null,
-  modifiers: ModifiersKeys,
-  _a: number,
-  _b: number,
-  ai: AtomInfo[],
-) => console.log("clicked", pos, modifiers, ai);
 
 const colorPos: PositionColorCallback = (pos: number | null) => {
   if (pos === null) {
@@ -193,9 +189,17 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   });
 
   const spec = results.spec;
-  const isMutationScan = spec.key === "single_mutation_scan";
   const enhancedInstances = useInstances(results);
-  console.log("enhancedInstances", enhancedInstances);  // TODO: remove
+
+  // initialize reducer for handling interactions between different data visualizations
+  const [dataSelection, dispatchDataSelection] = useReducer(
+    dataInteractionReducer,
+    emptyDataInteractionState(),
+  );
+
+  const structureClickHandler = useStructureClickHandler(dispatchDataSelection);
+
+  console.log("DATA SELECTION", dataSelection); // TODO: remove
 
   const dnaModal = (
     <Modal
@@ -216,7 +220,12 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     </Modal>
   );
 
-  const tablePanel = <InstanceTable instances={enhancedInstances.instances} />;
+  const tablePanel = (
+    <InstanceTable
+      instances={enhancedInstances.instances}
+      dispatchDataSelection={dispatchDataSelection}
+    />
+  );
 
   const structurePanel = (
     <StructurePanel
@@ -230,52 +239,48 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       }
       useFullStructureModel={true}
       useStructureAssembly={true}
-      handleClick={handleClick}
+      handleClick={structureClickHandler}
       colorCallback={colorPos}
       siteHighlights={exampleSiteHighlights}
     />
   );
 
-  // if single mutation matrix, create temp visual
-  let heatmapPanel = null;
-  if (isMutationScan) {
-    heatmapPanel = (
-      <AutowrapHeatmap
-        data={[
-          [1, 1, 1, 1, 1],
-          [2, 2, 2, 2, 2],
-          [1, 1, 1, 1, 1],
-          [2, 2, 2, 2, 2],
-          [1, 1, 1, 1, 1],
-          [2, 2, 2, 2, 2],
-          [1, 1, 1, 1, 1],
-          [2, 2, 2, 2, 2],
-          [1, 1, 1, 1, 1],
-          [2, 2, 2, 2, 2],
-          [1, 1, 1, 1, 1],
-          [2, 2, 2, 2, 2],
-        ]}
-        colorMap={heatmapColorMap}
-        yLabels={["a", "b", "c", "d", "e"]}
-        cellWidth="7pt"
-        cellHeight="7pt"
-        yLabelSpacing="5pt"
-        annotationTracks={annotationTracks}
-        handleEvent={heatmapClickHandler}
-        labelRenderer={(labelData) => <Text>{labelData.value}</Text>}
-        tooltipStyle={{
-          backgroundColor: computedColorScheme === "dark" ? "#fff" : "#000",
-          color: computedColorScheme === "dark" ? "#000" : "#fff",
-          zIndex: 9999,
-        }}
-        // TODO: selection styling (label backgrounds dynamic on light/dark theme)
-        // selectedCells={transformedSelections.heatmapMuts}
-        // selectedColumns={transformedSelections.heatmapPos}
-        // selectedRows={transformedSelections.heatmapSubs}
-        // scrollToElement={transformedSelections.heatmapJump}
-      />
-    );
-  }
+  const heatmapPanel = (
+    <AutowrapHeatmap
+      data={[
+        [1, 1, 1, 1, 1],
+        [2, 2, 2, 2, 2],
+        [1, 1, 1, 1, 1],
+        [2, 2, 2, 2, 2],
+        [1, 1, 1, 1, 1],
+        [2, 2, 2, 2, 2],
+        [1, 1, 1, 1, 1],
+        [2, 2, 2, 2, 2],
+        [1, 1, 1, 1, 1],
+        [2, 2, 2, 2, 2],
+        [1, 1, 1, 1, 1],
+        [2, 2, 2, 2, 2],
+      ]}
+      colorMap={heatmapColorMap}
+      yLabels={["a", "b", "c", "d", "e"]}
+      cellWidth="7pt"
+      cellHeight="7pt"
+      yLabelSpacing="5pt"
+      annotationTracks={annotationTracks}
+      handleEvent={heatmapClickHandler}
+      labelRenderer={(labelData) => <Text>{labelData.value}</Text>}
+      tooltipStyle={{
+        backgroundColor: computedColorScheme === "dark" ? "#fff" : "#000",
+        color: computedColorScheme === "dark" ? "#000" : "#fff",
+        zIndex: 9999,
+      }}
+      // TODO: selection styling (label backgrounds dynamic on light/dark theme)
+      // selectedCells={transformedSelections.heatmapMuts}
+      // selectedColumns={transformedSelections.heatmapPos}
+      // selectedRows={transformedSelections.heatmapSubs}
+      // scrollToElement={transformedSelections.heatmapJump}
+    />
+  );
 
   const menuPanel = (
     <>

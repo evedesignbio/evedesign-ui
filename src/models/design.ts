@@ -36,8 +36,8 @@ export interface Mutation {
 }
 
 export interface SystemInstanceMetadata {
-  id?: string;
-  mutant?: Mutation[];
+  // id?: string;
+  // mutant?: Mutation[];
 }
 
 export interface SystemInstanceSpec {
@@ -45,6 +45,11 @@ export interface SystemInstanceSpec {
   score: number | null;
   confidence: number | null;
   metadata: SystemInstanceMetadata | null;
+}
+
+export interface SystemInstanceSpecEnhanced extends SystemInstanceSpec {
+  id: string;
+  mutant: Mutation[];
 }
 
 export const systemInstanceFromSystem = (
@@ -155,4 +160,9 @@ export interface ProteinToDnaResult {
   rep: string;
   dna: string;
   score: number | null;
+}
+
+export interface Position {
+  entity: number;
+  pos: number;
 }
