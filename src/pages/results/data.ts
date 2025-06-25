@@ -18,9 +18,28 @@ export const encodePosition = (pos: Position) => {
   return `${pos.entity}_${pos.pos}`;
 };
 
+export const decodePosition = (posStr: string) => {
+  const posSplit = posStr.split("_");
+  return {
+    entity: parseInt(posSplit[0]),
+    pos: parseInt(posSplit[1]),
+  }
+}
+
 export const encodeMutation = (mutation: Mutation) => {
   return `${mutation.entity}_${mutation.pos}_${mutation.ref}_${mutation.to}`;
 };
+
+export const decodeMutation = (mutStr: string) => {
+  const mutSplit = mutStr.split("_");
+  return {
+    entity: parseInt(mutSplit[0]),
+    pos: parseInt(mutSplit[1]),
+    ref: mutSplit[2],
+    to: mutSplit[3],
+  }
+}
+
 
 export const singleMutationScanToInstances = (
   system: EntitySpec[],

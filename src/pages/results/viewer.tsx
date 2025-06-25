@@ -1,6 +1,7 @@
 import {
   Badge,
   Button,
+  Group,
   Modal,
   Text,
   useComputedColorScheme,
@@ -23,6 +24,7 @@ import { BoxedLayout } from "./helpers.tsx";
 import {
   dataInteractionReducer,
   emptyDataInteractionState,
+  useReset,
   useStructureClickHandler,
 } from "./reducers.ts";
 import { useReducer } from "react";
@@ -197,9 +199,8 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     emptyDataInteractionState(),
   );
 
+  const resetSelection = useReset(dispatchDataSelection);
   const structureClickHandler = useStructureClickHandler(dispatchDataSelection);
-
-  console.log("DATA SELECTION", dataSelection); // TODO: remove
 
   const dnaModal = (
     <Modal
@@ -223,6 +224,8 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   const tablePanel = (
     <InstanceTable
       instances={enhancedInstances.instances}
+      dataSelection={dataSelection}
+      instanceRenderType={"sequence"}
       dispatchDataSelection={dispatchDataSelection}
     />
   );
@@ -287,7 +290,12 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       <Badge variant={"outline"}>
         {spec.key.replace("_", " ").replace("_", " ")}
       </Badge>
-      <Button onClick={toggleDnaOpen}>Build DNA...</Button>
+      <Group>
+        <Button onClick={resetSelection} variant={"outline"}>
+          Reset selection
+        </Button>
+        <Button onClick={toggleDnaOpen}>Build DNA...</Button>
+      </Group>
     </>
   );
 
