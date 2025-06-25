@@ -101,12 +101,13 @@ export const InstanceTable = ({
               onClick={(event) => {
                 clickHandler(event, props.item);
               }}
+              data-striped={props["data-item-index"] % 2 === 1 ? "mark" : "not"}
             />
           );
         },
         TableHead: Table.Thead,
         TableBody: forwardRef((props, ref) => (
-          <Table.Tbody {...props} ref={ref} />
+          <Table.Tbody {...props} ref={ref} className={"tbody-striped"} />
         )),
       }}
       fixedHeaderContent={() => (

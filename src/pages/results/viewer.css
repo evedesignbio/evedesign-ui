@@ -1,59 +1,67 @@
 .outer-wrapper {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 .resizable-viewer-wrapper {
-    display: flex;
-    flex-direction: row;
-    padding-left: 0.5em;
-    padding-top: 0.5em;
+  display: flex;
+  flex-direction: row;
+  padding-left: 0.5em;
+  padding-top: 0.5em;
 }
 
 .resizable-viewer-box {
-    /* child positioning - important for automatic resize handling*/
-    position: relative;
+  /* child positioning - important for automatic resize handling*/
+  position: relative;
 
-    /* div resizing */
-    /*overflow: auto;*/
-    resize: horizontal;
+  /* div resizing */
+  /*overflow: auto;*/
+  resize: horizontal;
 
-    /* border */
-    border-width: 1pt;
-    border-style: solid;
-    border-color: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  /* border */
+  border-width: 1pt;
+  border-style: solid;
+  border-color: light-dark(
+    var(--mantine-color-gray-3),
+    var(--mantine-color-dark-4)
+  );
 
-    /* size */
-    /* width: calc(33vw - 2em);*/
-    min-height: 500px;
-    height: calc(100vh - 110px);
-    width: calc((100vw - 1.5em ) / 3);
-    margin-right: 0.5em;
+  /* size */
+  /* width: calc(33vw - 2em);*/
+  min-height: 500px;
+  height: calc(100vh - 110px);
+  width: calc((100vw - 1.5em) / 3);
+  margin-right: 0.5em;
 
-    /* disable scroll bars in Safari */
-    overflow-x: hidden;
-    overflow-y: hidden;
+  /* disable scroll bars in Safari */
+  overflow-x: hidden;
+  overflow-y: hidden;
 
-    user-select: none;
-    -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .menubar-wrapper {
-    height: 50px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-right: 0.5em;
-    padding-left: 0.5em;
-    padding-top: 0.5em;
+  height: 50px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-right: 0.5em;
+  padding-left: 0.5em;
+  padding-top: 0.5em;
 }
 
 .heatmap-wrapper {
-    height: 100%;
-    overflow: auto;
-    position: relative;
-    /* use Arial as a temp solution as it renders better compared to other fonts:display:
+  height: 100%;
+  overflow: auto;
+  position: relative;
+  /* use Arial as a temp solution as it renders better compared to other fonts:display:
     less size variation, properly centered baseline
     */
-    font-family: Helvetica, Arial, sans-serif;
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+/* for stable striping of mantine table */
+.tbody-striped > tr:where([data-striped="mark"]) {
+  background-color: var(--table-striped-color);
 }
