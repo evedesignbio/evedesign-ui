@@ -5,6 +5,8 @@ import {
   SystemInstanceSpec,
   SystemInstanceSpecEnhanced,
   Mutation,
+  PipelineSpec,
+  SingleMutationScanSpec,
 } from "../../models/design.ts";
 import { useMemo } from "react";
 import {
@@ -23,8 +25,8 @@ export const decodePosition = (posStr: string) => {
   return {
     entity: parseInt(posSplit[0]),
     pos: parseInt(posSplit[1]),
-  }
-}
+  };
+};
 
 export const encodeMutation = (mutation: Mutation) => {
   return `${mutation.entity}_${mutation.pos}_${mutation.ref}_${mutation.to}`;
@@ -37,9 +39,19 @@ export const decodeMutation = (mutStr: string) => {
     pos: parseInt(mutSplit[1]),
     ref: mutSplit[2],
     to: mutSplit[3],
-  }
-}
+  };
+};
 
+type NullableArray3D = (number | null)[][][];
+
+export type MutationMatrix = {
+  positions: Map<string, number>;
+  ref: Map<string, string>; // wildtype symbol
+  substitutions: Map<string, number>;
+  // equivalent to column headers in input file
+  names: Map<string, number>;
+  data: NullableArray3D;
+};
 
 export const singleMutationScanToInstances = (
   system: EntitySpec[],
@@ -99,35 +111,6 @@ export interface EnhancedInstanceData {
   fixedLength: boolean;
   designedPositions: Position[];
 }
-
-// const singleMutationScanToMatrix = () => {
-// const subsOrdered = resultsCast.scores[0].subs
-//     .filter((s) => s.to !== "-")
-//     .map((s) => s.to);
-//
-// console.log(subsOrdered);
-// export const parseMutationCsv = (
-//     csvContent: string,
-//     sep = ",",
-//     mutantColName = "mutant",
-//     alphabet = "KRHEDNQTSCGAVLIMPYFW",
-//     missingValue: number | null = null
-// ): MutationMatrix => {
-//   // map from substitution to index ("column index" of pivot table)
-//   const subsToIdx = new Map([...alphabet].map((subs, i) => [subs, i]));
-//
-//   // map from position to index ("row index"), will be constructed from positions in data
-//   const posToIdx = new Map<number, number>();
-//   const posToWildtype = new Map<number, string>();
-//
-//   // map from data column name to index (and back)
-//   const headerToIdx = new Map<string, number>();
-//   const idxToHeader = new Map<number, string>();
-//
-//   // 3D data array: i) different predictions (CSV columns), ii) positions, iii) substitutions
-//   const data: NullableArray3D = [];
-//   let nextPos = 0;
-// };
 
 export const useInstances = (
   results: DesignJobApiResult,
@@ -216,3 +199,82 @@ export const useInstances = (
       };
     }
   }, [results]);
+
+export const instancesToMatrix = (
+  instances: SystemInstanceSpecEnhanced[],
+  entityIndex: number,
+  systemRep: string,
+  firstIndex: number,
+  alphabet = "KRHEDNQTSCGAVLIMPYFW",
+  // missingValue: number | null = null,
+): MutationMatrix => {
+  // map from substitution to index ("column index" of pivot table)
+  const subsToIdx = new Map([...alphabet].map((subs, i) => [subs, i]));
+
+  const posToIdx = new Map<string, number>(
+    [...systemRep].map((_symbol, posIdx) => [
+      encodePosition({
+        entity: entityIndex,
+        pos: posIdx + firstIndex,
+      }),
+      posIdx,
+    ]),
+  );
+
+  const posToRef = new Map<string, string>(
+    [...systemRep].map((symbol, posIdx) => [
+      encodePosition({
+        entity: entityIndex,
+        pos: posIdx + firstIndex,
+      }),
+      symbol,
+    ]),
+  );
+
+  // initialize data array to same length as system rep
+  const counts = [...systemRep].map((_symbol) => Array(subsToIdx.size).fill(0));
+
+  // iterate system instance reps and count symbol occurrences
+  instances.forEach((instance) => {
+    const rep = instance.entity_instances[entityIndex].rep;
+    [...rep].forEach((symbol, posIdx) => {
+      const symbolIdx = subsToIdx.get(symbol)!;
+      counts[posIdx][symbolIdx]++;
+    });
+  });
+
+  // compute relative frequencies
+  const instanceCount = instances.length;
+  const freqs = counts.map((posCounts) =>
+    posCounts.map((symbolCount) => symbolCount / instanceCount),
+  );
+
+  return {
+    positions: posToIdx,
+    ref: posToRef,
+    substitutions: subsToIdx,
+    names: new Map([
+      ["counts", 0],
+      ["freqs", 1],
+    ]),
+    data: [counts, freqs],
+  };
+};
+
+export const useMatrix = (
+    enhancedInstances: EnhancedInstanceData,
+    spec: PipelineSpec | SingleMutationScanSpec,
+) =>
+  useMemo(() => {
+    if (spec.key === "pipeline") {
+      // TODO: check on fixed length?
+      return instancesToMatrix(
+        enhancedInstances.instances,
+        0,
+        spec.system[0].rep,
+        spec.system[0].first_index,
+      );
+    } else {
+      return null; // TODO: implement
+    }
+  }, [enhancedInstances, spec]);

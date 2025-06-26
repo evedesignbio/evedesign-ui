@@ -59,9 +59,9 @@ export const InstanceTable = ({
   const selectedIds =
     dataSelection.lastEventSource === "TABLE" ? dataSelection.instances : null;
 
-  console.log("DATA SELECTION", dataSelection); // TODO: remove
-  console.log("INSTANCES", instances); // TODO: remove
-  console.log("INSTANCES FILT", instancesFilt); // TODO: remove
+  // console.log("DATA SELECTION", dataSelection); // TODO: remove
+  // console.log("INSTANCES", instances); // TODO: remove
+  // console.log("INSTANCES FILT", instancesFilt); // TODO: remove
 
   // sort instances
   // TODO implement
@@ -111,11 +111,11 @@ export const InstanceTable = ({
         )),
       }}
       fixedHeaderContent={() => (
-        <Table.Tr>
+        <Table.Tr bg={"var(--mantine-color-body)"}>
           <Table.Th>ID</Table.Th>
-          <Table.Th>#Muts</Table.Th>
-          {instanceRenderType !== "hide" ? <Table.Th>Seq</Table.Th> : null}
+          <Table.Th>Muts</Table.Th>
           <Table.Th>Score</Table.Th>
+          {instanceRenderType !== "hide" ? <Table.Th>Seq</Table.Th> : null}
         </Table.Tr>
       )}
       itemContent={(_index, instance) => {
@@ -128,10 +128,13 @@ export const InstanceTable = ({
         if (instanceRenderType !== "hide") {
           let instVisual = null;
           if (instanceRenderType === "sequence") {
-            // TODO: render with ellipsis, and hover for full sequence
-            // TODO: (could use sequence panel)
-            instVisual =
-              instance.entity_instances[0].rep.substring(0, 10) + "...";
+            // TODO: only render designed positions
+            // TODO: render modified positions relative to ref
+            instVisual = (
+              <span>
+                {instance.entity_instances[0].rep.substring(0, 10) + "..."}
+              </span>
+            );
           } else {
             // mutant
             // TODO: assemble into string
@@ -143,15 +146,15 @@ export const InstanceTable = ({
 
         return (
           <>
-            <Table.Td bg={bg}>
+            <Table.Td bg={bg} style={{ position: "sticky", left: 0 }}>
               {
                 //@ts-ignore  // TODO improve types
                 instance.id.replace("0:", "")
               }
             </Table.Td>
             <Table.Td bg={bg}>{instance.mutant.length}</Table.Td>
-            {instRep}
             <Table.Td bg={bg}>{instance.score?.toFixed(2)}</Table.Td>
+            {instRep}
           </>
         );
       }}

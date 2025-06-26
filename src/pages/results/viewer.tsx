@@ -12,11 +12,15 @@ import {
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
 import { DEFAULT_STYLE, StructurePanel } from "../../features/structurepanel";
-import { PositionColorCallback } from "../../utils/colormap.ts";
+import {
+  colorMapFromNameOrList,
+  PositionColorCallback,
+  toHexString,
+} from "../../utils/colormap.ts";
 import { SiteHighlightTargetPos } from "../../features/structurepanel/data.ts";
 import { AutowrapHeatmap, ClickEvent } from "../../components/autowrapheatmap";
 import "./viewer.css";
-import { useInstances } from "./data.ts";
+import { useInstances, useMatrix } from "./data.ts";
 import { InstanceTable } from "./table.tsx";
 import { useDisclosure } from "@mantine/hooks";
 import { DNAGenerationDialog } from "./dna.tsx";
@@ -27,7 +31,7 @@ import {
   useReset,
   useStructureClickHandler,
 } from "./reducers.ts";
-import { useReducer } from "react";
+import { useMemo, useReducer } from "react";
 
 export interface AnalysisViewerProps {
   id: string;
@@ -69,7 +73,7 @@ const exampleSiteHighlights: SiteHighlightTargetPos[] = [
 
 // https://stackoverflow.com/questions/1484506/random-color-generator
 // TODO: remove again once actual data shown
-function getRandomColor() {
+export function getRandomColor() {
   var letters = "0123456789ABCDEF";
   var color = "#";
   for (var i = 0; i < 6; i++) {
@@ -78,9 +82,12 @@ function getRandomColor() {
   return color;
 }
 
-// @ts-ignore
-const heatmapColorMap = (value: number | null, i?: number, j?: number) =>
-  getRandomColor();
+// // @ts-ignore
+// const heatmapColorMap = (value: number | null, i?: number, j?: number) => {
+//   return getRandomColor();
+//   // const cmap = colorMapFromNameOrList("blues", 0, 1, true);
+//   // return toHexString(cmap(value!));
+// };
 
 const heatmapClickHandler = ({
   locationType,
@@ -181,10 +188,6 @@ const annotationTracks = [
 export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   const [dnaOpen, { toggle: toggleDnaOpen }] = useDisclosure(false);
 
-  // const [downloadFormat, setDownloadFormat] = useState<string | null>(null);
-  // create download conditionally to avoid using to many resources in browser
-  // const downloadButton = useDownloadButton(results, downloadFormat, id);
-
   const theme = useMantineTheme();
   const computedColorScheme = useComputedColorScheme("light", {
     getInitialValueInEffect: true,
@@ -201,6 +204,22 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
 
   const resetSelection = useReset(dispatchDataSelection);
   const structureClickHandler = useStructureClickHandler(dispatchDataSelection);
+
+  // compute positional symbol counts/frequencies for heatmaps from instances
+  const matrix = useMatrix(enhancedInstances, spec);
+
+  // TODO: clean this up and derive heatmap properly
+  const heatmapColorMap = useMemo(() => {
+    const cmap = colorMapFromNameOrList("blues", 0, 1, true);
+
+    return (value: number | null, _i?: number, _j?: number) => {
+      if (value === null) {
+        return "#aaaaaa";
+      } else {
+        return toHexString(cmap(value!));
+      }
+    };
+  }, []);
 
   const dnaModal = (
     <Modal
@@ -250,22 +269,30 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
 
   const heatmapPanel = (
     <AutowrapHeatmap
-      data={[
-        [1, 1, 1, 1, 1],
-        [2, 2, 2, 2, 2],
-        [1, 1, 1, 1, 1],
-        [2, 2, 2, 2, 2],
-        [1, 1, 1, 1, 1],
-        [2, 2, 2, 2, 2],
-        [1, 1, 1, 1, 1],
-        [2, 2, 2, 2, 2],
-        [1, 1, 1, 1, 1],
-        [2, 2, 2, 2, 2],
-        [1, 1, 1, 1, 1],
-        [2, 2, 2, 2, 2],
-      ]}
+      data={
+        matrix !== null
+          ? matrix.data[1]
+          : [
+              [1, 1, 1, 1, 1],
+              [2, 2, 2, 2, 2],
+              [1, 1, 1, 1, 1],
+              [2, 2, 2, 2, 2],
+              [1, 1, 1, 1, 1],
+              [2, 2, 2, 2, 2],
+              [1, 1, 1, 1, 1],
+              [2, 2, 2, 2, 2],
+              [1, 1, 1, 1, 1],
+              [2, 2, 2, 2, 2],
+              [1, 1, 1, 1, 1],
+              [2, 2, 2, 2, 2],
+            ]
+      }
       colorMap={heatmapColorMap}
-      yLabels={["a", "b", "c", "d", "e"]}
+      yLabels={
+        matrix != null
+          ? [...matrix.substitutions.keys()]
+          : ["a", "b", "c", "d", "e"]
+      }
       cellWidth="7pt"
       cellHeight="7pt"
       yLabelSpacing="5pt"
