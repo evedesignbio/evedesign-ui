@@ -217,7 +217,6 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   const structureClickHandler = useStructureClickHandler(dispatchDataSelection);
 
   // compute positional symbol counts/frequencies for heatmaps from instances
-  // TODO: need to use active selection
   const matrix = useMatrix(
     dataSelection.filteredInstances,
     enhancedInstances.designedPositions,
