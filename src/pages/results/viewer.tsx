@@ -221,6 +221,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   const matrix = useMatrix(
     dataSelection.filteredInstances,
     enhancedInstances.designedPositions,
+    isMutationScan,
     spec,
     dataSelection,
   );
@@ -304,6 +305,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     <InstanceTable
       instances={dataSelection.filteredInstances}
       dataSelection={dataSelection}
+      isMutationScan={isMutationScan}
       instanceRenderType={"sequence"}
       dispatchDataSelection={dispatchDataSelection}
     />

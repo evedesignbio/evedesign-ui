@@ -23,11 +23,13 @@ export interface InstanceTableProps {
   dataSelection: DataInteractionReducerState;
   instanceRenderType: "sequence" | "mutant" | "hide";
   dispatchDataSelection?: DataInteractionReducerDispatchFunc;
+  isMutationScan: boolean;
 }
 
 export const InstanceTable = ({
   instances,
   dataSelection,
+  isMutationScan,
   instanceRenderType = "hide",
   dispatchDataSelection = undefined,
 }: InstanceTableProps) => {
@@ -44,7 +46,8 @@ export const InstanceTable = ({
   const instancesDisplay = useMemo(() => {
     if (
       !dataSelection.lastEventSource ||
-      dataSelection.lastEventSource === "TABLE"
+      dataSelection.lastEventSource === "TABLE" ||
+      isMutationScan
     ) {
       // if selection happens from inside table panel, show all instances
       return instances;

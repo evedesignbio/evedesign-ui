@@ -122,7 +122,7 @@ export const dataInteractionReducer = (
       // apply selection from other panel
       // TODO: do not apply for mutation scans
       const filteredInstancesM =
-        state.instances.size > 1 // only filter multiple selection
+        !state.isMutationScan && state.instances.size > 1 // only filter multiple selection
           ? filterByInstanceSelection(state.filteredInstances, state.instances)
           : state.filteredInstances;
 
@@ -148,7 +148,7 @@ export const dataInteractionReducer = (
       // apply selection from other panel
       // TODO: do not apply for mutation scans
       const filteredInstancesI =
-        state.mutations.size > 0
+        !state.isMutationScan && state.mutations.size > 0
           ? filterByMutationSelection(state.filteredInstances, state.mutations)
           : state.filteredInstances;
 
@@ -242,7 +242,7 @@ export const filterByMutationSelection = (
     return [...posToMuts.entries()].every(([_pos, muts]) => {
       // iterate mutations per position (OR filter)
       const x = muts.some((decodedMut) => {
-        const symbol = instance.seqMap.get(
+        const symbol = instance.seqMap?.get(
           encodePosition({ entity: decodedMut.entity, pos: decodedMut.pos }),
         );
         return symbol === decodedMut.to;

@@ -152,7 +152,7 @@ export const useInstances = (
               const ref = resultsCast.spec.system[eiIdx].rep[repIdx];
               const curPos =
                 repIdx + resultsCast.spec.system[eiIdx].first_index;
-              inst.seqMap.set(
+              inst.seqMap!.set(
                 encodePosition({ entity: eiIdx, pos: curPos }),
                 symbol,
               );
@@ -328,13 +328,12 @@ export const instancesToCountMatrix = (
 export const useMatrix = (
   instances: SystemInstanceSpecEnhanced[],
   designedPositions: Position[],
+  isMutationScan: boolean,
   spec: PipelineSpec | SingleMutationScanSpec,
   dataSelection: DataInteractionReducerState,
 ) =>
   useMemo(() => {
-    // TODO: do not apply for single mutation matrix?
-    // TODO: also add computation based on mutation selection to update?
-    if (dataSelection.instances.size > 1) {
+    if (!isMutationScan && dataSelection.instances.size > 1) {
       instances = filterByInstanceSelection(instances, dataSelection.instances);
     }
 
