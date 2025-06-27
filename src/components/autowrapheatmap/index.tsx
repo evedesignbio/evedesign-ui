@@ -463,6 +463,11 @@ const renderDataColumn = (
         })}
         data-tooltip-id="heatmapLabel"
         style={{
+          // fontSize: "2pt",
+          // display: "flex",
+          // justifyContent: "center",
+          // alignItems: "center",
+          // color: "lightgrey",
           width: cellWidth,
           height: cellHeight,
           // textAlign: "justify", // TODO: needed?
@@ -486,6 +491,8 @@ const renderDataColumn = (
           event.stopPropagation();
         }}
       />
+      //  ⬤
+      //</div>
     );
   });
 
@@ -658,7 +665,7 @@ export const AutowrapHeatmap = ({
   resizeDebounceTime = DEFAULT_DEBOUNCE_TIME,
   scrollToElement = undefined,
   containerStyle = DEFAULT_CONTAINER_STYLE as CSSProperties,
-  tooltipStyle = undefined
+  tooltipStyle = undefined,
 }: HeatmapProps) => {
   // const parentRef = useRef<HTMLDivElement | null>(null);
   const [rowBoundaries, setRowBoundaries] = useState<RowBoundaries[]>([]);

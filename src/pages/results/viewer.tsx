@@ -18,9 +18,19 @@ import {
   toHexString,
 } from "../../utils/colormap.ts";
 import { SiteHighlightTargetPos } from "../../features/structurepanel/data.ts";
-import { AutowrapHeatmap, ClickEvent } from "../../components/autowrapheatmap";
+import {
+  AutowrapHeatmap,
+  CellCoords,
+  ClickEvent,
+} from "../../components/autowrapheatmap";
 import "./viewer.css";
-import { useInstances, useMatrix } from "./data.ts";
+import {
+  decodeMutation,
+  decodePosition,
+  encodePosition,
+  useInstances,
+  useMatrix,
+} from "./data.ts";
 import { InstanceTable } from "./table.tsx";
 import { useDisclosure } from "@mantine/hooks";
 import { DNAGenerationDialog } from "./dna.tsx";
@@ -89,13 +99,13 @@ const exampleSiteHighlights: SiteHighlightTargetPos[] = [
 //   // return toHexString(cmap(value!));
 // };
 
-const heatmapClickHandler = ({
-  locationType,
-  payload,
-  modifiers,
-}: ClickEvent) => {
-  console.log("heatmap click", locationType, payload, modifiers);
-};
+// const heatmapClickHandler = ({
+//   locationType,
+//   payload,
+//   modifiers,
+// }: ClickEvent) => {
+//   console.log("heatmap click", locationType, payload, modifiers);
+// };
 
 // const labelRenderer = (labelData: LabelData) => {
 //   if (labelData.type === "data") {
@@ -200,7 +210,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   // initialize reducer for handling interactions between different data visualizations
   const [dataSelection, dispatchDataSelection] = useReducer(
     dataInteractionReducer,
-    emptyDataInteractionState(),
+    emptyDataInteractionState(isMutationScan),
   );
 
   const resetSelection = useReset(dispatchDataSelection);
@@ -211,7 +221,9 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
 
   // TODO: clean this up and derive heatmap properly
   const heatmapColorMap = useMemo(() => {
-    const cmap = colorMapFromNameOrList("blues", 0, 1, true);
+    const cmap = isMutationScan
+      ? colorMapFromNameOrList("viridis", -10, 0, false)
+      : colorMapFromNameOrList("blues", 0, 1, true);
 
     return (value: number | null, _i?: number, _j?: number) => {
       if (value === null) {
@@ -220,7 +232,38 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
         return toHexString(cmap(value!));
       }
     };
-  }, []);
+  }, [isMutationScan]);
+
+  const heatmapClickHandler = useMemo(
+    () =>
+      ({ locationType, payload, modifiers }: ClickEvent) => {
+        if (locationType !== "data") return;
+        const posMapped = matrix.indexToPositions.get(payload.column)!;
+        const symbolMapped = matrix.indexToSubstitutions.get(payload.row)!;
+        const ref = matrix.ref.get(posMapped)!;
+        dispatchDataSelection({
+          type: "SELECT_MUTATIONS",
+          source: "MATRIX",
+          modifiers: modifiers,
+          payload: [
+            { ...decodePosition(posMapped), ref: ref, to: symbolMapped },
+          ],
+        });
+      },
+    [matrix, dispatchDataSelection],
+  );
+
+  const heatmapCellSelections = useMemo(() => {
+    return [...dataSelection.mutations].map((mutStr) => {
+      const mutDecoded = decodeMutation(mutStr);
+      return {
+        column: matrix.positions.get(
+          encodePosition({ entity: mutDecoded.entity, pos: mutDecoded.pos }),
+        ),
+        row: matrix.substitutions.get(mutDecoded.to)!,
+      } as CellCoords;
+    });
+  }, [matrix, dataSelection.mutations]);
 
   const dnaModal = (
     <Modal
@@ -272,7 +315,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     <AutowrapHeatmap
       data={
         matrix !== null
-          ? matrix.data[isMutationScan ? 0 : 2]
+          ? matrix.data[isMutationScan ? 0 : 1]
           : [
               [1, 1, 1, 1, 1],
               [2, 2, 2, 2, 2],
@@ -306,7 +349,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
         zIndex: 9999,
       }}
       // TODO: selection styling (label backgrounds dynamic on light/dark theme)
-      // selectedCells={transformedSelections.heatmapMuts}
+      selectedCells={heatmapCellSelections}
       // selectedColumns={transformedSelections.heatmapPos}
       // selectedRows={transformedSelections.heatmapSubs}
       // scrollToElement={transformedSelections.heatmapJump}

@@ -46,8 +46,10 @@ type NullableArray3D = (number | null)[][][];
 
 export type MutationMatrix = {
   positions: Map<string, number>;
+  indexToPositions: Map<number, string>;
   ref: Map<string, string>; // wildtype symbol
   substitutions: Map<string, number>;
+  indexToSubstitutions: Map<number, string>;
   // equivalent to column headers in input file
   names: Map<string, number>;
   data: NullableArray3D;
@@ -212,12 +214,16 @@ export const instancesToCountMatrix = (
   // map from substitution to index ("column index" of pivot table)
   const subsToIdx = new Map([...alphabet].map((subs, i) => [subs, i]));
 
+  const idxToSubs = new Map([...subsToIdx].map((e) => [e[1], e[0]]));
+
   // only map designed positions
   const posToIdx = new Map<string, number>(
     enhancedInstances.designedPositions
       .filter((pos) => pos.entity === entityIndex)
       .map((pos, posIdx) => [encodePosition(pos), posIdx]),
   );
+
+  const idxToPos = new Map([...posToIdx].map((e) => [e[1], e[0]]));
 
   // only map designed positions
   const posToRef = new Map<string, string>(
@@ -255,14 +261,22 @@ export const instancesToCountMatrix = (
     const freqs = counts.map((posCounts) =>
       posCounts.map((symbolCount) => symbolCount / instanceCount),
     );
-    const scoresNorm = scores.map((posCounts) =>
-      posCounts.map((symbolCount) => symbolCount / instanceCount),
+
+    // normalize scores by number of designs for each symbol occurrence
+    const scoresNorm = scores.map((posCounts, posIdx) =>
+      posCounts.map((symbolCount, symbolIdx) =>
+        counts[posIdx][symbolIdx] !== null
+          ? symbolCount / counts[posIdx][symbolIdx]
+          : null,
+      ),
     );
 
     return {
       positions: posToIdx,
+      indexToPositions: idxToPos,
       ref: posToRef,
       substitutions: subsToIdx,
+      indexToSubstitutions: idxToSubs,
       names: new Map([
         ["counts", 0],
         ["freqs", 1],
@@ -288,8 +302,10 @@ export const instancesToCountMatrix = (
 
     return {
       positions: posToIdx,
+      indexToPositions: idxToPos,
       ref: posToRef,
       substitutions: subsToIdx,
+      indexToSubstitutions: idxToSubs,
       names: new Map([["scores", 0]]),
       data: [scores],
     };
@@ -302,7 +318,6 @@ export const useMatrix = (
 ) =>
   useMemo(() => {
     if (spec.key === "pipeline") {
-      // TODO: check on fixed length?
       return instancesToCountMatrix(
         enhancedInstances,
         0,

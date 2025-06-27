@@ -42,13 +42,15 @@ export interface DataInteractionReducerState {
   positions: Set<string>;
   mutations: Set<string>;
   lastEventSource?: string;
+  isMutationScan: boolean;
 }
 
-export const emptyDataInteractionState = (): DataInteractionReducerState => ({
+export const emptyDataInteractionState = (isMutationScan: boolean): DataInteractionReducerState => ({
   instances: new Set<string>(),
   positions: new Set<string>(),
   mutations: new Set<string>(),
   lastEventSource: undefined,
+  isMutationScan: isMutationScan,
 });
 
 export type DataInteractionReducerDispatchFunc = (
@@ -79,7 +81,7 @@ export const dataInteractionReducer = (
   //  probably not worth the overhead
   switch (type) {
     case "RESET":
-      return emptyDataInteractionState();
+      return emptyDataInteractionState(state.isMutationScan);
     case "SET":
       return {
         ...(action.payload as DataInteractionReducerState),
@@ -99,6 +101,7 @@ export const dataInteractionReducer = (
         positions: newPositions,
         mutations: new Set<string>(),
         lastEventSource: source,
+        isMutationScan: state.isMutationScan
       };
     case "SELECT_MUTATIONS":
       let newMutations: Set<string>;
@@ -115,6 +118,7 @@ export const dataInteractionReducer = (
         positions: new Set<string>(),
         mutations: newMutations,
         lastEventSource: source,
+        isMutationScan: state.isMutationScan
       };
     case "SELECT_INSTANCES":
       let newInstances: Set<string>;
@@ -133,6 +137,7 @@ export const dataInteractionReducer = (
         positions: new Set<string>(),
         mutations: new Set<string>(),
         lastEventSource: source,
+        isMutationScan: state.isMutationScan
       };
     default:
       throw new Error(

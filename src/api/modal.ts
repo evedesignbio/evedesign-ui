@@ -71,7 +71,8 @@ export const useJobData = (id: string) => {
   return useQuery({
     queryKey: ["jobdata", id],
     queryFn: (): Promise<ApiJobResult> =>
-      fetch(getBackendUrl() + "job/" + id).then((res) => {
+        fetch(getBackendUrl() + "job/" + id).then((res) => {
+        // fetch("http://localhost:8000/" + id + ".json").then((res) => {  // TODO revert
         if (!res.ok) {
           throw new Error(`${res.status}`);
         }
