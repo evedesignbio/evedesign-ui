@@ -200,81 +200,123 @@ export const useInstances = (
     }
   }, [results]);
 
-export const instancesToMatrix = (
-  instances: SystemInstanceSpecEnhanced[],
+export const instancesToCountMatrix = (
+  enhancedInstances: EnhancedInstanceData,
   entityIndex: number,
   systemRep: string,
   firstIndex: number,
+  isMutationScan: boolean,
   alphabet = "KRHEDNQTSCGAVLIMPYFW",
   // missingValue: number | null = null,
 ): MutationMatrix => {
   // map from substitution to index ("column index" of pivot table)
   const subsToIdx = new Map([...alphabet].map((subs, i) => [subs, i]));
 
+  // only map designed positions
   const posToIdx = new Map<string, number>(
-    [...systemRep].map((_symbol, posIdx) => [
-      encodePosition({
-        entity: entityIndex,
-        pos: posIdx + firstIndex,
-      }),
-      posIdx,
-    ]),
+    enhancedInstances.designedPositions
+      .filter((pos) => pos.entity === entityIndex)
+      .map((pos, posIdx) => [encodePosition(pos), posIdx]),
   );
 
+  // only map designed positions
   const posToRef = new Map<string, string>(
-    [...systemRep].map((symbol, posIdx) => [
-      encodePosition({
-        entity: entityIndex,
-        pos: posIdx + firstIndex,
-      }),
-      symbol,
-    ]),
+    enhancedInstances.designedPositions
+      .filter((pos) => pos.entity === entityIndex)
+      .map((pos) => [
+        encodePosition(pos),
+        systemRep.charAt(pos.pos - firstIndex),
+      ]),
   );
 
-  // initialize data array to same length as system rep
-  const counts = [...systemRep].map((_symbol) => Array(subsToIdx.size).fill(0));
+  const scores = [...posToIdx].map((_symbol) => Array(subsToIdx.size).fill(0));
 
-  // iterate system instance reps and count symbol occurrences
-  instances.forEach((instance) => {
-    const rep = instance.entity_instances[entityIndex].rep;
-    [...rep].forEach((symbol, posIdx) => {
-      const symbolIdx = subsToIdx.get(symbol)!;
-      counts[posIdx][symbolIdx]++;
+  if (!isMutationScan) {
+    // initialize count array to same length as number of designed positions
+    const counts = [...posToIdx].map((_symbol) =>
+      Array(subsToIdx.size).fill(0),
+    );
+
+    // iterate system instance reps and count symbol occurrences
+    enhancedInstances.instances.forEach((instance) => {
+      const rep = instance.entity_instances[entityIndex].rep;
+
+      // only count designed positions
+      posToIdx.forEach((posIdx, pos) => {
+        const symbol = rep.charAt(decodePosition(pos).pos - firstIndex);
+        const symbolIdx = subsToIdx.get(symbol)!;
+        counts[posIdx][symbolIdx]++;
+        scores[posIdx][symbolIdx] += instance.score;
+      });
     });
-  });
 
-  // compute relative frequencies
-  const instanceCount = instances.length;
-  const freqs = counts.map((posCounts) =>
-    posCounts.map((symbolCount) => symbolCount / instanceCount),
-  );
+    // compute relative frequencies
+    const instanceCount = enhancedInstances.instances.length;
+    const freqs = counts.map((posCounts) =>
+      posCounts.map((symbolCount) => symbolCount / instanceCount),
+    );
+    const scoresNorm = scores.map((posCounts) =>
+      posCounts.map((symbolCount) => symbolCount / instanceCount),
+    );
 
-  return {
-    positions: posToIdx,
-    ref: posToRef,
-    substitutions: subsToIdx,
-    names: new Map([
-      ["counts", 0],
-      ["freqs", 1],
-    ]),
-    data: [counts, freqs],
-  };
+    return {
+      positions: posToIdx,
+      ref: posToRef,
+      substitutions: subsToIdx,
+      names: new Map([
+        ["counts", 0],
+        ["freqs", 1],
+        ["scores", 2],
+      ]),
+      data: [counts, freqs, scoresNorm],
+    };
+  } else {
+    enhancedInstances.instances
+      .filter(
+        (instance) =>
+          instance.mutant.length > 0 &&
+          instance.mutant[0].entity === entityIndex,
+      )
+      .forEach((instance) => {
+        const mut = instance.mutant[0];
+        const posIdx = posToIdx.get(
+          encodePosition({ entity: mut.entity, pos: mut.pos }),
+        )!;
+        const symbolIdx = subsToIdx.get(mut.to)!;
+        scores[posIdx][symbolIdx] = instance.score;
+      });
+
+    return {
+      positions: posToIdx,
+      ref: posToRef,
+      substitutions: subsToIdx,
+      names: new Map([["scores", 0]]),
+      data: [scores],
+    };
+  }
 };
 
 export const useMatrix = (
-    enhancedInstances: EnhancedInstanceData,
-    spec: PipelineSpec | SingleMutationScanSpec,
+  enhancedInstances: EnhancedInstanceData,
+  spec: PipelineSpec | SingleMutationScanSpec,
 ) =>
   useMemo(() => {
     if (spec.key === "pipeline") {
       // TODO: check on fixed length?
-      return instancesToMatrix(
-        enhancedInstances.instances,
+      return instancesToCountMatrix(
+        enhancedInstances,
         0,
         spec.system[0].rep,
         spec.system[0].first_index,
+        false,
       );
     } else {
-      return null; // TODO: implement
+      return instancesToCountMatrix(
+        enhancedInstances,
+        0,
+        spec.system[0].rep,
+        spec.system[0].first_index,
+        true,
+      );
     }
   }, [enhancedInstances, spec]);

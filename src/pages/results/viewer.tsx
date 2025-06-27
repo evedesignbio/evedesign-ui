@@ -73,14 +73,14 @@ const exampleSiteHighlights: SiteHighlightTargetPos[] = [
 
 // https://stackoverflow.com/questions/1484506/random-color-generator
 // TODO: remove again once actual data shown
-export function getRandomColor() {
-  var letters = "0123456789ABCDEF";
-  var color = "#";
-  for (var i = 0; i < 6; i++) {
-    color += letters[Math.floor(Math.random() * 16)];
-  }
-  return color;
-}
+// export function getRandomColor() {
+//   var letters = "0123456789ABCDEF";
+//   var color = "#";
+//   for (var i = 0; i < 6; i++) {
+//     color += letters[Math.floor(Math.random() * 16)];
+//   }
+//   return color;
+// }
 
 // // @ts-ignore
 // const heatmapColorMap = (value: number | null, i?: number, j?: number) => {
@@ -195,6 +195,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
 
   const spec = results.spec;
   const enhancedInstances = useInstances(results);
+  const isMutationScan = spec.key === "single_mutation_scan";
 
   // initialize reducer for handling interactions between different data visualizations
   const [dataSelection, dispatchDataSelection] = useReducer(
@@ -271,7 +272,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     <AutowrapHeatmap
       data={
         matrix !== null
-          ? matrix.data[1]
+          ? matrix.data[isMutationScan ? 0 : 2]
           : [
               [1, 1, 1, 1, 1],
               [2, 2, 2, 2, 2],
