@@ -300,11 +300,6 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     </Modal>
   );
 
-  console.log(
-    "FILTERED INSTANCES",
-    dataSelection.filteredInstances.length,
-    dataSelection.filteredInstances,
-  ); // TODO
   const tablePanel = (
     <InstanceTable
       instances={dataSelection.filteredInstances}

@@ -36,7 +36,7 @@ export const encodeMutation = (mutation: Mutation) => {
   return `${mutation.entity}_${mutation.pos}_${mutation.ref}_${mutation.to}`;
 };
 
-export const decodeMutation = (mutStr: string) => {
+export const decodeMutation = (mutStr: string): Mutation => {
   const mutSplit = mutStr.split("_");
   return {
     entity: parseInt(mutSplit[0]),

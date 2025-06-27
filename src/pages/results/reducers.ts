@@ -223,15 +223,42 @@ export const filterByMutationSelection = (
   instances: SystemInstanceSpecEnhanced[],
   mutations: Set<string>,
 ) => {
-  return instances.filter((instance) => {
-    return [...mutations].every((encodedMut) => {
-      const decodedMut = decodeMutation(encodedMut);
-      return (
-        instance.seqMap.get(
-          encodePosition({ entity: decodedMut.entity, pos: decodedMut.pos }),
-        )! == decodedMut.to
-      );
+  // group mutations by position (will act as an OR filter per position)
+  const posToMuts = new Map<string, Mutation[]>();
+  [...mutations].map(decodeMutation).forEach((decodedMut) => {
+    const posEncoded = encodePosition({
+      entity: decodedMut.entity,
+      pos: decodedMut.pos,
     });
+    if (!posToMuts.has(posEncoded)) {
+      posToMuts.set(posEncoded, [decodedMut]);
+    } else {
+      posToMuts.get(posEncoded)!.push(decodedMut);
+    }
+  });
+
+  return instances.filter((instance) => {
+    // iterate per position (AND filter)
+    return [...posToMuts.entries()].every(([_pos, muts]) => {
+      // iterate mutations per position (OR filter)
+      const x = muts.some((decodedMut) => {
+        const symbol = instance.seqMap.get(
+          encodePosition({ entity: decodedMut.entity, pos: decodedMut.pos }),
+        );
+        return symbol === decodedMut.to;
+      });
+      return x;
+    });
+
+    // old version applying multiple mutations per position as AND filter
+    // return [...mutations].every((encodedMut) => {
+    //   const decodedMut = decodeMutation(encodedMut);
+    //   return (
+    //     instance.seqMap.get(
+    //       encodePosition({ entity: decodedMut.entity, pos: decodedMut.pos }),
+    //     )! == decodedMut.to
+    //   );
+    // });
   });
 };
 
