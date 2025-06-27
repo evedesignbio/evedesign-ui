@@ -50,6 +50,7 @@ export interface SystemInstanceSpec {
 export interface SystemInstanceSpecEnhanced extends SystemInstanceSpec {
   id: string;
   mutant: Mutation[];
+  seqMap: Map<string, string>;
 }
 
 export const systemInstanceFromSystem = (

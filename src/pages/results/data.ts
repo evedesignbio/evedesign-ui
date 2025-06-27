@@ -15,6 +15,10 @@ import {
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
 import { range } from "../../utils/helpers.ts";
+import {
+  DataInteractionReducerState,
+  filterByInstanceSelection,
+} from "./reducers.ts";
 
 export const encodePosition = (pos: Position) => {
   return `${pos.entity}_${pos.pos}`;
@@ -140,18 +144,26 @@ export const useInstances = (
 
         inst.id = `${instIdx + 1}`;
         inst.mutant = [];
+        inst.seqMap = new Map<string, string>();
 
         if (fixedLength) {
           inst.entity_instances.forEach((ei, eiIdx) => {
             [...ei.rep].forEach((symbol, repIdx) => {
               const ref = resultsCast.spec.system[eiIdx].rep[repIdx];
+              const curPos =
+                repIdx + resultsCast.spec.system[eiIdx].first_index;
+              inst.seqMap.set(
+                encodePosition({ entity: eiIdx, pos: curPos }),
+                symbol,
+              );
               if (symbol !== ref) {
-                inst.mutant.push({
+                const curMutation = {
                   entity: eiIdx,
-                  pos: repIdx + resultsCast.spec.system[eiIdx].first_index,
+                  pos: curPos,
                   ref: ref,
                   to: symbol,
-                });
+                };
+                inst.mutant.push(curMutation);
               }
             });
           });
@@ -203,7 +215,8 @@ export const useInstances = (
   }, [results]);
 
 export const instancesToCountMatrix = (
-  enhancedInstances: EnhancedInstanceData,
+  instances: SystemInstanceSpecEnhanced[],
+  designedPositions: Position[],
   entityIndex: number,
   systemRep: string,
   firstIndex: number,
@@ -218,7 +231,7 @@ export const instancesToCountMatrix = (
 
   // only map designed positions
   const posToIdx = new Map<string, number>(
-    enhancedInstances.designedPositions
+    designedPositions
       .filter((pos) => pos.entity === entityIndex)
       .map((pos, posIdx) => [encodePosition(pos), posIdx]),
   );
@@ -227,7 +240,7 @@ export const instancesToCountMatrix = (
 
   // only map designed positions
   const posToRef = new Map<string, string>(
-    enhancedInstances.designedPositions
+    designedPositions
       .filter((pos) => pos.entity === entityIndex)
       .map((pos) => [
         encodePosition(pos),
@@ -244,7 +257,7 @@ export const instancesToCountMatrix = (
     );
 
     // iterate system instance reps and count symbol occurrences
-    enhancedInstances.instances.forEach((instance) => {
+    instances.forEach((instance) => {
       const rep = instance.entity_instances[entityIndex].rep;
 
       // only count designed positions
@@ -257,7 +270,7 @@ export const instancesToCountMatrix = (
     });
 
     // compute relative frequencies
-    const instanceCount = enhancedInstances.instances.length;
+    const instanceCount = instances.length;
     const freqs = counts.map((posCounts) =>
       posCounts.map((symbolCount) => symbolCount / instanceCount),
     );
@@ -285,7 +298,7 @@ export const instancesToCountMatrix = (
       data: [counts, freqs, scoresNorm],
     };
   } else {
-    enhancedInstances.instances
+    instances
       .filter(
         (instance) =>
           instance.mutant.length > 0 &&
@@ -313,13 +326,22 @@ export const instancesToCountMatrix = (
 };
 
 export const useMatrix = (
-  enhancedInstances: EnhancedInstanceData,
+  instances: SystemInstanceSpecEnhanced[],
+  designedPositions: Position[],
   spec: PipelineSpec | SingleMutationScanSpec,
+  dataSelection: DataInteractionReducerState,
 ) =>
   useMemo(() => {
+    // TODO: do not apply for single mutation matrix?
+    // TODO: also add computation based on mutation selection to update?
+    if (dataSelection.instances.size > 1) {
+      instances = filterByInstanceSelection(instances, dataSelection.instances);
+    }
+
     if (spec.key === "pipeline") {
       return instancesToCountMatrix(
-        enhancedInstances,
+        instances,
+        designedPositions,
         0,
         spec.system[0].rep,
         spec.system[0].first_index,
@@ -327,11 +349,12 @@ export const useMatrix = (
       );
     } else {
       return instancesToCountMatrix(
-        enhancedInstances,
+        instances,
+        designedPositions,
         0,
         spec.system[0].rep,
         spec.system[0].first_index,
         true,
       );
     }
-  }, [enhancedInstances, spec]);
+  }, [instances, designedPositions, spec, dataSelection.instances]);

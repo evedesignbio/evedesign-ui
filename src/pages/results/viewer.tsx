@@ -210,14 +210,30 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   // initialize reducer for handling interactions between different data visualizations
   const [dataSelection, dispatchDataSelection] = useReducer(
     dataInteractionReducer,
-    emptyDataInteractionState(isMutationScan),
+    emptyDataInteractionState(isMutationScan, enhancedInstances.instances),
   );
 
   const resetSelection = useReset(dispatchDataSelection);
   const structureClickHandler = useStructureClickHandler(dispatchDataSelection);
 
   // compute positional symbol counts/frequencies for heatmaps from instances
-  const matrix = useMatrix(enhancedInstances, spec);
+  // TODO: need to use active selection
+  const matrix = useMatrix(
+    dataSelection.filteredInstances,
+    enhancedInstances.designedPositions,
+    spec,
+    dataSelection,
+  );
+
+  // TODO: remove
+  // console.log("INSTANCES", enhancedInstances.instances.slice(0, 5));
+  // console.log(
+  //   "INSTANCES APPLIED",
+  //   filterByMutationSelection(
+  //     enhancedInstances.instances.slice(0, 5),
+  //     new Set(["0_24_H_E"]),
+  //   ),
+  // );
 
   // TODO: clean this up and derive heatmap properly
   const heatmapColorMap = useMemo(() => {
@@ -284,9 +300,14 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     </Modal>
   );
 
+  console.log(
+    "FILTERED INSTANCES",
+    dataSelection.filteredInstances.length,
+    dataSelection.filteredInstances,
+  ); // TODO
   const tablePanel = (
     <InstanceTable
-      instances={enhancedInstances.instances}
+      instances={dataSelection.filteredInstances}
       dataSelection={dataSelection}
       instanceRenderType={"sequence"}
       dispatchDataSelection={dispatchDataSelection}
@@ -362,8 +383,15 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
         {spec.key.replace("_", " ").replace("_", " ")}
       </Badge>
       <Group>
-        <Button onClick={resetSelection} variant={"outline"}>
-          Reset selection
+        <Button
+          onClick={resetSelection}
+          variant={"outline"}
+          disabled={
+            dataSelection.filteredInstances.length ===
+            dataSelection.allInstances.length
+          }
+        >
+          Reset filter
         </Button>
         <Button onClick={toggleDnaOpen}>Build DNA...</Button>
       </Group>

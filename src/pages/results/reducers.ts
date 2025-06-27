@@ -7,7 +7,7 @@ import {
 import { useCallback } from "react";
 import { ModifiersKeys } from "molstar/lib/mol-util/input/input-observer";
 import { AtomInfo } from "../../components/structureviewer/molstar-utils.tsx";
-import { encodeMutation, encodePosition } from "./data.ts";
+import { decodeMutation, encodeMutation, encodePosition } from "./data.ts";
 import { Modifiers } from "../../utils/events.tsx";
 
 export type EventSource =
@@ -43,14 +43,21 @@ export interface DataInteractionReducerState {
   mutations: Set<string>;
   lastEventSource?: string;
   isMutationScan: boolean;
+  allInstances: SystemInstanceSpecEnhanced[];
+  filteredInstances: SystemInstanceSpecEnhanced[];
 }
 
-export const emptyDataInteractionState = (isMutationScan: boolean): DataInteractionReducerState => ({
+export const emptyDataInteractionState = (
+  isMutationScan: boolean,
+  allInstances: SystemInstanceSpecEnhanced[],
+): DataInteractionReducerState => ({
   instances: new Set<string>(),
   positions: new Set<string>(),
   mutations: new Set<string>(),
   lastEventSource: undefined,
   isMutationScan: isMutationScan,
+  allInstances: allInstances,
+  filteredInstances: allInstances,
 });
 
 export type DataInteractionReducerDispatchFunc = (
@@ -81,29 +88,44 @@ export const dataInteractionReducer = (
   //  probably not worth the overhead
   switch (type) {
     case "RESET":
-      return emptyDataInteractionState(state.isMutationScan);
+      return emptyDataInteractionState(
+        state.isMutationScan,
+        state.allInstances,
+      );
     case "SET":
       return {
         ...(action.payload as DataInteractionReducerState),
       };
     case "SELECT_POSITIONS":
-      let newPositions: Set<string>;
-      const payloadPositionSet = new Set(
-        (payload as Position[]).map(encodePosition),
-      );
-      if (multiSelect) {
-        newPositions = symmetricDifference(state.positions, payloadPositionSet);
-      } else {
-        newPositions = payloadPositionSet;
-      }
-      return {
-        instances: new Set<string>(),
-        positions: newPositions,
-        mutations: new Set<string>(),
-        lastEventSource: source,
-        isMutationScan: state.isMutationScan
-      };
+      // for now, do not filter designs by position anymore, as it has no real meaning without a substitution
+      //
+      // let newPositions: Set<string>;
+      // const payloadPositionSet = new Set(
+      //   (payload as Position[]).map(encodePosition),
+      // );
+      // if (multiSelect) {
+      //   newPositions = symmetricDifference(state.positions, payloadPositionSet);
+      // } else {
+      //   newPositions = payloadPositionSet;
+      // }
+      // return {
+      //   instances: new Set<string>(),
+      //   positions: newPositions,
+      //   mutations: new Set<string>(),
+      //   lastEventSource: source,
+      //   isMutationScan: state.isMutationScan,
+      //   allInstances: state.allInstances,
+      //   filteredInstances: state.allInstances,
+      // };
+      return state;
     case "SELECT_MUTATIONS":
+      // apply selection from other panel
+      // TODO: do not apply for mutation scans
+      const filteredInstancesM =
+        state.instances.size > 1 // only filter multiple selection
+          ? filterByInstanceSelection(state.filteredInstances, state.instances)
+          : state.filteredInstances;
+
       let newMutations: Set<string>;
       const payloadMutationSet = new Set(
         (payload as Mutation[]).map(encodeMutation),
@@ -118,9 +140,18 @@ export const dataInteractionReducer = (
         positions: new Set<string>(),
         mutations: newMutations,
         lastEventSource: source,
-        isMutationScan: state.isMutationScan
+        isMutationScan: state.isMutationScan,
+        allInstances: state.allInstances,
+        filteredInstances: filteredInstancesM,
       };
     case "SELECT_INSTANCES":
+      // apply selection from other panel
+      // TODO: do not apply for mutation scans
+      const filteredInstancesI =
+        state.mutations.size > 0
+          ? filterByMutationSelection(state.filteredInstances, state.mutations)
+          : state.filteredInstances;
+
       let newInstances: Set<string>;
       const payloadInstanceSet = new Set(action.payload as string[]);
       if (multiSelect) {
@@ -137,7 +168,9 @@ export const dataInteractionReducer = (
         positions: new Set<string>(),
         mutations: new Set<string>(),
         lastEventSource: source,
-        isMutationScan: state.isMutationScan
+        isMutationScan: state.isMutationScan,
+        allInstances: state.allInstances,
+        filteredInstances: filteredInstancesI,
       };
     default:
       throw new Error(
@@ -160,46 +193,46 @@ export const useReset = (
     [dispatchDataSelection],
   );
 
-export const filterInstancesByPosSelection = (
-  x: SystemInstanceSpecEnhanced[],
-  encodedPositions: Set<string>,
-) => {
-  return x.filter((inst) => {
-    // encode mutated positions for current instance
-    const posEncoded = new Set(
-      inst.mutant.map((mut) =>
-        encodePosition({ entity: mut.entity, pos: mut.pos }),
-      ),
-    );
+// export const filterInstancesByPosSelection = (
+//   x: SystemInstanceSpecEnhanced[],
+//   encodedPositions: Set<string>,
+// ) => {
+//   return x.filter((inst) => {
+//     // encode mutated positions for current instance
+//     const posEncoded = new Set(
+//       inst.mutant.map((mut) =>
+//         encodePosition({ entity: mut.entity, pos: mut.pos }),
+//       ),
+//     );
+//
+//     // check if all selected positions are contained in encoded set => keep instance
+//     // (not using intersection method for now due to availability)
+//     const overlap = [...encodedPositions].filter((pos) => posEncoded.has(pos));
+//     return overlap.length === encodedPositions.size;
+//   });
+// };
 
-    // check if all selected positions are contained in encoded set => keep instance
-    // (not using intersection method for now due to availability)
-    const overlap = [...encodedPositions].filter((pos) => posEncoded.has(pos));
-    return overlap.length === encodedPositions.size;
-  });
-};
-
-export const filterInstancesByMutSelection = (
-  x: SystemInstanceSpecEnhanced[],
-  encodedMutations: Set<string>,
-) => {
-  console.log("NOT IMPLEMENTED", encodedMutations); // TODO implement
-  return x;
-};
-
-export const filterInstancesByReducerSelection = (
+export const filterByInstanceSelection = (
   instances: SystemInstanceSpecEnhanced[],
-  dataSelection: DataInteractionReducerState,
+  selection: Set<string>,
 ) => {
-  if (dataSelection.instances.size > 0) {
-    return instances.filter((inst) => dataSelection.instances.has(inst.id));
-  } else if (dataSelection.mutations.size > 0) {
-    return filterInstancesByMutSelection(instances, dataSelection.mutations);
-  } else if (dataSelection.positions.size > 0) {
-    return filterInstancesByPosSelection(instances, dataSelection.positions);
-  } else {
-    return instances;
-  }
+  return instances.filter((instance) => selection.has(instance.id));
+};
+
+export const filterByMutationSelection = (
+  instances: SystemInstanceSpecEnhanced[],
+  mutations: Set<string>,
+) => {
+  return instances.filter((instance) => {
+    return [...mutations].every((encodedMut) => {
+      const decodedMut = decodeMutation(encodedMut);
+      return (
+        instance.seqMap.get(
+          encodePosition({ entity: decodedMut.entity, pos: decodedMut.pos }),
+        )! == decodedMut.to
+      );
+    });
+  });
 };
 
 export const useStructureClickHandler = (

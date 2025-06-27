@@ -9,7 +9,7 @@ import { extractModifiers, Modifiers } from "../../utils/events.tsx";
 import {
   DataInteractionReducerDispatchFunc,
   DataInteractionReducerState,
-  filterInstancesByReducerSelection,
+  filterByMutationSelection,
 } from "./reducers.ts";
 
 export type InstanceTableEventHandler = (
@@ -41,8 +41,7 @@ export const InstanceTable = ({
   // TODO: implement selection of range of designs with shift key (all up or down from last selection)
   // TODO: implement scrolling to selected designs when resetting displayed designs
 
-  // TODO: hoist this as hook to viewer component?
-  const instancesFilt = useMemo(() => {
+  const instancesDisplay = useMemo(() => {
     if (
       !dataSelection.lastEventSource ||
       dataSelection.lastEventSource === "TABLE"
@@ -52,7 +51,8 @@ export const InstanceTable = ({
     } else {
       // if selection happens from outside table panel, filter down what will be displayed;
       // for now, only one of these filters will be active by convention
-      return filterInstancesByReducerSelection(instances, dataSelection);
+      // TODO: revisit this for sequence space plot - will need to filter by instance too unless single instance?
+      return filterByMutationSelection(instances, dataSelection.mutations);
     }
   }, [instances, dataSelection]);
 
@@ -81,7 +81,7 @@ export const InstanceTable = ({
   return (
     <TableVirtuoso
       style={{ height: "100%", width: "100%" }}
-      data={instancesFilt}
+      data={instancesDisplay}
       components={{
         Table: (props) => (
           <Table
