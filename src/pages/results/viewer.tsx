@@ -41,7 +41,7 @@ import {
   useReset,
   useStructureClickHandler,
 } from "./reducers.ts";
-import { useMemo, useReducer } from "react";
+import { useMemo, useReducer, useState } from "react";
 
 export interface AnalysisViewerProps {
   id: string;
@@ -213,6 +213,8 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     emptyDataInteractionState(isMutationScan, enhancedInstances.instances),
   );
 
+  const [basket, _setBasket] = useState(new Set<string>());
+
   const resetSelection = useReset(dispatchDataSelection);
   const structureClickHandler = useStructureClickHandler(dispatchDataSelection);
 
@@ -225,6 +227,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     dataSelection,
   );
 
+  console.log("SELECTION", dataSelection);   // TODO: remove
   // TODO: remove
   // console.log("INSTANCES", enhancedInstances.instances.slice(0, 5));
   // console.log(
@@ -381,7 +384,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       <Group>
         <Button
           onClick={resetSelection}
-          variant={"outline"}
+          variant={"default"}
           disabled={
             dataSelection.filteredInstances.length ===
             dataSelection.allInstances.length
@@ -389,6 +392,23 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
         >
           Reset filter
         </Button>
+        <Button.Group>
+          <Button
+            variant={"default"}
+            rightSection={<Badge>{basket.size}</Badge>}
+          >
+            Basket
+          </Button>
+          <Button
+            variant={"default"}
+            disabled={basket.size === enhancedInstances.instances.length}
+          >
+            Add
+          </Button>
+          <Button variant={"default"} disabled={basket.size === 0}>
+            Remove
+          </Button>
+        </Button.Group>
         <Button onClick={toggleDnaOpen}>Build DNA...</Button>
       </Group>
     </>

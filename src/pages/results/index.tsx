@@ -153,7 +153,7 @@ export const FinishedResultsPageWrapper = ({
   // don't render anything until we have a defined width
   if (viewportProps.screenSize.width === 0) return <></>;
 
-  if (isDesignJob && viewportProps.isDesktop && 1 + 1 === 3) {
+  if (isDesignJob && viewportProps.isDesktop) {
     return <AnalysisViewer id={id} results={results! as DesignJobApiResult} />;
   } else {
     return (
