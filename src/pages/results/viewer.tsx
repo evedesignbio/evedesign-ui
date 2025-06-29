@@ -218,13 +218,13 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   const resetSelection = useReset(dispatchDataSelection);
   const structureClickHandler = useStructureClickHandler(dispatchDataSelection);
 
-  // compute positional symbol counts/frequencies for heatmaps from instances
+  // compute positional symbol counts/frequencies for heatmaps from instances;
+  // if mutation scan, always use full data matrix
   const matrix = useMatrix(
-    dataSelection.filteredInstances,
+    dataSelection,
     enhancedInstances.designedPositions,
     isMutationScan,
     spec,
-    dataSelection,
   );
 
   console.log("SELECTION", dataSelection); // TODO: remove

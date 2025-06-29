@@ -326,18 +326,24 @@ export const instancesToCountMatrix = (
 };
 
 export const useMatrix = (
-  instances: SystemInstanceSpecEnhanced[],
+  dataSelection: DataInteractionReducerState,
   designedPositions: Position[],
   isMutationScan: boolean,
   spec: PipelineSpec | SingleMutationScanSpec,
-  dataSelection: DataInteractionReducerState,
-) =>
-  useMemo(() => {
-    if (!isMutationScan && dataSelection.instances.size > 1) {
-      instances = filterByInstanceSelection(instances, dataSelection.instances);
-    }
+) => {
+  let instances = isMutationScan
+    ? dataSelection.allInstances
+    : dataSelection.filteredInstances;
 
-    if (spec.key === "pipeline") {
+  const instanceSelection = isMutationScan ? null : dataSelection.instances;
+
+  return useMemo(() => {
+    // check if design pipeline or mutation scan
+    if (!isMutationScan) {
+      if (instanceSelection !== null && instanceSelection.size > 1) {
+        instances = filterByInstanceSelection(instances, instanceSelection!);
+      }
+
       return instancesToCountMatrix(
         instances,
         designedPositions,
@@ -356,4 +362,5 @@ export const useMatrix = (
         true,
       );
     }
-  }, [instances, designedPositions, spec, dataSelection.instances]);
+  }, [instances, designedPositions, spec, instanceSelection]);
+};
