@@ -27,6 +27,7 @@ import "./viewer.css";
 import {
   decodeMutation,
   decodePosition,
+  encodeMutation,
   encodePosition,
   useInstances,
   useMatrix,
@@ -247,24 +248,55 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   const heatmapClickHandler = useMemo(
     () =>
       ({ locationType, payload, modifiers }: ClickEvent) => {
-        if (locationType !== "data") return;
-        const posMapped = matrix.indexToPositions.get(payload.column)!;
-        const symbolMapped = matrix.indexToSubstitutions.get(payload.row)!;
-        const ref = matrix.ref.get(posMapped)!;
-        dispatchDataSelection({
-          type: "SELECT_MUTATIONS",
-          source: "MATRIX",
-          modifiers: modifiers,
-          payload: [
-            { ...decodePosition(posMapped), ref: ref, to: symbolMapped },
-          ],
-        });
+        if (locationType === "data") {
+          const posMapped = matrix.indexToPositions.get(payload.column)!;
+          const symbolMapped = matrix.indexToSubstitutions.get(payload.row)!;
+          const ref = matrix.ref.get(posMapped)!;
+
+          const mutation = {
+            ...decodePosition(posMapped),
+            ref: ref,
+            to: symbolMapped,
+          };
+
+          // for mutation scans, each cell corresponds to a single instance which we can directly select;
+          // for regular design runs, we select a mutation filter on the active instance set since
+          // we don't have a 1:1 correspondence between mutation and instance
+          if (isMutationScan) {
+            // curInstance.id = `${row.entity}:${row.ref}${row.pos}${mut.to}`;
+            dispatchDataSelection({
+              type: "SELECT_INSTANCES",
+              source: "MATRIX",
+              modifiers: modifiers,
+              payload: [encodeMutation(mutation)],
+            });
+          } else {
+            dispatchDataSelection({
+              type: "SELECT_MUTATIONS",
+              source: "MATRIX",
+              modifiers: modifiers,
+              payload: [mutation],
+            });
+          }
+        } else if (locationType === "annotation") {
+          const posMapped = matrix.indexToPositions.get(payload.column)!;
+          dispatchDataSelection({
+            type: "SELECT_POSITIONS",
+            source: "MATRIX",
+            modifiers: modifiers,
+            payload: [decodePosition(posMapped)],
+          });
+        }
       },
-    [matrix, dispatchDataSelection],
+    [matrix, dispatchDataSelection, isMutationScan],
   );
 
   const heatmapCellSelections = useMemo(() => {
-    return [...dataSelection.mutations].map((mutStr) => {
+    const sourceSelection = isMutationScan
+      ? dataSelection.instances
+      : dataSelection.mutations;
+
+    return [...sourceSelection].map((mutStr) => {
       const mutDecoded = decodeMutation(mutStr);
       return {
         column: matrix.positions.get(
@@ -273,7 +305,13 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
         row: matrix.substitutions.get(mutDecoded.to)!,
       } as CellCoords;
     });
-  }, [matrix, dataSelection.mutations]);
+  }, [matrix, dataSelection.mutations, dataSelection.instances]);
+
+  const heatmapColumnSelections = useMemo(() => {
+    return [...dataSelection.positions].map(
+      (posEnc) => matrix.positions.get(posEnc)!,
+    );
+  }, [matrix, dataSelection.positions]);
 
   const dnaModal = (
     <Modal
@@ -325,30 +363,9 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
 
   const heatmapPanel = (
     <AutowrapHeatmap
-      data={
-        matrix !== null
-          ? matrix.data[isMutationScan ? 0 : 1]
-          : [
-              [1, 1, 1, 1, 1],
-              [2, 2, 2, 2, 2],
-              [1, 1, 1, 1, 1],
-              [2, 2, 2, 2, 2],
-              [1, 1, 1, 1, 1],
-              [2, 2, 2, 2, 2],
-              [1, 1, 1, 1, 1],
-              [2, 2, 2, 2, 2],
-              [1, 1, 1, 1, 1],
-              [2, 2, 2, 2, 2],
-              [1, 1, 1, 1, 1],
-              [2, 2, 2, 2, 2],
-            ]
-      }
+      data={matrix.data[isMutationScan ? 0 : 1]}
       colorMap={heatmapColorMap}
-      yLabels={
-        matrix != null
-          ? [...matrix.substitutions.keys()]
-          : ["a", "b", "c", "d", "e"]
-      }
+      yLabels={[...matrix.substitutions.keys()]}
       cellWidth="7pt"
       cellHeight="7pt"
       yLabelSpacing="5pt"
@@ -360,9 +377,8 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
         color: computedColorScheme === "dark" ? "#000" : "#fff",
         zIndex: 9999,
       }}
-      // TODO: selection styling (label backgrounds dynamic on light/dark theme)
       selectedCells={heatmapCellSelections}
-      // selectedColumns={transformedSelections.heatmapPos}
+      selectedColumns={heatmapColumnSelections}
       // selectedRows={transformedSelections.heatmapSubs}
       // scrollToElement={transformedSelections.heatmapJump}
     />

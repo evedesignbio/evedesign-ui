@@ -9,8 +9,11 @@ import { extractModifiers, Modifiers } from "../../utils/events.tsx";
 import {
   DataInteractionReducerDispatchFunc,
   DataInteractionReducerState,
+  filterByInstanceSelection,
   filterByMutationSelection,
+  filterByPositionSelection,
 } from "./reducers.ts";
+import { decodeMutation } from "./data.ts";
 
 export type InstanceTableEventHandler = (
   instance: SystemInstanceSpec,
@@ -48,8 +51,7 @@ export const InstanceTable = ({
   const instancesDisplay = useMemo(() => {
     if (
       !dataSelection.lastEventSource ||
-      dataSelection.lastEventSource === "TABLE" ||
-      isMutationScan
+      dataSelection.lastEventSource === "TABLE"
     ) {
       // if selection happens from inside table panel, show all instances
       return instances;
@@ -57,17 +59,22 @@ export const InstanceTable = ({
       // if selection happens from outside table panel, filter down what will be displayed;
       // for now, only one of these filters will be active by convention
       // TODO: revisit this for sequence space plot - will need to filter by instance too unless single instance?
-      // TODO: also revisit this for selection from basket
-      return filterByMutationSelection(instances, dataSelection.mutations);
+      // TODO: scroll if single instance selected
+      if (dataSelection.mutations.size > 0) {
+        return filterByMutationSelection(instances, dataSelection.mutations);
+      } else if (dataSelection.positions.size > 0) {
+        return filterByPositionSelection(instances, dataSelection.positions);
+      } else if (dataSelection.instances.size > 1) {
+        return filterByInstanceSelection(instances, dataSelection.instances);
+      } else {
+        return instances;
+      }
     }
   }, [instances, dataSelection]);
 
+  // TODO: revisit this for sequence space plot - will need to filter by instance too unless single instance?
   const selectedIds =
     dataSelection.lastEventSource === "TABLE" ? dataSelection.instances : null;
-
-  // console.log("DATA SELECTION", dataSelection); // TODO: remove
-  // console.log("INSTANCES", instances); // TODO: remove
-  // console.log("INSTANCES FILT", instancesFilt); // TODO: remove
 
   // sort instances
   // TODO implement
@@ -150,14 +157,18 @@ export const InstanceTable = ({
           instRep = <Table.Td bg={bg}>{instVisual}</Table.Td>;
         }
 
+        let idStr;
+        if (isMutationScan) {
+          const mutDec = decodeMutation(instance.id);
+          idStr = `${mutDec.ref}${mutDec.pos}${mutDec.to}`;
+        } else {
+          idStr = instance.id;
+        }
+
         return (
           <>
             <Table.Td bg={bg}>
-              {
-                //@ts-ignore  // TODO improve types
-                instance.id.replace("0:", "") +
-                  (basket.has(instance.id) ? " X" : "")
-              }
+              {idStr + (basket.has(instance.id) ? " X" : "")}
             </Table.Td>
             <Table.Td bg={bg}>{instance.mutant.length}</Table.Td>
             <Table.Td bg={bg}>{instance.score?.toFixed(2)}</Table.Td>

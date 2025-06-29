@@ -98,7 +98,12 @@ export const singleMutationScanToInstances = (
         rep.substring(0, mutIndex) + mut.to + rep.substring(mutIndex + 1);
 
       curInstance.score = mut.score;
-      curInstance.id = `${row.entity}:${row.ref}${row.pos}${mut.to}`;
+      curInstance.id = encodeMutation({
+        entity: row.entity,
+        pos: row.pos,
+        ref: row.ref,
+        to: mut.to,
+      });
       curInstance.mutant =
         row.ref != mut.to
           ? [{ entity: row.entity, pos: row.pos, ref: row.ref, to: mut.to }]

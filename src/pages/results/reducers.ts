@@ -99,27 +99,27 @@ export const dataInteractionReducer = (
         ...(action.payload as DataInteractionReducerState),
       };
     case "SELECT_POSITIONS":
-      // for now, do not filter designs by position anymore, as it has no real meaning without a substitution
-      //
-      // let newPositions: Set<string>;
-      // const payloadPositionSet = new Set(
-      //   (payload as Position[]).map(encodePosition),
-      // );
-      // if (multiSelect) {
-      //   newPositions = symmetricDifference(state.positions, payloadPositionSet);
-      // } else {
-      //   newPositions = payloadPositionSet;
-      // }
-      // return {
-      //   instances: new Set<string>(),
-      //   positions: newPositions,
-      //   mutations: new Set<string>(),
-      //   lastEventSource: source,
-      //   isMutationScan: state.isMutationScan,
-      //   allInstances: state.allInstances,
-      //   filteredInstances: state.allInstances,
-      // };
-      return state;
+      // TODO: apply previous filters if switching type
+      let newPositions: Set<string>;
+      const payloadPositionSet = new Set(
+        (payload as Position[]).map(encodePosition),
+      );
+      if (multiSelect) {
+        newPositions = symmetricDifference(state.positions, payloadPositionSet);
+      } else {
+        newPositions = payloadPositionSet;
+      }
+
+      return {
+        ...state,
+        instances: new Set<string>(),
+        positions: newPositions,
+        mutations: new Set<string>(),
+        lastEventSource: source,
+        // isMutationScan: state.isMutationScan,
+        // allInstances: state.allInstances,
+        // filteredInstances: state.allInstances,
+      };
     case "SELECT_MUTATIONS":
       // apply selection from other panel
       // TODO: do not apply for mutation scans
@@ -148,7 +148,8 @@ export const dataInteractionReducer = (
       };
     case "SELECT_INSTANCES":
       // apply selection from other panel
-      // TODO: do not apply for mutation scans
+      // TODO: also apply for multiple selection from mutation scan
+      // TODO: also apply for position selection from mutation scan
       const filteredInstancesI =
         !state.isMutationScan && state.mutations.size > 0
           ? filterByMutationSelection(state.filteredInstances, state.mutations)
@@ -226,6 +227,22 @@ export const useReset = (
 //     return overlap.length === encodedPositions.size;
 //   });
 // };
+
+export const filterByPositionSelection = (
+  instances: SystemInstanceSpecEnhanced[],
+  positions: Set<string>,
+) => {
+  return instances.filter((inst) => {
+    // encode all mutant positions for current instance
+    const posEncoded = new Set(
+      inst.mutant.map((mut) =>
+        encodePosition({ entity: mut.entity, pos: mut.pos }),
+      ),
+    );
+
+    return [...positions].some((pos) => posEncoded.has(pos));
+  });
+};
 
 export const filterByInstanceSelection = (
   instances: SystemInstanceSpecEnhanced[],
