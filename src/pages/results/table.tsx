@@ -24,12 +24,14 @@ export interface InstanceTableProps {
   instanceRenderType: "sequence" | "mutant" | "hide";
   dispatchDataSelection?: DataInteractionReducerDispatchFunc;
   isMutationScan: boolean;
+  basket: Set<string>;
 }
 
 export const InstanceTable = ({
   instances,
   dataSelection,
   isMutationScan,
+  basket,
   instanceRenderType = "hide",
   dispatchDataSelection = undefined,
 }: InstanceTableProps) => {
@@ -55,6 +57,7 @@ export const InstanceTable = ({
       // if selection happens from outside table panel, filter down what will be displayed;
       // for now, only one of these filters will be active by convention
       // TODO: revisit this for sequence space plot - will need to filter by instance too unless single instance?
+      // TODO: also revisit this for selection from basket
       return filterByMutationSelection(instances, dataSelection.mutations);
     }
   }, [instances, dataSelection]);
@@ -149,10 +152,11 @@ export const InstanceTable = ({
 
         return (
           <>
-            <Table.Td bg={bg} style={{ position: "sticky", left: 0 }}>
+            <Table.Td bg={bg}>
               {
                 //@ts-ignore  // TODO improve types
-                instance.id.replace("0:", "")
+                instance.id.replace("0:", "") +
+                  (basket.has(instance.id) ? " X" : "")
               }
             </Table.Td>
             <Table.Td bg={bg}>{instance.mutant.length}</Table.Td>

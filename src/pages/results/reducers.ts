@@ -15,6 +15,7 @@ export type EventSource =
   | "MATRIX"
   | "TABLE"
   | "SEQSPACE"
+  | "BASKET"
   | "OTHER";
 
 export interface DataInteractionReducerAction {
@@ -22,6 +23,7 @@ export interface DataInteractionReducerAction {
     | "SELECT_INSTANCES"
     | "SELECT_POSITIONS"
     | "SELECT_MUTATIONS"
+    | "SELECT_BASKET"
     | "SET"
     | "RESET";
   source: EventSource;
@@ -171,6 +173,19 @@ export const dataInteractionReducer = (
         isMutationScan: state.isMutationScan,
         allInstances: state.allInstances,
         filteredInstances: filteredInstancesI,
+      };
+    case "SELECT_BASKET":
+      return {
+        instances: new Set<string>(),
+        positions: new Set<string>(),
+        mutations: new Set<string>(),
+        lastEventSource: source,
+        isMutationScan: state.isMutationScan,
+        allInstances: state.allInstances,
+        filteredInstances: filterByInstanceSelection(
+          state.filteredInstances,
+          new Set([...(action.payload as string[])]),
+        ),
       };
     default:
       throw new Error(

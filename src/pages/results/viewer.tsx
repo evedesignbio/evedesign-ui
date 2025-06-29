@@ -213,7 +213,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     emptyDataInteractionState(isMutationScan, enhancedInstances.instances),
   );
 
-  const [basket, _setBasket] = useState(new Set<string>());
+  const [basket, setBasket] = useState(new Set<string>());
 
   const resetSelection = useReset(dispatchDataSelection);
   const structureClickHandler = useStructureClickHandler(dispatchDataSelection);
@@ -227,16 +227,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     dataSelection,
   );
 
-  console.log("SELECTION", dataSelection);   // TODO: remove
-  // TODO: remove
-  // console.log("INSTANCES", enhancedInstances.instances.slice(0, 5));
-  // console.log(
-  //   "INSTANCES APPLIED",
-  //   filterByMutationSelection(
-  //     enhancedInstances.instances.slice(0, 5),
-  //     new Set(["0_24_H_E"]),
-  //   ),
-  // );
+  console.log("SELECTION", dataSelection); // TODO: remove
 
   // TODO: clean this up and derive heatmap properly
   const heatmapColorMap = useMemo(() => {
@@ -307,6 +298,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     <InstanceTable
       instances={dataSelection.filteredInstances}
       dataSelection={dataSelection}
+      basket={basket}
       isMutationScan={isMutationScan}
       instanceRenderType={"sequence"}
       dispatchDataSelection={dispatchDataSelection}
@@ -396,16 +388,41 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
           <Button
             variant={"default"}
             rightSection={<Badge>{basket.size}</Badge>}
+            disabled={basket.size === 0}
+            onClick={() => {
+              dispatchDataSelection({
+                type: "SELECT_BASKET",
+                source: "BASKET",
+                modifiers: null,
+                payload: [...basket],
+              });
+            }}
           >
             Basket
           </Button>
           <Button
             variant={"default"}
-            disabled={basket.size === enhancedInstances.instances.length}
+            disabled={
+              dataSelection.instances.size === 0 ||
+              basket.size === enhancedInstances.instances.length
+            }
+            onClick={() => {
+              setBasket(new Set([...basket, ...dataSelection.instances]));
+            }}
           >
             Add
           </Button>
-          <Button variant={"default"} disabled={basket.size === 0}>
+          <Button
+            variant={"default"}
+            disabled={basket.size === 0}
+            onClick={() => {
+              setBasket(
+                new Set(
+                  [...basket].filter((id) => !dataSelection.instances.has(id)),
+                ),
+              );
+            }}
+          >
             Remove
           </Button>
         </Button.Group>
