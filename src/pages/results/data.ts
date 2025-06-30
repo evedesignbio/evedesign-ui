@@ -15,10 +15,7 @@ import {
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
 import { range } from "../../utils/helpers.ts";
-import {
-  DataInteractionReducerState,
-  filterByInstanceSelection,
-} from "./reducers.ts";
+import { DataInteractionReducerState } from "./reducers.ts";
 
 export const encodePosition = (pos: Position) => {
   return `${pos.entity}_${pos.pos}`;
@@ -221,6 +218,7 @@ export const useInstances = (
 
 export const instancesToCountMatrix = (
   instances: SystemInstanceSpecEnhanced[],
+  altInstances: Map<string, SystemInstanceSpecEnhanced[]> | null, // alternative instance set for fixed positions
   designedPositions: Position[],
   entityIndex: number,
   systemRep: string,
@@ -229,6 +227,8 @@ export const instancesToCountMatrix = (
   alphabet = "KRHEDNQTSCGAVLIMPYFW",
   // missingValue: number | null = null,
 ): MutationMatrix => {
+  console.log("#### matrix compute"); // TODO: remove
+
   // map from substitution to index ("column index" of pivot table)
   const subsToIdx = new Map([...alphabet].map((subs, i) => [subs, i]));
 
@@ -261,12 +261,19 @@ export const instancesToCountMatrix = (
       Array(subsToIdx.size).fill(0),
     );
 
-    // iterate system instance reps and count symbol occurrences
-    instances.forEach((instance) => {
-      const rep = instance.entity_instances[entityIndex].rep;
+    // only count designed positions; positions on outer loop rather than instances to allow
+    // varying the instances on inside of loop
+    posToIdx.forEach((posIdx, pos) => {
+      // use alternative instance set if position is contained in map of such positions to instance list
+      const curInstances =
+        altInstances !== null && altInstances.has(pos)
+          ? altInstances.get(pos)!
+          : instances;
 
-      // only count designed positions
-      posToIdx.forEach((posIdx, pos) => {
+      // iterate system instance reps and count symbol occurrences
+      curInstances.forEach((instance) => {
+        const rep = instance.entity_instances[entityIndex].rep;
+
         const symbol = rep.charAt(decodePosition(pos).pos - firstIndex);
         const symbolIdx = subsToIdx.get(symbol)!;
         counts[posIdx][symbolIdx]++;
@@ -274,11 +281,11 @@ export const instancesToCountMatrix = (
       });
     });
 
-    // compute relative frequencies
-    const instanceCount = instances.length;
-    const freqs = counts.map((posCounts) =>
-      posCounts.map((symbolCount) => symbolCount / instanceCount),
-    );
+    // compute relative frequencies (total number of instances can depend on position so need to sum
+    const freqs = counts.map((posCounts) => {
+      const posSum = posCounts.reduce((a, b) => a + b, 0);
+      return posCounts.map((symbolCount) => symbolCount / posSum);
+    });
 
     // normalize scores by number of designs for each symbol occurrence
     const scoresNorm = scores.map((posCounts, posIdx) =>
@@ -332,6 +339,7 @@ export const instancesToCountMatrix = (
 
 export const useMatrix = (
   dataSelection: DataInteractionReducerState,
+  activeInstances: SystemInstanceSpecEnhanced[],
   designedPositions: Position[],
   isMutationScan: boolean,
   spec: PipelineSpec | SingleMutationScanSpec,
@@ -340,18 +348,28 @@ export const useMatrix = (
     ? dataSelection.allInstances
     : dataSelection.filteredInstances;
 
-  const instanceSelection = isMutationScan ? null : dataSelection.instances;
+  const activeInstancesCond = isMutationScan ? null : activeInstances;
 
   return useMemo(() => {
     // check if design pipeline or mutation scan
     if (!isMutationScan) {
-      // TODO: rework this criterion to allow more flexible outside selections
-      if (instanceSelection !== null && instanceSelection.size > 1) {
-        instances = filterByInstanceSelection(instances, instanceSelection!);
+      let altInstances: Map<string, SystemInstanceSpecEnhanced[]> | null = null;
+      if (dataSelection.mutations.size > 0) {
+        // TODO: move into separate function
+        altInstances = new Map<string, SystemInstanceSpecEnhanced[]>();
+        dataSelection.mutations.forEach((mut) => {
+          const mutDecod = decodeMutation(mut);
+          const posEnc = encodePosition({
+            entity: mutDecod.entity,
+            pos: mutDecod.pos,
+          });
+          altInstances!.set(posEnc, instances);
+        });
       }
 
       return instancesToCountMatrix(
-        instances,
+        activeInstancesCond!.length > 1 ? activeInstancesCond! : instances, // TODO: only use active instances if > 1 selected
+        altInstances,
         designedPositions,
         0,
         spec.system[0].rep,
@@ -361,6 +379,7 @@ export const useMatrix = (
     } else {
       return instancesToCountMatrix(
         instances,
+        null,
         designedPositions,
         0,
         spec.system[0].rep,
@@ -368,5 +387,5 @@ export const useMatrix = (
         true,
       );
     }
-  }, [instances, designedPositions, spec, instanceSelection]);
+  }, [instances, designedPositions, spec, activeInstancesCond]);
 };

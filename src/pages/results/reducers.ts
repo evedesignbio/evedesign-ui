@@ -107,6 +107,7 @@ export const dataInteractionReducer = (
         // TODO: alt modifier not meaningful here, no self mutants in table
         return state; // TODO: update
       } else {
+        // TODO: only select mutations with non-zero counts
         // TODO: turn into mutation selection, use alt modifier to select WT/non-WT
         return state; // TODO: update
       }

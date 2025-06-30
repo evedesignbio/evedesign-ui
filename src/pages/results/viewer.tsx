@@ -234,6 +234,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   // if mutation scan, always use full data matrix
   const matrix = useMatrix(
     dataSelection,
+    activeInstances, // supply as argument to avoid recomputation (could be derived again from dataSelection)
     enhancedInstances.designedPositions,
     isMutationScan,
     spec,
