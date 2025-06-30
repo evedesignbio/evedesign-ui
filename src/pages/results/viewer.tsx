@@ -46,6 +46,9 @@ import {
   useStructureClickHandler,
 } from "./reducers.ts";
 import { useMemo, useReducer, useState } from "react";
+import { Color } from "molstar/lib/mol-util/color";
+import toRgb = Color.toRgb;
+import fromRgb = Color.fromRgb;
 
 export interface AnalysisViewerProps {
   id: string;
@@ -249,8 +252,10 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       ? colorMapFromNameOrList("viridis", -10, 0, false)
       : colorMapFromNameOrList("blues", 0, 1, true);
 
-    const cmapSel = colorMapFromNameOrList("greys", 0, 1, true);
-    const mutPos = mutationsToMutatedPositions(dataSelection.mutations);
+    // only use last selected mutation position for now
+    const mutPos = new Set(
+      mutationsToMutatedPositions(dataSelection.mutations).slice(-1),
+    );
 
     return (value: number | null, i?: number, _j?: number) => {
       if (value === null) {
@@ -258,7 +263,10 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       } else {
         const pos = matrix.indexToPositions.get(i!)!;
         if (!isMutationScan && mutPos.has(pos)) {
-          return toHexString(cmapSel(value!));
+          // TODO: move to own function
+          const [r, g, b] = toRgb(cmap(value!));
+          const grey = 0.299 * r + 0.587 * g + 0.114 * b;
+          return toHexString(fromRgb(grey, grey, grey));
         } else {
           return toHexString(cmap(value!));
         }

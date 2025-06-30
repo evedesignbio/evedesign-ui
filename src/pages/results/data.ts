@@ -359,9 +359,9 @@ export const useMatrix = (
       let altInstances: Map<string, SystemInstanceSpecEnhanced[]> | null = null;
       if (dataSelection.mutations.size > 0) {
         altInstances = new Map<string, SystemInstanceSpecEnhanced[]>();
-        mutationsToMutatedPositions(dataSelection.mutations).forEach((posEnc) =>
-          altInstances!.set(posEnc, instances),
-        );
+        mutationsToMutatedPositions(dataSelection.mutations)
+          .slice(-1) // only use last selected position for now for source distribution
+          .forEach((posEnc) => altInstances!.set(posEnc, instances));
       }
 
       return instancesToCountMatrix(
