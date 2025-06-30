@@ -49,6 +49,7 @@ import { useMemo, useReducer, useState } from "react";
 import { Color } from "molstar/lib/mol-util/color";
 import toRgb = Color.toRgb;
 import fromRgb = Color.fromRgb;
+import { useAnnotationTracks } from "./elements.tsx";
 
 export interface AnalysisViewerProps {
   id: string;
@@ -99,21 +100,6 @@ const exampleSiteHighlights: SiteHighlightTargetPos[] = [
 //   return color;
 // }
 
-// // @ts-ignore
-// const heatmapColorMap = (value: number | null, i?: number, j?: number) => {
-//   return getRandomColor();
-//   // const cmap = colorMapFromNameOrList("blues", 0, 1, true);
-//   // return toHexString(cmap(value!));
-// };
-
-// const heatmapClickHandler = ({
-//   locationType,
-//   payload,
-//   modifiers,
-// }: ClickEvent) => {
-//   console.log("heatmap click", locationType, payload, modifiers);
-// };
-
 // const labelRenderer = (labelData: LabelData) => {
 //   if (labelData.type === "data") {
 //     if (!mutations.data) return null;
@@ -144,63 +130,6 @@ const exampleSiteHighlights: SiteHighlightTargetPos[] = [
 //     return null;
 //   }
 // };
-
-const annotationTracks = [
-  // {
-  //   id: "secstruct",
-  //   above: true,
-  //   height: "45pt",
-  //   yLabel: "SS",
-  //   render: () => <span>x</span>,
-  // },
-  {
-    id: "spacer_above",
-    above: true,
-    height: "10pt",
-  },
-  {
-    id: "spacer_below",
-    above: false,
-    height: "5pt",
-  },
-  {
-    id: "xlabel",
-    above: false,
-    height: "30pt",
-    yLabel: "",
-    render: (i: number, selected: boolean) => {
-      // if (!mutations.data) return null;
-
-      // note background color is set on complete flexbox column div
-      return (
-        <div
-          style={{
-            width: "100%",
-            height: "100%",
-            // color: "white",
-            display: "flex",
-            alignItems: "center", // keep
-            justifyContent: "flex-end",
-            // alignItems: "flex-top",
-            fontSize: "7pt",
-            fontWeight: selected ? "bold" : "normal",
-            // color: selected ? "white" : "black",  // TODO: dynamic based on color theme
-            writingMode: "vertical-lr",
-            // verticalAlign: "top",
-            transform: "rotate(180deg)",
-            cursor: "default",
-            // backgroundColor: "yellow",
-          }}
-        >
-          {/*<span>{`${wt[i]} ${*/}
-          {/*    positionAlias ? positionAlias(pos[i]) : pos[i]*/}
-          {/*}`}</span>*/}
-          <span>{i}</span>
-        </div>
-      );
-    },
-  },
-];
 
 export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   const [dnaOpen, { toggle: toggleDnaOpen }] = useDisclosure(false);
@@ -244,13 +173,19 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     spec,
   );
 
-  console.log("SELECTION", dataSelection); // TODO: remove
+  const heatmapAnnotationTracks = useAnnotationTracks(matrix);
 
   // TODO: clean this up and derive heatmap properly
   const heatmapColorMap = useMemo(() => {
     const cmap = isMutationScan
       ? colorMapFromNameOrList("viridis", -10, 0, false)
-      : colorMapFromNameOrList("blues", 0, 1, true);
+      : colorMapFromNameOrList(
+          // [0x000000, 0x701069, 0x207fdf, 0x20c9df, 0xffd080,] as ColorListEntry[],
+          "blues",
+          0,
+          1,
+          true,
+        );
 
     // only use last selected mutation position for now
     const mutPos = new Set(
@@ -425,7 +360,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       cellWidth="7pt"
       cellHeight="7pt"
       yLabelSpacing="5pt"
-      annotationTracks={annotationTracks}
+      annotationTracks={heatmapAnnotationTracks}
       handleEvent={heatmapClickHandler}
       labelRenderer={(labelData) => <Text>{labelData.value}</Text>}
       tooltipStyle={{
