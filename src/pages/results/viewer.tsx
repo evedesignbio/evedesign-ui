@@ -216,8 +216,8 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     emptyDataInteractionState(isMutationScan, enhancedInstances.instances),
   );
 
-  // current set of active instances: dataSelection.filteredInstances with any potential active selections
-  // applied
+  // current set of active instances: dataSelection.filteredInstances with any
+  // potential selections applied
   const { activeInstances, activeIds } = useActiveInstances(dataSelection);
 
   const [basket, setBasket] = useState(new Set<string>());

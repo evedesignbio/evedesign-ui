@@ -99,29 +99,18 @@ export const dataInteractionReducer = (
         ...(action.payload as DataInteractionReducerState),
       };
     case "SELECT_POSITIONS":
-      // TODO: turn into mutation selection, use alt modifier to select WT/non-WT
-      return state;
-    // // TODO: apply previous filters if switching type
-    // let newPositions: Set<string>;
-    // const payloadPositionSet = new Set(
-    //   (payload as Position[]).map(encodePosition),
-    // );
-    // if (multiSelect) {
-    //   newPositions = symmetricDifference(state.positions, payloadPositionSet);
-    // } else {
-    //   newPositions = payloadPositionSet;
-    // }
-    //
-    // return {
-    //   ...state,
-    //   instances: new Set<string>(),
-    //   positions: newPositions,
-    //   mutations: new Set<string>(),
-    //   lastEventSource: source,
-    //   // isMutationScan: state.isMutationScan,
-    //   // allInstances: state.allInstances,
-    //   // filteredInstances: state.allInstances,
-    // };
+      // transform position selection into mutation selection which is more meaningful
+      // and easier to handle
+      // TODO: how do we know about WT symbol here?
+
+      if (state.isMutationScan) {
+        // TODO: alt modifier not meaningful here, no self mutants in table
+        return state; // TODO: update
+      } else {
+        // TODO: turn into mutation selection, use alt modifier to select WT/non-WT
+        return state; // TODO: update
+      }
+
     case "SELECT_MUTATIONS":
       // apply other selection modality as filter first
       const filteredInstancesM =
