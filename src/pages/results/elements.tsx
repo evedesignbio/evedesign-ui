@@ -79,7 +79,6 @@ export const useLabelRenderer = (
       const pos = matrix.indexToPositions.get(labelData.column!)!;
       const posDec = decodePosition(pos);
       const ref = matrix.ref.get(pos)!;
-      console.log(labelData, posDec, ref);
 
       if (labelData.type === "data") {
         const subs = matrix.indexToSubstitutions.get(labelData.row!);
@@ -95,16 +94,16 @@ export const useLabelRenderer = (
 
         return (
           <Stack gap={0}>
-            <Text size="small">
+            <Text size="sm">
               Pos: <b>{posDec.pos}</b>
             </Text>
-            <Text size="small">
+            <Text size="sm">
               Ref: <b>{ref}</b>
             </Text>
-            <Text size="small">
+            <Text size="sm">
               Subs: <b>{subs}</b>
             </Text>
-            <Text size="small">
+            <Text size="sm">
               {isMutationScan ? "Score" : "% designs"}: <b>{value}</b>
             </Text>
           </Stack>
@@ -112,10 +111,10 @@ export const useLabelRenderer = (
       } else if (labelData.type === "annotation") {
         return (
           <Stack gap={0}>
-            <Text size="small">
+            <Text size="sm">
               Pos: <b>{posDec.pos}</b>
             </Text>
-            <Text size="small">
+            <Text size="sm">
               Ref: <b>{ref}</b>
             </Text>
           </Stack>

@@ -7,8 +7,15 @@ import {
 import { useCallback, useMemo } from "react";
 import { ModifiersKeys } from "molstar/lib/mol-util/input/input-observer";
 import { AtomInfo } from "../../components/structureviewer/molstar-utils.tsx";
-import { decodeMutation, encodeMutation, encodePosition } from "./data.ts";
+import {
+  decodeMutation,
+  decodePosition,
+  encodeMutation,
+  encodePosition,
+  MutationMatrix,
+} from "./data.ts";
 import { Modifiers } from "../../utils/events.tsx";
+import { ClickEvent } from "../../components/autowrapheatmap";
 
 export type EventSource =
   | "STRUCTURE"
@@ -342,6 +349,7 @@ export const useActiveInstances = (
   ]);
 
 export const useStructureClickHandler = (
+  matrix: MutationMatrix,
   dispatchDataSelection: DataInteractionReducerDispatchFunc,
 ) =>
   useCallback(
@@ -361,7 +369,79 @@ export const useStructureClickHandler = (
         });
       }
     },
-    [dispatchDataSelection],
+    [dispatchDataSelection, matrix],
+  );
+
+export const useHeatmapClickHandler = (
+  matrix: MutationMatrix,
+  dispatchDataSelection: DataInteractionReducerDispatchFunc,
+  isMutationScan: boolean,
+) =>
+  useMemo(
+    () =>
+      ({ locationType, payload, modifiers }: ClickEvent) => {
+        if (locationType === "data") {
+          const posMapped = matrix.indexToPositions.get(payload.column)!;
+          const symbolMapped = matrix.indexToSubstitutions.get(payload.row)!;
+          const ref = matrix.ref.get(posMapped)!;
+
+          const mutation = {
+            ...decodePosition(posMapped),
+            ref: ref,
+            to: symbolMapped,
+          };
+
+          // for mutation scans, each cell corresponds to a single instance which we can directly select;
+          // for regular design runs, we select a mutation filter on the active instance set since
+          // we don't have a 1:1 correspondence between mutation and instance
+          if (isMutationScan) {
+            // curInstance.id = `${row.entity}:${row.ref}${row.pos}${mut.to}`;
+            dispatchDataSelection({
+              type: "SELECT_INSTANCES",
+              source: "MATRIX",
+              modifiers: modifiers,
+              payload: [encodeMutation(mutation)],
+            });
+          } else {
+            // do not allow to click empty cells
+            if (payload.value <= 0) return;
+
+            dispatchDataSelection({
+              type: "SELECT_MUTATIONS",
+              source: "MATRIX",
+              modifiers: modifiers,
+              payload: [mutation],
+            });
+          }
+        } else if (locationType === "annotation") {
+          // TODO: refactor so we can also reuse for structure click handling
+          const posMapped = matrix.indexToPositions.get(payload.column)!;
+          const ref = matrix.ref.get(posMapped)!;
+          const availableSubs = isMutationScan
+            ? [...matrix.substitutions.keys()]
+            : [...matrix.substitutions.keys()].filter((subs) => {
+                const count =
+                  matrix.data[matrix.names.get("counts")!][
+                    matrix.positions.get(posMapped)!
+                  ][matrix.substitutions.get(subs)!];
+                return count !== null && count > 0;
+              });
+
+          dispatchDataSelection({
+            type: "SELECT_POSITIONS",
+            source: "MATRIX",
+            modifiers: modifiers,
+            payload: [
+              {
+                ...decodePosition(posMapped),
+                ref: ref,
+                availableSubs: availableSubs,
+              },
+            ],
+          });
+        }
+      },
+    [matrix, dispatchDataSelection, isMutationScan],
   );
 
 export const useBasketInstances = (

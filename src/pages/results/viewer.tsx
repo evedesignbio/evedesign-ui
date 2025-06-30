@@ -17,16 +17,10 @@ import {
   toHexString,
 } from "../../utils/colormap.ts";
 import { SiteHighlightTargetPos } from "../../features/structurepanel/data.ts";
-import {
-  AutowrapHeatmap,
-  CellCoords,
-  ClickEvent,
-} from "../../components/autowrapheatmap";
+import { AutowrapHeatmap, CellCoords } from "../../components/autowrapheatmap";
 import "./viewer.css";
 import {
   decodeMutation,
-  decodePosition,
-  encodeMutation,
   encodePosition,
   useInstances,
   useMatrix,
@@ -41,6 +35,7 @@ import {
   mutationsToMutatedPositions,
   useActiveInstances,
   useBasketInstances,
+  useHeatmapClickHandler,
   useReset,
   useStructureClickHandler,
 } from "./reducers.ts";
@@ -122,7 +117,6 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   );
 
   const resetSelection = useReset(dispatchDataSelection);
-  const structureClickHandler = useStructureClickHandler(dispatchDataSelection);
 
   // compute positional symbol counts/frequencies for heatmaps from instances;
   // if mutation scan, always use full data matrix
@@ -134,9 +128,19 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     spec,
   );
 
+  const structureClickHandler = useStructureClickHandler(
+    matrix,
+    dispatchDataSelection,
+  );
+
   const heatmapAnnotationTracks = useAnnotationTracks(matrix);
   const heatmapTooltipStyle = useTooltipStyle(computedColorScheme);
   const heatmapLabelRenderer = useLabelRenderer(matrix, isMutationScan);
+  const heatmapClickHandler = useHeatmapClickHandler(
+    matrix,
+    dispatchDataSelection,
+    isMutationScan,
+  );
 
   // TODO: clean this up and derive heatmap properly
   const heatmapColorMap = useMemo(() => {
@@ -171,73 +175,6 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       }
     };
   }, [isMutationScan, dataSelection, matrix]);
-
-  const heatmapClickHandler = useMemo(
-    () =>
-      ({ locationType, payload, modifiers }: ClickEvent) => {
-        if (locationType === "data") {
-          const posMapped = matrix.indexToPositions.get(payload.column)!;
-          const symbolMapped = matrix.indexToSubstitutions.get(payload.row)!;
-          const ref = matrix.ref.get(posMapped)!;
-
-          const mutation = {
-            ...decodePosition(posMapped),
-            ref: ref,
-            to: symbolMapped,
-          };
-
-          // for mutation scans, each cell corresponds to a single instance which we can directly select;
-          // for regular design runs, we select a mutation filter on the active instance set since
-          // we don't have a 1:1 correspondence between mutation and instance
-          if (isMutationScan) {
-            // curInstance.id = `${row.entity}:${row.ref}${row.pos}${mut.to}`;
-            dispatchDataSelection({
-              type: "SELECT_INSTANCES",
-              source: "MATRIX",
-              modifiers: modifiers,
-              payload: [encodeMutation(mutation)],
-            });
-          } else {
-            // do not allow to click empty cells
-            if (payload.value <= 0) return;
-
-            dispatchDataSelection({
-              type: "SELECT_MUTATIONS",
-              source: "MATRIX",
-              modifiers: modifiers,
-              payload: [mutation],
-            });
-          }
-        } else if (locationType === "annotation") {
-          // TODO: refactor so we can also reuse for structure click handling
-          const posMapped = matrix.indexToPositions.get(payload.column)!;
-          const ref = matrix.ref.get(posMapped)!;
-          const availableSubs = isMutationScan
-            ? [...matrix.substitutions.keys()]
-            : [...matrix.substitutions.keys()].filter((subs) => {
-                const count =
-                  matrix.data[matrix.names.get("counts")!][
-                    matrix.positions.get(posMapped)!
-                  ][matrix.substitutions.get(subs)!];
-                return count !== null && count > 0;
-              });
-
-          dispatchDataSelection({
-            type: "SELECT_POSITIONS",
-            source: "MATRIX",
-            modifiers: modifiers,
-            payload: [
-              {
-                ...decodePosition(posMapped),
-                ref: ref,
-                availableSubs: availableSubs,
-              },
-            ],
-          });
-        }
-      },
-    [matrix, dispatchDataSelection, isMutationScan],
-  );
 
   const heatmapCellSelections = useMemo(() => {
     const sourceSelection = isMutationScan
@@ -319,7 +256,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     <AutowrapHeatmap
       data={matrix.data[isMutationScan ? 0 : 1]}
       colorMap={heatmapColorMap}
-      yLabels={[...matrix.substitutions.keys()]}
+      yLabels={[...matrix.substitutions.keys()]} // TODO: keep fixed
       cellWidth="7pt"
       cellHeight="7pt"
       yLabelSpacing="5pt"

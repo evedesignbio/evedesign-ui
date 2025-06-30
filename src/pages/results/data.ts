@@ -230,8 +230,6 @@ export const instancesToCountMatrix = (
   alphabet = "KRHEDNQTSCGAVLIMPYFW",
   // missingValue: number | null = null,
 ): MutationMatrix => {
-  console.log("#### matrix compute"); // TODO: remove
-
   // map from substitution to index ("column index" of pivot table)
   const subsToIdx = new Map([...alphabet].map((subs, i) => [subs, i]));
 
