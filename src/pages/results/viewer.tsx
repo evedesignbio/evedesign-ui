@@ -128,11 +128,6 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     spec,
   );
 
-  const structureClickHandler = useStructureClickHandler(
-    matrix,
-    dispatchDataSelection,
-  );
-
   const heatmapAnnotationTracks = useAnnotationTracks(matrix);
   const heatmapTooltipStyle = useTooltipStyle(computedColorScheme);
   const heatmapLabelRenderer = useLabelRenderer(matrix, isMutationScan);
@@ -140,6 +135,11 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     matrix,
     dispatchDataSelection,
     isMutationScan,
+  );
+  const structureClickHandler = useStructureClickHandler(
+      matrix,
+      isMutationScan,
+      dispatchDataSelection,
   );
 
   // TODO: clean this up and derive heatmap properly

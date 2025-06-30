@@ -98,8 +98,8 @@ export const dataInteractionReducer = (
   const { type, source, payload, modifiers } = action;
   const multiSelect = modifiers ? modifiers.shift || modifiers.meta : false;
 
-  // TODO: could implement returning input state if not changing but
-  //  probably not worth the overhead
+  // console.log("REDUCER", state, action);   // TODO: Remove
+
   switch (type) {
     case "RESET":
       return emptyDataInteractionState(
@@ -136,12 +136,14 @@ export const dataInteractionReducer = (
       // return state as is if no mutants available
       if (newMuts.length === 0) return state;
 
-      // submit to itself as mutation selection action
-      return dataInteractionReducer(state, {
+      const newAction = {
         ...action,
         type: state.isMutationScan ? "SELECT_INSTANCES" : "SELECT_MUTATIONS",
         payload: state.isMutationScan ? newMuts.map(encodeMutation) : newMuts,
-      });
+      } as DataInteractionReducerAction;
+
+      // submit to itself as mutation selection action
+      return dataInteractionReducer(state, newAction);
 
     case "SELECT_MUTATIONS":
       // apply other selection modality as filter first
@@ -348,28 +350,66 @@ export const useActiveInstances = (
     dataSelection.instances,
   ]);
 
+const positionSelectionPayload = (
+  matrix: MutationMatrix,
+  posMapped: string,
+  isMutationScan: boolean,
+  modifiers: Modifiers,
+  source: EventSource,
+): DataInteractionReducerAction => {
+  const ref = matrix.ref.get(posMapped)!;
+  const availableSubs = isMutationScan
+    ? [...matrix.substitutions.keys()]
+    : [...matrix.substitutions.keys()].filter((subs) => {
+        const count =
+          matrix.data[matrix.names.get("counts")!][
+            matrix.positions.get(posMapped)!
+          ][matrix.substitutions.get(subs)!];
+        return count !== null && count > 0;
+      });
+
+  return {
+    type: "SELECT_POSITIONS",
+    source: source,
+    modifiers: modifiers,
+    payload: [
+      {
+        ...decodePosition(posMapped),
+        ref: ref,
+        availableSubs: availableSubs,
+      },
+    ],
+  };
+};
+
 export const useStructureClickHandler = (
   matrix: MutationMatrix,
+  isMutationScan: boolean,
   dispatchDataSelection: DataInteractionReducerDispatchFunc,
 ) =>
-  useCallback(
-    (
-      pos: number | null,
-      modifiers: ModifiersKeys,
-      _button: number,
-      _buttons: number,
-      _ai: AtomInfo[],
-    ) => {
-      if (pos !== null) {
-        dispatchDataSelection({
-          type: "SELECT_POSITIONS",
-          source: "STRUCTURE",
-          modifiers: modifiers,
-          payload: [{ entity: 0, pos: pos, ref: "X", availableSubs: [] }], // TODO: use actual data
-        });
-      }
-    },
-    [dispatchDataSelection, matrix],
+  useMemo(
+    () =>
+      (
+        pos: number | null,
+        modifiers: ModifiersKeys,
+        _button: number,
+        _buttons: number,
+        _ai: AtomInfo[],
+      ) => {
+        if (pos !== null) {
+          const payload = positionSelectionPayload(
+            matrix,
+            encodePosition({ entity: 0, pos: pos }),
+            isMutationScan,
+            modifiers,
+            "STRUCTURE",
+          );
+          // console.log("CLICK STRUCTURE", pos, payload); // TODO: remove
+          dispatchDataSelection(payload);
+        }
+      },
+      // TODO: exclude matrix from dependencies here, for some reason it creates an infinite loop with reducer
+    [dispatchDataSelection, isMutationScan],
   );
 
 export const useHeatmapClickHandler = (
@@ -414,31 +454,16 @@ export const useHeatmapClickHandler = (
             });
           }
         } else if (locationType === "annotation") {
-          // TODO: refactor so we can also reuse for structure click handling
           const posMapped = matrix.indexToPositions.get(payload.column)!;
-          const ref = matrix.ref.get(posMapped)!;
-          const availableSubs = isMutationScan
-            ? [...matrix.substitutions.keys()]
-            : [...matrix.substitutions.keys()].filter((subs) => {
-                const count =
-                  matrix.data[matrix.names.get("counts")!][
-                    matrix.positions.get(posMapped)!
-                  ][matrix.substitutions.get(subs)!];
-                return count !== null && count > 0;
-              });
-
-          dispatchDataSelection({
-            type: "SELECT_POSITIONS",
-            source: "MATRIX",
-            modifiers: modifiers,
-            payload: [
-              {
-                ...decodePosition(posMapped),
-                ref: ref,
-                availableSubs: availableSubs,
-              },
-            ],
-          });
+          const posPayload = positionSelectionPayload(
+              matrix,
+              posMapped,
+              isMutationScan,
+              modifiers,
+              "MATRIX",
+          );
+          // console.log("CLICK HEATMAP", posPayload);  // TODO: remove
+          dispatchDataSelection(posPayload);
         }
       },
     [matrix, dispatchDataSelection, isMutationScan],
