@@ -39,6 +39,7 @@ import { BoxedLayout } from "./helpers.tsx";
 import {
   dataInteractionReducer,
   emptyDataInteractionState,
+  useActiveInstances,
   useReset,
   useStructureClickHandler,
 } from "./reducers.ts";
@@ -214,8 +215,11 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     emptyDataInteractionState(isMutationScan, enhancedInstances.instances),
   );
 
-  const [basket, setBasket] = useState(new Set<string>());
+  // current set of active instances: dataSelection.filteredInstances with any potential active selections
+  // applied
+  const { activeInstances, activeIds } = useActiveInstances(dataSelection);
 
+  const [basket, setBasket] = useState(new Set<string>());
   const resetSelection = useReset(dispatchDataSelection);
   const structureClickHandler = useStructureClickHandler(dispatchDataSelection);
 
@@ -332,9 +336,15 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     </Modal>
   );
 
+  // table only shows active instances if selecting from outside panel, otherwise full filteredSet
   const tablePanel = (
     <InstanceTable
-      instances={dataSelection.filteredInstances}
+      instances={
+        !dataSelection.lastEventSource ||
+        dataSelection.lastEventSource === "TABLE"
+          ? dataSelection.filteredInstances
+          : activeInstances
+      }
       dataSelection={dataSelection}
       basket={basket}
       isMutationScan={isMutationScan}
@@ -419,11 +429,11 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
           <Button
             variant={"default"}
             disabled={
-              dataSelection.instances.size === 0 ||
+              activeInstances.length === 0 ||
               basket.size === enhancedInstances.instances.length
             }
             onClick={() => {
-              setBasket(new Set([...basket, ...dataSelection.instances]));
+              setBasket(new Set([...basket, ...activeIds]));
             }}
           >
             Add
@@ -433,9 +443,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
             disabled={basket.size === 0}
             onClick={() => {
               setBasket(
-                new Set(
-                  [...basket].filter((id) => !dataSelection.instances.has(id)),
-                ),
+                new Set([...basket].filter((id) => !activeIds.has(id))),
               );
             }}
           >

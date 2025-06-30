@@ -345,6 +345,7 @@ export const useMatrix = (
   return useMemo(() => {
     // check if design pipeline or mutation scan
     if (!isMutationScan) {
+      // TODO: rework this criterion to allow more flexible outside selections
       if (instanceSelection !== null && instanceSelection.size > 1) {
         instances = filterByInstanceSelection(instances, instanceSelection!);
       }

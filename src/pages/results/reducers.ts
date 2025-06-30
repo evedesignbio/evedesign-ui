@@ -4,7 +4,7 @@ import {
   Position,
   SystemInstanceSpecEnhanced,
 } from "../../models/design.ts";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { ModifiersKeys } from "molstar/lib/mol-util/input/input-observer";
 import { AtomInfo } from "../../components/structureviewer/molstar-utils.tsx";
 import { decodeMutation, encodeMutation, encodePosition } from "./data.ts";
@@ -99,32 +99,33 @@ export const dataInteractionReducer = (
         ...(action.payload as DataInteractionReducerState),
       };
     case "SELECT_POSITIONS":
-      // TODO: apply previous filters if switching type
-      let newPositions: Set<string>;
-      const payloadPositionSet = new Set(
-        (payload as Position[]).map(encodePosition),
-      );
-      if (multiSelect) {
-        newPositions = symmetricDifference(state.positions, payloadPositionSet);
-      } else {
-        newPositions = payloadPositionSet;
-      }
-
-      return {
-        ...state,
-        instances: new Set<string>(),
-        positions: newPositions,
-        mutations: new Set<string>(),
-        lastEventSource: source,
-        // isMutationScan: state.isMutationScan,
-        // allInstances: state.allInstances,
-        // filteredInstances: state.allInstances,
-      };
+      // TODO: turn into mutation selection, use alt modifier to select WT/non-WT
+      return state;
+    // // TODO: apply previous filters if switching type
+    // let newPositions: Set<string>;
+    // const payloadPositionSet = new Set(
+    //   (payload as Position[]).map(encodePosition),
+    // );
+    // if (multiSelect) {
+    //   newPositions = symmetricDifference(state.positions, payloadPositionSet);
+    // } else {
+    //   newPositions = payloadPositionSet;
+    // }
+    //
+    // return {
+    //   ...state,
+    //   instances: new Set<string>(),
+    //   positions: newPositions,
+    //   mutations: new Set<string>(),
+    //   lastEventSource: source,
+    //   // isMutationScan: state.isMutationScan,
+    //   // allInstances: state.allInstances,
+    //   // filteredInstances: state.allInstances,
+    // };
     case "SELECT_MUTATIONS":
-      // apply selection from other panel
-      // TODO: do not apply for mutation scans
+      // apply other selection modality as filter first
       const filteredInstancesM =
-        !state.isMutationScan && state.instances.size > 1 // only filter multiple selection
+        state.instances.size > 1 // only filter multiple instance selection
           ? filterByInstanceSelection(state.filteredInstances, state.instances)
           : state.filteredInstances;
 
@@ -147,11 +148,9 @@ export const dataInteractionReducer = (
         filteredInstances: filteredInstancesM,
       };
     case "SELECT_INSTANCES":
-      // apply selection from other panel
-      // TODO: also apply for multiple selection from mutation scan
-      // TODO: also apply for position selection from mutation scan
+      // apply other selection modality as filter first
       const filteredInstancesI =
-        !state.isMutationScan && state.mutations.size > 0
+        state.mutations.size > 0
           ? filterByMutationSelection(state.filteredInstances, state.mutations)
           : state.filteredInstances;
 
@@ -293,6 +292,40 @@ export const filterByMutationSelection = (
     // });
   });
 };
+
+export const filterInstanceSet = (
+  dataSelection: DataInteractionReducerState,
+) => {
+  let instances = dataSelection.filteredInstances;
+
+  if (dataSelection.mutations.size > 0) {
+    instances = filterByMutationSelection(instances, dataSelection.mutations);
+  }
+  if (dataSelection.positions.size > 0) {
+    instances = filterByPositionSelection(instances, dataSelection.positions);
+  }
+  if (dataSelection.instances.size > 0) {
+    instances = filterByInstanceSelection(instances, dataSelection.instances);
+  }
+
+  return instances;
+};
+
+export const useActiveInstances = (
+  dataSelection: DataInteractionReducerState,
+) =>
+  useMemo(() => {
+    const activeInstances = filterInstanceSet(dataSelection);
+    return {
+      activeInstances: activeInstances,
+      activeIds: new Set(activeInstances.map((instance) => instance.id)),
+    };
+  }, [
+    dataSelection.filteredInstances,
+    dataSelection.mutations,
+    dataSelection.positions,
+    dataSelection.instances,
+  ]);
 
 export const useStructureClickHandler = (
   dispatchDataSelection: DataInteractionReducerDispatchFunc,

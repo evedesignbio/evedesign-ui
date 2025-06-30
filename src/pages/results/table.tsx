@@ -4,14 +4,11 @@ import {
   SystemInstanceSpecEnhanced,
 } from "../../models/design.ts";
 import { Table } from "@mantine/core";
-import { forwardRef, useMemo } from "react";
+import { forwardRef } from "react";
 import { extractModifiers, Modifiers } from "../../utils/events.tsx";
 import {
   DataInteractionReducerDispatchFunc,
   DataInteractionReducerState,
-  filterByInstanceSelection,
-  filterByMutationSelection,
-  filterByPositionSelection,
 } from "./reducers.ts";
 import { decodeMutation } from "./data.ts";
 
@@ -48,33 +45,36 @@ export const InstanceTable = ({
   // TODO: implement selection of range of designs with shift key (all up or down from last selection)
   // TODO: implement scrolling to selected designs when resetting displayed designs
 
-  const instancesDisplay = useMemo(() => {
-    if (
-      !dataSelection.lastEventSource ||
-      dataSelection.lastEventSource === "TABLE"
-    ) {
-      // if selection happens from inside table panel, show all instances
-      return instances;
-    } else {
-      // if selection happens from outside table panel, filter down what will be displayed;
-      // for now, only one of these filters will be active by convention
-      // TODO: revisit this for sequence space plot - will need to filter by instance too unless single instance?
-      // TODO: scroll if single instance selected
-      if (dataSelection.mutations.size > 0) {
-        return filterByMutationSelection(instances, dataSelection.mutations);
-      } else if (dataSelection.positions.size > 0) {
-        return filterByPositionSelection(instances, dataSelection.positions);
-      } else if (dataSelection.instances.size > 1) {
-        return filterByInstanceSelection(instances, dataSelection.instances);
-      } else {
-        return instances;
-      }
-    }
-  }, [instances, dataSelection]);
+  const instancesDisplay = instances;
+  // const instancesDisplay = useMemo(() => {
+  //   if (
+  //     !dataSelection.lastEventSource ||
+  //     dataSelection.lastEventSource === "TABLE"
+  //   ) {
+  //     // if selection happens from inside table panel, show all instances
+  //     return instances;
+  //   } else {
+  //     // if selection happens from outside table panel, filter down what will be displayed;
+  //     // for now, only one of these filters will be active by convention
+  //     // TODO: revisit this for sequence space plot - will need to filter by instance too unless single instance?
+  //     // TODO: scroll if single instance selected
+  //     if (dataSelection.mutations.size > 0) {
+  //       return filterByMutationSelection(instances, dataSelection.mutations);
+  //     } else if (dataSelection.positions.size > 0) {
+  //       return filterByPositionSelection(instances, dataSelection.positions);
+  //     } else if (dataSelection.instances.size > 1) {
+  //       return filterByInstanceSelection(instances, dataSelection.instances);
+  //     } else {
+  //       return instances;
+  //     }
+  //   }
+  // }, [instances, dataSelection]);
 
   // TODO: revisit this for sequence space plot - will need to filter by instance too unless single instance?
   const selectedIds =
-    dataSelection.lastEventSource === "TABLE" ? dataSelection.instances : null;
+    dataSelection.lastEventSource === "TABLE"
+      ? dataSelection.instances
+      : dataSelection.instances;
 
   // sort instances
   // TODO implement
