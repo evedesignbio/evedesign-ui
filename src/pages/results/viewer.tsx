@@ -3,7 +3,6 @@ import {
   Button,
   Group,
   Modal,
-  Text,
   useComputedColorScheme,
   useMantineTheme,
 } from "@mantine/core";
@@ -49,7 +48,11 @@ import { useMemo, useReducer, useState } from "react";
 import { Color } from "molstar/lib/mol-util/color";
 import toRgb = Color.toRgb;
 import fromRgb = Color.fromRgb;
-import { useAnnotationTracks } from "./elements.tsx";
+import {
+  useAnnotationTracks,
+  useLabelRenderer,
+  useTooltipStyle,
+} from "./elements.tsx";
 
 export interface AnalysisViewerProps {
   id: string;
@@ -88,48 +91,6 @@ const exampleSiteHighlights: SiteHighlightTargetPos[] = [
   //   },
   // },
 ];
-
-// https://stackoverflow.com/questions/1484506/random-color-generator
-// TODO: remove again once actual data shown
-// export function getRandomColor() {
-//   var letters = "0123456789ABCDEF";
-//   var color = "#";
-//   for (var i = 0; i < 6; i++) {
-//     color += letters[Math.floor(Math.random() * 16)];
-//   }
-//   return color;
-// }
-
-// const labelRenderer = (labelData: LabelData) => {
-//   if (labelData.type === "data") {
-//     if (!mutations.data) return null;
-//
-//     const i = labelData.column!;
-//     const j = labelData.row!;
-//
-//     // guard clauses against label being out of sync with data
-//     if (i >= mutations.data[typeIndex].length) {
-//       return;
-//     }
-//
-//     const rawEffect = mutations.data[typeIndex][i][j];
-//     const effect =
-//         rawEffect !== undefined && rawEffect !== null
-//             ? rawEffect.toFixed(2)
-//             : "n/a";
-//
-//     // rounding trick: https://stackoverflow.com/questions/11832914/how-to-round-to-at-most-2-decimal-places-if-necessary
-//     return (
-//         <span>
-//           Mutant: <b>{`${wt[i!]} ${pos[i!]} ${subs[j!]}`}</b>
-//           <br />
-//           Effect: <b>{effect}</b>
-//         </span>
-//     );
-//   } else {
-//     return null;
-//   }
-// };
 
 export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   const [dnaOpen, { toggle: toggleDnaOpen }] = useDisclosure(false);
@@ -174,6 +135,8 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   );
 
   const heatmapAnnotationTracks = useAnnotationTracks(matrix);
+  const heatmapTooltipStyle = useTooltipStyle(computedColorScheme);
+  const heatmapLabelRenderer = useLabelRenderer(matrix, isMutationScan);
 
   // TODO: clean this up and derive heatmap properly
   const heatmapColorMap = useMemo(() => {
@@ -362,12 +325,8 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       yLabelSpacing="5pt"
       annotationTracks={heatmapAnnotationTracks}
       handleEvent={heatmapClickHandler}
-      labelRenderer={(labelData) => <Text>{labelData.value}</Text>}
-      tooltipStyle={{
-        backgroundColor: computedColorScheme === "dark" ? "#fff" : "#000",
-        color: computedColorScheme === "dark" ? "#000" : "#fff",
-        zIndex: 9999,
-      }}
+      labelRenderer={heatmapLabelRenderer}
+      tooltipStyle={heatmapTooltipStyle}
       selectedCells={heatmapCellSelections}
       selectedColumns={heatmapColumnSelections}
       // selectedRows={transformedSelections.heatmapSubs}
