@@ -349,3 +349,16 @@ export const useStructureClickHandler = (
     },
     [dispatchDataSelection],
   );
+
+export const useBasketInstances = (
+  enhancedInstances: SystemInstanceSpecEnhanced[],
+  needed: boolean,
+  basket: Set<String>,
+) =>
+  useMemo(() => {
+    if (needed) {
+      return enhancedInstances.filter((inst) => basket.has(inst.id));
+    } else {
+      return [];
+    }
+  }, [basket, needed, enhancedInstances]);

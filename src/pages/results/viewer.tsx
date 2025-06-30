@@ -40,6 +40,7 @@ import {
   dataInteractionReducer,
   emptyDataInteractionState,
   useActiveInstances,
+  useBasketInstances,
   useReset,
   useStructureClickHandler,
 } from "./reducers.ts";
@@ -220,6 +221,12 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   const { activeInstances, activeIds } = useActiveInstances(dataSelection);
 
   const [basket, setBasket] = useState(new Set<string>());
+  const basketInstances = useBasketInstances(
+    enhancedInstances.instances,
+    dnaOpen,
+    basket,
+  );
+
   const resetSelection = useReset(dispatchDataSelection);
   const structureClickHandler = useStructureClickHandler(dispatchDataSelection);
 
@@ -330,7 +337,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
         <DNAGenerationDialog
           id={id}
           system={spec.system}
-          instances={enhancedInstances.instances}
+          instances={basketInstances}
         />
       </BoxedLayout>
     </Modal>
@@ -450,7 +457,9 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
             Remove
           </Button>
         </Button.Group>
-        <Button onClick={toggleDnaOpen}>Build DNA...</Button>
+        <Button onClick={toggleDnaOpen} disabled={basket.size === 0}>
+          Build DNA...
+        </Button>
       </Group>
     </>
   );
