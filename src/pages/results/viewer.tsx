@@ -39,6 +39,7 @@ import { BoxedLayout } from "./helpers.tsx";
 import {
   dataInteractionReducer,
   emptyDataInteractionState,
+  mutationsToMutatedPositions,
   useActiveInstances,
   useBasketInstances,
   useReset,
@@ -248,14 +249,22 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       ? colorMapFromNameOrList("viridis", -10, 0, false)
       : colorMapFromNameOrList("blues", 0, 1, true);
 
-    return (value: number | null, _i?: number, _j?: number) => {
+    const cmapSel = colorMapFromNameOrList("greys", 0, 1, true);
+    const mutPos = mutationsToMutatedPositions(dataSelection.mutations);
+
+    return (value: number | null, i?: number, _j?: number) => {
       if (value === null) {
         return "#aaaaaa";
       } else {
-        return toHexString(cmap(value!));
+        const pos = matrix.indexToPositions.get(i!)!;
+        if (!isMutationScan && mutPos.has(pos)) {
+          return toHexString(cmapSel(value!));
+        } else {
+          return toHexString(cmap(value!));
+        }
       }
     };
-  }, [isMutationScan]);
+  }, [isMutationScan, dataSelection, matrix]);
 
   const heatmapClickHandler = useMemo(
     () =>
@@ -283,6 +292,9 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
               payload: [encodeMutation(mutation)],
             });
           } else {
+            // do not allow to click empty cells
+            if (payload.value <= 0) return;
+
             dispatchDataSelection({
               type: "SELECT_MUTATIONS",
               source: "MATRIX",

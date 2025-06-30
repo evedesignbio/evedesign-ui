@@ -352,3 +352,15 @@ export const useBasketInstances = (
       return [];
     }
   }, [basket, needed, enhancedInstances]);
+
+export const mutationsToMutatedPositions = (mutations: Set<string>) =>
+  new Set<string>(
+    [...mutations].map((mut) => {
+      const mutDecod = decodeMutation(mut);
+      const posEnc = encodePosition({
+        entity: mutDecod.entity,
+        pos: mutDecod.pos,
+      });
+      return posEnc;
+    }),
+  );

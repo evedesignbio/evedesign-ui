@@ -15,7 +15,10 @@ import {
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
 import { range } from "../../utils/helpers.ts";
-import { DataInteractionReducerState } from "./reducers.ts";
+import {
+  DataInteractionReducerState,
+  mutationsToMutatedPositions,
+} from "./reducers.ts";
 
 export const encodePosition = (pos: Position) => {
   return `${pos.entity}_${pos.pos}`;
@@ -355,20 +358,17 @@ export const useMatrix = (
     if (!isMutationScan) {
       let altInstances: Map<string, SystemInstanceSpecEnhanced[]> | null = null;
       if (dataSelection.mutations.size > 0) {
-        // TODO: move into separate function
         altInstances = new Map<string, SystemInstanceSpecEnhanced[]>();
-        dataSelection.mutations.forEach((mut) => {
-          const mutDecod = decodeMutation(mut);
-          const posEnc = encodePosition({
-            entity: mutDecod.entity,
-            pos: mutDecod.pos,
-          });
-          altInstances!.set(posEnc, instances);
-        });
+        mutationsToMutatedPositions(dataSelection.mutations).forEach((posEnc) =>
+          altInstances!.set(posEnc, instances),
+        );
       }
 
       return instancesToCountMatrix(
-        activeInstancesCond!.length > 1 ? activeInstancesCond! : instances, // TODO: only use active instances if > 1 selected
+        // do not use activeInstancesCond if single instance selected
+        activeInstancesCond!.length > 1 || dataSelection.instances.size === 0
+          ? activeInstancesCond!
+          : instances,
         altInstances,
         designedPositions,
         0,
