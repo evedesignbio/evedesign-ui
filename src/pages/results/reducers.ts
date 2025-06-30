@@ -18,6 +18,11 @@ export type EventSource =
   | "BASKET"
   | "OTHER";
 
+export interface PositionWithSymbolInfo extends Position {
+  ref: string;
+  availableSubs: string[];
+}
+
 export interface DataInteractionReducerAction {
   type:
     | "SELECT_INSTANCES"
@@ -31,7 +36,7 @@ export interface DataInteractionReducerAction {
   modifiers: Modifiers | null;
   payload:
     | string[]
-    | Position[]
+    | PositionWithSymbolInfo[]
     | Mutation[]
     | DataInteractionReducerState
     | null;
@@ -82,7 +87,7 @@ export const symmetricDifference = (a: Set<any>, b: Set<any>) => {
 export const dataInteractionReducer = (
   state: DataInteractionReducerState,
   action: DataInteractionReducerAction,
-) => {
+): DataInteractionReducerState => {
   const { type, source, payload, modifiers } = action;
   const multiSelect = modifiers ? modifiers.shift || modifiers.meta : false;
 
@@ -101,16 +106,35 @@ export const dataInteractionReducer = (
     case "SELECT_POSITIONS":
       // transform position selection into mutation selection which is more meaningful
       // and easier to handle
-      // TODO: how do we know about WT symbol here?
+      const payloadPositionSet = action.payload as PositionWithSymbolInfo[];
+      const newMuts: Mutation[] = [];
 
-      if (state.isMutationScan) {
-        // TODO: alt modifier not meaningful here, no self mutants in table
-        return state; // TODO: update
-      } else {
-        // TODO: only select mutations with non-zero counts
-        // TODO: turn into mutation selection, use alt modifier to select WT/non-WT
-        return state; // TODO: update
-      }
+      payloadPositionSet.forEach((pos) => {
+        pos.availableSubs.forEach((subs) => {
+          const alt = modifiers !== null && modifiers.alt;
+          if (
+            (subs !== pos.ref && !alt) ||
+            (subs === pos.ref && alt && !state.isMutationScan)
+          ) {
+            newMuts.push({
+              entity: pos.entity,
+              pos: pos.pos,
+              ref: pos.ref,
+              to: subs,
+            });
+          }
+        });
+      });
+
+      // return state as is if no mutants available
+      if (newMuts.length === 0) return state;
+
+      // submit to itself as mutation selection action
+      return dataInteractionReducer(state, {
+        ...action,
+        type: state.isMutationScan ? "SELECT_INSTANCES" : "SELECT_MUTATIONS",
+        payload: state.isMutationScan ? newMuts.map(encodeMutation) : newMuts,
+      });
 
     case "SELECT_MUTATIONS":
       // apply other selection modality as filter first
@@ -333,7 +357,7 @@ export const useStructureClickHandler = (
           type: "SELECT_POSITIONS",
           source: "STRUCTURE",
           modifiers: modifiers,
-          payload: [{ entity: 0, pos: pos }],
+          payload: [{ entity: 0, pos: pos, ref: "X", availableSubs: [] }], // TODO: use actual data
         });
       }
     },

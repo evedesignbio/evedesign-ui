@@ -311,12 +311,30 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
             });
           }
         } else if (locationType === "annotation") {
+          // TODO: refactor so we can also reuse for structure click handling
           const posMapped = matrix.indexToPositions.get(payload.column)!;
+          const ref = matrix.ref.get(posMapped)!;
+          const availableSubs = isMutationScan
+            ? [...matrix.substitutions.keys()]
+            : [...matrix.substitutions.keys()].filter((subs) => {
+                const count =
+                  matrix.data[matrix.names.get("counts")!][
+                    matrix.positions.get(posMapped)!
+                  ][matrix.substitutions.get(subs)!];
+                return count !== null && count > 0;
+              });
+
           dispatchDataSelection({
             type: "SELECT_POSITIONS",
             source: "MATRIX",
             modifiers: modifiers,
-            payload: [decodePosition(posMapped)],
+            payload: [
+              {
+                ...decodePosition(posMapped),
+                ref: ref,
+                availableSubs: availableSubs,
+              },
+            ],
           });
         }
       },
