@@ -1,10 +1,10 @@
-import { TableVirtuoso } from "react-virtuoso";
+import { TableVirtuoso, TableVirtuosoHandle } from "react-virtuoso";
 import {
   SystemInstanceSpec,
   SystemInstanceSpecEnhanced,
 } from "../../models/design.ts";
 import { Table } from "@mantine/core";
-import { forwardRef } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import { extractModifiers, Modifiers } from "../../utils/events.tsx";
 import {
   DataInteractionReducerDispatchFunc,
@@ -45,39 +45,49 @@ export const InstanceTable = ({
   // TODO: implement selection of range of designs with shift key (all up or down from last selection)
   // TODO: implement scrolling to selected designs when resetting displayed designs
 
-  const instancesDisplay = instances;
-  // const instancesDisplay = useMemo(() => {
-  //   if (
-  //     !dataSelection.lastEventSource ||
-  //     dataSelection.lastEventSource === "TABLE"
-  //   ) {
-  //     // if selection happens from inside table panel, show all instances
-  //     return instances;
-  //   } else {
-  //     // if selection happens from outside table panel, filter down what will be displayed;
-  //     // for now, only one of these filters will be active by convention
-  //     // TODO: revisit this for sequence space plot - will need to filter by instance too unless single instance?
-  //     // TODO: scroll if single instance selected
-  //     if (dataSelection.mutations.size > 0) {
-  //       return filterByMutationSelection(instances, dataSelection.mutations);
-  //     } else if (dataSelection.positions.size > 0) {
-  //       return filterByPositionSelection(instances, dataSelection.positions);
-  //     } else if (dataSelection.instances.size > 1) {
-  //       return filterByInstanceSelection(instances, dataSelection.instances);
-  //     } else {
-  //       return instances;
-  //     }
-  //   }
-  // }, [instances, dataSelection]);
+  // handle for imperative scrolling
+  const virtuoso = useRef<TableVirtuosoHandle>(null);
 
   // TODO: revisit this for sequence space plot - will need to filter by instance too unless single instance?
-  const selectedIds =
-    dataSelection.lastEventSource === "TABLE"
-      ? dataSelection.instances
-      : dataSelection.instances;
+  // const selectedIds =
+  //   dataSelection.lastEventSource === "TABLE"
+  //     ? dataSelection.instances
+  //     : dataSelection.instances;
+  const selectedIds = dataSelection.instances;
 
   // sort instances
   // TODO implement
+  const instancesDisplay = instances;
+
+  // track scrolling position as state rather than scrolling directly,
+  // as this will miss some scrolls when instance set is updated
+  const [scrollPos, setScrollPos] = useState<number | null>();
+
+  useEffect(() => {
+    if (!virtuoso.current || scrollPos === null || scrollPos === undefined)
+      return;
+
+    virtuoso.current.scrollIntoView({
+      index: scrollPos,
+      align: "start",
+      behavior: "auto",
+    });
+  }, [scrollPos]);
+
+  useEffect(() => {
+    // only scroll in the case of direct single instance selection
+    if (dataSelection.instances.size === 1) {
+      // find index in list to scroll to
+      const targetId = [...dataSelection.instances][0];
+      const targetIdx = instancesDisplay.findIndex(
+        (instance) => instance.id === targetId,
+      );
+
+      // "indirect scroll" via state to get around missing scrolls when instances update
+      // (eg after resetting list)
+      setScrollPos(targetIdx);
+    }
+  }, [instancesDisplay, dataSelection.instances, virtuoso]);
 
   const clickHandler = (event: any, instance: SystemInstanceSpecEnhanced) => {
     if (dispatchDataSelection) {
@@ -93,6 +103,7 @@ export const InstanceTable = ({
 
   return (
     <TableVirtuoso
+      ref={virtuoso}
       style={{ height: "100%", width: "100%" }}
       data={instancesDisplay}
       components={{

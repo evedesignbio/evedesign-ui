@@ -137,9 +137,9 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     isMutationScan,
   );
   const structureClickHandler = useStructureClickHandler(
-      matrix,
-      isMutationScan,
-      dispatchDataSelection,
+    matrix,
+    isMutationScan,
+    dispatchDataSelection,
   );
 
   // TODO: clean this up and derive heatmap properly
@@ -222,7 +222,8 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     <InstanceTable
       instances={
         !dataSelection.lastEventSource ||
-        dataSelection.lastEventSource === "TABLE"
+        dataSelection.lastEventSource === "TABLE" ||
+        dataSelection.instances.size === 1
           ? dataSelection.filteredInstances
           : activeInstances
       }

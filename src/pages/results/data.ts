@@ -254,7 +254,7 @@ export const instancesToCountMatrix = (
       ]),
   );
 
-  const scores = [...posToIdx].map((_symbol) => Array(subsToIdx.size).fill(0));
+  const scores = [...posToIdx].map((_symbol) => Array(subsToIdx.size).fill(null));
 
   if (!isMutationScan) {
     // initialize count array to same length as number of designed positions
@@ -345,9 +345,10 @@ export const useMatrix = (
   isMutationScan: boolean,
   spec: PipelineSpec | SingleMutationScanSpec,
 ) => {
-  let instances = isMutationScan
-    ? dataSelection.allInstances
-    : dataSelection.filteredInstances;
+  // let instances = isMutationScan
+  //   ? dataSelection.allInstances
+  //   : dataSelection.filteredInstances;
+  let instances = dataSelection.filteredInstances;
 
   const activeInstancesCond = isMutationScan ? null : activeInstances;
 

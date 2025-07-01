@@ -420,6 +420,9 @@ export const useHeatmapClickHandler = (
             to: symbolMapped,
           };
 
+          // do not allow to click cells without valid value
+          if (payload.value === null) return;
+
           // for mutation scans, each cell corresponds to a single instance which we can directly select;
           // for regular design runs, we select a mutation filter on the active instance set since
           // we don't have a 1:1 correspondence between mutation and instance
