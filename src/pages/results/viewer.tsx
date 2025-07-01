@@ -278,7 +278,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       markedCells={heatmapCellMarks}
       selectedColumns={heatmapColumnSelections}
       // selectedRows={transformedSelections.heatmapSubs}
-      // scrollToElement={transformedSelections.heatmapJump}
+       scrollToElement={heatmapCellSelections.slice(-1)[0]?.column}
     />
   );
 
