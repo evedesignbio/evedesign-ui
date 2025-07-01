@@ -1,7 +1,18 @@
-import { decodePosition, MutationMatrix } from "./data.ts";
+import {
+  decodePosition,
+  instancesToCountMatrix,
+  MutationMatrix,
+} from "./data.ts";
 import { useMemo } from "react";
 import { Stack, Text } from "@mantine/core";
-import { LabelData } from "../../components/autowrapheatmap";
+import { CellCoords, LabelData } from "../../components/autowrapheatmap";
+import {
+  PipelineSpec,
+  Position,
+  SingleMutationScanSpec,
+  SystemInstanceSpecEnhanced,
+} from "../../models/design.ts";
+import { DataInteractionReducerState } from "./reducers.ts";
 
 export const useAnnotationTracks = (matrix: MutationMatrix) => {
   return useMemo(
@@ -124,33 +135,42 @@ export const useLabelRenderer = (
   }, [matrix, isMutationScan]);
 };
 
-// const labelRenderer = (labelData: LabelData) => {
-//   if (labelData.type === "data") {
-//     if (!mutations.data) return null;
-//
-//     const i = labelData.column!;
-//     const j = labelData.row!;
-//
-//     // guard clauses against label being out of sync with data
-//     if (i >= mutations.data[typeIndex].length) {
-//       return;
-//     }
-//
-//     const rawEffect = mutations.data[typeIndex][i][j];
-//     const effect =
-//         rawEffect !== undefined && rawEffect !== null
-//             ? rawEffect.toFixed(2)
-//             : "n/a";
-//
-//     // rounding trick: https://stackoverflow.com/questions/11832914/how-to-round-to-at-most-2-decimal-places-if-necessary
-//     return (
-//         <span>
-//           Mutant: <b>{`${wt[i!]} ${pos[i!]} ${subs[j!]}`}</b>
-//           <br />
-//           Effect: <b>{effect}</b>
-//         </span>
-//     );
-//   } else {
-//     return null;
-//   }
-// };
+export const useHeatmapCellMarks = (
+  matrix: MutationMatrix,
+  isMutationScan: boolean,
+  dataSelection: DataInteractionReducerState,
+  designedPositions: Position[],
+  activeInstances: SystemInstanceSpecEnhanced[],
+  spec: PipelineSpec | SingleMutationScanSpec,
+): CellCoords[] =>
+  useMemo(() => {
+    if (isMutationScan || dataSelection.instances.size !== 1) {
+      return [];
+    } else {
+      // use counts on single selected sequence as indicators to derive heatmap indices
+      const countMatrix = instancesToCountMatrix(
+        activeInstances,
+        null,
+        designedPositions,
+        0,
+        spec.system[0].rep,
+        spec.system[0].first_index,
+        false,
+      );
+      const counts = countMatrix.data[countMatrix.names.get("counts")!];
+
+      return counts.map((posArray, posIdx) => {
+        const rowIdx = posArray.findIndex(
+          (symbolCount) => symbolCount !== null && symbolCount > 0,
+        );
+        return { column: posIdx, row: rowIdx };
+      });
+    }
+  }, [
+    matrix,
+    isMutationScan,
+    dataSelection.instances,
+    designedPositions,
+    designedPositions,
+    spec,
+  ]);

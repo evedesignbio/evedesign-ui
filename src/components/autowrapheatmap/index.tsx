@@ -120,7 +120,7 @@ export const DEFAULT_SELECTION_STYLES = {
     // border: "3px solid gold",
     // boxShadow: "0px 5px 10px 0px rgba(0, 0, 0, 0.5)",
     // boxShadow: "0px 0px 0px 3px gold, 0px 0px 5px 3px rgba(0, 0, 0, 0.9)",
-    boxShadow: "0px 0px 0px 1px gold",
+    boxShadow: "0px 0px 0px 1px red",
     zIndex: 99,
   } as CSSProperties,
 

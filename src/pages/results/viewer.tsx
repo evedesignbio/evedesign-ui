@@ -45,6 +45,7 @@ import toRgb = Color.toRgb;
 import fromRgb = Color.fromRgb;
 import {
   useAnnotationTracks,
+  useHeatmapCellMarks,
   useLabelRenderer,
   useTooltipStyle,
 } from "./elements.tsx";
@@ -135,6 +136,14 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     matrix,
     dispatchDataSelection,
     isMutationScan,
+  );
+  const heatmapCellMarks = useHeatmapCellMarks(
+    matrix,
+    isMutationScan,
+    dataSelection,
+    enhancedInstances.designedPositions,
+    activeInstances,
+    spec,
   );
   const structureClickHandler = useStructureClickHandler(
     matrix,
@@ -266,7 +275,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       labelRenderer={heatmapLabelRenderer}
       tooltipStyle={heatmapTooltipStyle}
       selectedCells={heatmapCellSelections}
-      // markedCells={heatmapCellSelections}  // TODO: update this
+      markedCells={heatmapCellMarks}
       selectedColumns={heatmapColumnSelections}
       // selectedRows={transformedSelections.heatmapSubs}
       // scrollToElement={transformedSelections.heatmapJump}
