@@ -15,6 +15,7 @@ import {
 import { useResizeObserver, useDebouncedCallback } from "@mantine/hooks";
 import { Tooltip, ChildrenType } from "react-tooltip";
 import { extractModifiers, Modifiers } from "../../utils/events";
+import { highContrastColor } from "../../utils/colormap.ts";
 
 type LabelRenderFunc = (render: {
   content: string | null;
@@ -26,6 +27,7 @@ export type HeatmapProps = {
   colorMap: HeatmapColorMap;
   yLabels: string[];
   selectedCells?: CellCoords[];
+  markedCells?: CellCoords[];
   selectedRows?: number[];
   selectedColumns?: number[];
   handleEvent?: HeatmapClickHandler;
@@ -102,6 +104,7 @@ const DEFAULT_CONTAINER_STYLE = {
 export type SelectionStyles = {
   // properties applied on the cell level
   cellSelectedCell?: CSSProperties;
+  cellMarkedCell?: CSSProperties;
   cellSelectedRow?: CSSProperties;
   cellSelectedColumn?: CSSProperties;
   columnSelectedColumn?: CSSProperties;
@@ -120,6 +123,11 @@ export const DEFAULT_SELECTION_STYLES = {
     boxShadow: "0px 0px 0px 1px gold",
     zIndex: 99,
   } as CSSProperties,
+
+  cellMarkedCell: {
+    fontSize: "3pt",
+  } as CSSProperties,
+
   // cellSelectedRow: {
   //   boxShadow: "3pt 0px 4px 2pt gold",
   //   // boxShadow: "3pt 0px 5px 2pt #333",
@@ -379,6 +387,8 @@ const renderColumnBase = (
 //   );
 // };
 
+const MARKER_SYMBOL = "⬤";
+
 const renderDataColumn = (
   column: NullableArray1D,
   i: number,
@@ -387,6 +397,7 @@ const renderDataColumn = (
   cellHeight: string,
   annotationTracks: AnnotationTrack[],
   selectedCells: CellCoords[],
+  markedCells: CellCoords[],
   selectedColumns: number[],
   selectedRows: number[],
   selectionStyles: SelectionStyles,
@@ -398,6 +409,8 @@ const renderDataColumn = (
 
   // prefilter cell selections to current position
   const cellSelectionFilt = selectedCells.filter((sc) => sc.column === i);
+
+  const cellMarkedFilt = markedCells.filter((sc) => sc.column === i);
 
   // render annotation tracks
   const annotations = annotationTracks.map((track) => (
@@ -445,9 +458,10 @@ const renderDataColumn = (
     // check if current cell and row are selected
     const cellSelected =
       cellSelectionFilt.filter((scf) => scf.row === j).length > 0;
+    const cellMarked = cellMarkedFilt.filter((scf) => scf.row === j).length > 0;
     const rowSelected = selectedRows.filter((sj) => sj === j).length > 0;
-
     const cellId = `cell_${i}_${j}`;
+    const bgColor = colorMap(cellValue, i, j);
     return (
       <div
         key={cellId}
@@ -465,17 +479,21 @@ const renderDataColumn = (
         data-tooltip-id="heatmapLabel"
         style={{
           // fontSize: "2pt",
-          // display: "flex",
-          // justifyContent: "center",
-          // alignItems: "center",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
           // color: "lightgrey",
           width: cellWidth,
           height: cellHeight,
           // textAlign: "justify", // TODO: needed?
-          backgroundColor: colorMap(cellValue, i, j),
+          backgroundColor: bgColor,
           ...(rowSelected ? selectionStyles.cellSelectedRow : null),
           ...(colSelected ? selectionStyles.cellSelectedColumn : null),
           ...(cellSelected ? selectionStyles.cellSelectedCell : null),
+          ...(cellMarked ? selectionStyles.cellMarkedCell : null),
+          ...(cellMarked
+            ? { color: highContrastColor(bgColor, "white", "black") }
+            : null),
         }}
         onClick={(event) => {
           if (handleEvent) {
@@ -491,9 +509,9 @@ const renderDataColumn = (
           }
           event.stopPropagation();
         }}
-      />
-      //  ⬤
-      //</div>
+      >
+        {cellMarked ? MARKER_SYMBOL : null}
+      </div>
     );
   });
 
@@ -654,6 +672,7 @@ export const AutowrapHeatmap = ({
   colorMap,
   yLabels,
   selectedCells = EMPTY_CELL_SELECTION,
+  markedCells = EMPTY_CELL_SELECTION,
   selectedColumns = EMPTY_SELECTION,
   selectedRows = EMPTY_SELECTION,
   handleEvent = undefined,
@@ -768,6 +787,7 @@ export const AutowrapHeatmap = ({
         cellHeight,
         annotationTracks,
         selectedCells,
+        markedCells,
         selectedColumns,
         selectedRows,
         selectionStyles,
@@ -804,6 +824,7 @@ export const AutowrapHeatmap = ({
     cellWidth,
     cellHeight,
     selectedCells,
+    markedCells,
     selectedRows,
     selectedColumns,
     selectionStyles,

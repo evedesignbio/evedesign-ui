@@ -257,15 +257,16 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     <AutowrapHeatmap
       data={matrix.data[isMutationScan ? 0 : 1]}
       colorMap={heatmapColorMap}
-      yLabels={[...matrix.substitutions.keys()]} // TODO: keep fixed
-      cellWidth="7pt"
-      cellHeight="7pt"
+      yLabels={[...matrix.substitutions.keys()]} // TODO: keep fixed to avoid rerenders
+      cellWidth="8pt"
+      cellHeight="8pt"
       yLabelSpacing="5pt"
       annotationTracks={heatmapAnnotationTracks}
       handleEvent={heatmapClickHandler}
       labelRenderer={heatmapLabelRenderer}
       tooltipStyle={heatmapTooltipStyle}
       selectedCells={heatmapCellSelections}
+      // markedCells={heatmapCellSelections}  // TODO: update this
       selectedColumns={heatmapColumnSelections}
       // selectedRows={transformedSelections.heatmapSubs}
       // scrollToElement={transformedSelections.heatmapJump}
