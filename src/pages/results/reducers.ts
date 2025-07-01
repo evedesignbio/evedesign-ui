@@ -16,6 +16,7 @@ import {
 } from "./data.ts";
 import { Modifiers } from "../../utils/events.tsx";
 import { ClickEvent } from "../../components/autowrapheatmap";
+import { setEqual, symmetricDifference } from "../../utils/helpers.ts";
 
 export type EventSource =
   | "STRUCTURE"
@@ -77,19 +78,6 @@ export const emptyDataInteractionState = (
 export type DataInteractionReducerDispatchFunc = (
   action: DataInteractionReducerAction,
 ) => void;
-
-export const symmetricDifference = (a: Set<any>, b: Set<any>) => {
-  const x = new Set([...a]);
-  b.forEach((elem) => {
-    if (x.has(elem)) {
-      x.delete(elem);
-    } else {
-      x.add(elem);
-    }
-  });
-
-  return x;
-};
 
 export const dataInteractionReducer = (
   state: DataInteractionReducerState,
@@ -156,7 +144,7 @@ export const dataInteractionReducer = (
       const payloadMutationSet = new Set(
         (payload as Mutation[]).map(encodeMutation),
       );
-      if (multiSelect) {
+      if (multiSelect || setEqual(state.mutations, payloadMutationSet)) {
         newMutations = symmetricDifference(state.mutations, payloadMutationSet);
       } else {
         newMutations = payloadMutationSet;
@@ -179,7 +167,8 @@ export const dataInteractionReducer = (
 
       let newInstances: Set<string>;
       const payloadInstanceSet = new Set(action.payload as string[]);
-      if (multiSelect) {
+      // second condition allows to deselect single elements by clicking on them again, mainly for touch devices
+      if (multiSelect || setEqual(state.instances, payloadInstanceSet)) {
         // if adding to selection, add any new instances from payload
         // and remove all others that are already present (symmetric difference,
         // note symmetricDifference method too new at this point)
@@ -408,7 +397,7 @@ export const useStructureClickHandler = (
           dispatchDataSelection(payload);
         }
       },
-      // TODO: exclude matrix from dependencies here, for some reason it creates an infinite loop with reducer
+    // TODO: exclude matrix from dependencies here, for some reason it creates an infinite loop with reducer
     [dispatchDataSelection, isMutationScan],
   );
 
@@ -456,11 +445,11 @@ export const useHeatmapClickHandler = (
         } else if (locationType === "annotation") {
           const posMapped = matrix.indexToPositions.get(payload.column)!;
           const posPayload = positionSelectionPayload(
-              matrix,
-              posMapped,
-              isMutationScan,
-              modifiers,
-              "MATRIX",
+            matrix,
+            posMapped,
+            isMutationScan,
+            modifiers,
+            "MATRIX",
           );
           // console.log("CLICK HEATMAP", posPayload);  // TODO: remove
           dispatchDataSelection(posPayload);
