@@ -174,3 +174,9 @@ export const useHeatmapCellMarks = (
     designedPositions,
     spec,
   ]);
+
+export const useHeatmapYLabels = (matrix: MutationMatrix) =>
+  useMemo(
+    () => [...matrix.substitutions.keys()],
+    [matrix.substitutions],
+  );

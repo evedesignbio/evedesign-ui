@@ -46,6 +46,7 @@ import fromRgb = Color.fromRgb;
 import {
   useAnnotationTracks,
   useHeatmapCellMarks,
+  useHeatmapYLabels,
   useLabelRenderer,
   useTooltipStyle,
 } from "./elements.tsx";
@@ -145,6 +146,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     activeInstances,
     spec,
   );
+  const heatmapYLabels = useHeatmapYLabels(matrix);
   const structureClickHandler = useStructureClickHandler(
     matrix,
     isMutationScan,
@@ -264,9 +266,15 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
 
   const heatmapPanel = (
     <AutowrapHeatmap
-      data={matrix.data[isMutationScan ? 0 : 1]}
+      data={
+        matrix.data[
+          isMutationScan
+            ? matrix.names.get("scores")!
+            : matrix.names.get("freqs")!
+        ]
+      }
       colorMap={heatmapColorMap}
-      yLabels={[...matrix.substitutions.keys()]} // TODO: keep fixed to avoid rerenders
+      yLabels={heatmapYLabels}
       cellWidth="8pt"
       cellHeight="8pt"
       yLabelSpacing="5pt"
@@ -277,8 +285,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       selectedCells={heatmapCellSelections}
       markedCells={heatmapCellMarks}
       selectedColumns={heatmapColumnSelections}
-      // selectedRows={transformedSelections.heatmapSubs}
-       scrollToElement={heatmapCellSelections.slice(-1)[0]?.column}
+      scrollToElement={heatmapCellSelections.slice(-1)[0]?.column}
     />
   );
 
