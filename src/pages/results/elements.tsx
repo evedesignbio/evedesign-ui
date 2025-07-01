@@ -1,5 +1,7 @@
 import {
+  decodeMutation,
   decodePosition,
+  encodePosition,
   instancesToCountMatrix,
   MutationMatrix,
 } from "./data.ts";
@@ -12,7 +14,12 @@ import {
   SingleMutationScanSpec,
   SystemInstanceSpecEnhanced,
 } from "../../models/design.ts";
-import { DataInteractionReducerState } from "./reducers.ts";
+import {
+  DataInteractionReducerState,
+  mutationsToMutatedPositions,
+} from "./reducers.ts";
+import { colorMapFromNameOrList, toHexString } from "../../utils/colormap.ts";
+import { Color } from "molstar/lib/mol-util/color";
 
 export const useAnnotationTracks = (matrix: MutationMatrix) => {
   return useMemo(
@@ -176,7 +183,73 @@ export const useHeatmapCellMarks = (
   ]);
 
 export const useHeatmapYLabels = (matrix: MutationMatrix) =>
-  useMemo(
-    () => [...matrix.substitutions.keys()],
-    [matrix.substitutions],
-  );
+  useMemo(() => [...matrix.substitutions.keys()], [matrix.substitutions]);
+
+export const useHeatmapColorMap = (
+  matrix: MutationMatrix,
+  isMutationScan: boolean,
+  dataSelection: DataInteractionReducerState,
+) =>
+  useMemo(() => {
+    const cmap = isMutationScan
+      ? colorMapFromNameOrList("viridis", -10, 0, false)
+      : colorMapFromNameOrList(
+          // [0x000000, 0x701069, 0x207fdf, 0x20c9df, 0xffd080,] as ColorListEntry[],
+          "blues",
+          0,
+          1,
+          true,
+        );
+
+    // only use last selected mutation position for now
+    const mutPos = new Set(
+      mutationsToMutatedPositions(dataSelection.mutations).slice(-1),
+    );
+
+    return (value: number | null, i?: number, _j?: number) => {
+      if (value === null) {
+        return "#aaaaaa";
+      } else {
+        const pos = matrix.indexToPositions.get(i!)!;
+        if (!isMutationScan && mutPos.has(pos)) {
+          // TODO: move to own function
+          const [r, g, b] = Color.toRgb(cmap(value!));
+          const grey = 0.299 * r + 0.587 * g + 0.114 * b;
+          return toHexString(Color.fromRgb(grey, grey, grey));
+        } else {
+          return toHexString(cmap(value!));
+        }
+      }
+    };
+  }, [isMutationScan, dataSelection, matrix]);
+
+export const useHeatmapCellSelections = (
+  matrix: MutationMatrix,
+  isMutationScan: boolean,
+  dataSelection: DataInteractionReducerState,
+) =>
+  useMemo(() => {
+    const sourceSelection = isMutationScan
+      ? dataSelection.instances
+      : dataSelection.mutations;
+
+    return [...sourceSelection].map((mutStr) => {
+      const mutDecoded = decodeMutation(mutStr);
+      return {
+        column: matrix.positions.get(
+          encodePosition({ entity: mutDecoded.entity, pos: mutDecoded.pos }),
+        ),
+        row: matrix.substitutions.get(mutDecoded.to)!,
+      } as CellCoords;
+    });
+  }, [matrix, dataSelection.mutations, dataSelection.instances]);
+
+// export const useHeatmapColumnSelections = (
+//   matrix: MutationMatrix,
+//   dataSelection: DataInteractionReducerState,
+// ) =>
+//   useMemo(() => {
+//     return [...dataSelection.positions].map(
+//       (posEnc) => matrix.positions.get(posEnc)!,
+//     );
+//   }, [matrix, dataSelection.positions]);

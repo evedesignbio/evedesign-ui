@@ -11,20 +11,11 @@ import {
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
 import { DEFAULT_STYLE, StructurePanel } from "../../features/structurepanel";
-import {
-  colorMapFromNameOrList,
-  PositionColorCallback,
-  toHexString,
-} from "../../utils/colormap.ts";
+import { PositionColorCallback } from "../../utils/colormap.ts";
 import { SiteHighlightTargetPos } from "../../features/structurepanel/data.ts";
-import { AutowrapHeatmap, CellCoords } from "../../components/autowrapheatmap";
+import { AutowrapHeatmap } from "../../components/autowrapheatmap";
 import "./viewer.css";
-import {
-  decodeMutation,
-  encodePosition,
-  useInstances,
-  useMatrix,
-} from "./data.ts";
+import { useInstances, useMatrix } from "./data.ts";
 import { InstanceTable } from "./table.tsx";
 import { useDisclosure } from "@mantine/hooks";
 import { DNAGenerationDialog } from "./dna.tsx";
@@ -32,20 +23,18 @@ import { BoxedLayout } from "./helpers.tsx";
 import {
   dataInteractionReducer,
   emptyDataInteractionState,
-  mutationsToMutatedPositions,
   useActiveInstances,
   useBasketInstances,
   useHeatmapClickHandler,
   useReset,
   useStructureClickHandler,
 } from "./reducers.ts";
-import { useMemo, useReducer, useState } from "react";
-import { Color } from "molstar/lib/mol-util/color";
-import toRgb = Color.toRgb;
-import fromRgb = Color.fromRgb;
+import { useReducer, useState } from "react";
 import {
   useAnnotationTracks,
   useHeatmapCellMarks,
+  useHeatmapCellSelections,
+  useHeatmapColorMap,
   useHeatmapYLabels,
   useLabelRenderer,
   useTooltipStyle,
@@ -147,67 +136,23 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     spec,
   );
   const heatmapYLabels = useHeatmapYLabels(matrix);
+  const heatmapColorMap = useHeatmapColorMap(
+    matrix,
+    isMutationScan,
+    dataSelection,
+  );
+
+  const heatmapCellSelections = useHeatmapCellSelections(
+    matrix,
+    isMutationScan,
+    dataSelection,
+  );
+
   const structureClickHandler = useStructureClickHandler(
     matrix,
     isMutationScan,
     dispatchDataSelection,
   );
-
-  // TODO: clean this up and derive heatmap properly
-  const heatmapColorMap = useMemo(() => {
-    const cmap = isMutationScan
-      ? colorMapFromNameOrList("viridis", -10, 0, false)
-      : colorMapFromNameOrList(
-          // [0x000000, 0x701069, 0x207fdf, 0x20c9df, 0xffd080,] as ColorListEntry[],
-          "blues",
-          0,
-          1,
-          true,
-        );
-
-    // only use last selected mutation position for now
-    const mutPos = new Set(
-      mutationsToMutatedPositions(dataSelection.mutations).slice(-1),
-    );
-
-    return (value: number | null, i?: number, _j?: number) => {
-      if (value === null) {
-        return "#aaaaaa";
-      } else {
-        const pos = matrix.indexToPositions.get(i!)!;
-        if (!isMutationScan && mutPos.has(pos)) {
-          // TODO: move to own function
-          const [r, g, b] = toRgb(cmap(value!));
-          const grey = 0.299 * r + 0.587 * g + 0.114 * b;
-          return toHexString(fromRgb(grey, grey, grey));
-        } else {
-          return toHexString(cmap(value!));
-        }
-      }
-    };
-  }, [isMutationScan, dataSelection, matrix]);
-
-  const heatmapCellSelections = useMemo(() => {
-    const sourceSelection = isMutationScan
-      ? dataSelection.instances
-      : dataSelection.mutations;
-
-    return [...sourceSelection].map((mutStr) => {
-      const mutDecoded = decodeMutation(mutStr);
-      return {
-        column: matrix.positions.get(
-          encodePosition({ entity: mutDecoded.entity, pos: mutDecoded.pos }),
-        ),
-        row: matrix.substitutions.get(mutDecoded.to)!,
-      } as CellCoords;
-    });
-  }, [matrix, dataSelection.mutations, dataSelection.instances]);
-
-  const heatmapColumnSelections = useMemo(() => {
-    return [...dataSelection.positions].map(
-      (posEnc) => matrix.positions.get(posEnc)!,
-    );
-  }, [matrix, dataSelection.positions]);
 
   const dnaModal = (
     <Modal
@@ -284,11 +229,11 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       tooltipStyle={heatmapTooltipStyle}
       selectedCells={heatmapCellSelections}
       markedCells={heatmapCellMarks}
-      selectedColumns={heatmapColumnSelections}
       scrollToElement={heatmapCellSelections.slice(-1)[0]?.column}
     />
   );
 
+  // TODO: factor this out into own component
   const menuPanel = (
     <>
       <Badge variant={"outline"}>
