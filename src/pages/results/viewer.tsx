@@ -131,6 +131,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     matrix,
     isMutationScan,
     dataSelection,
+    activeInstances,
   );
   const structureClickHandler = useStructureClickHandler(
     matrix,

@@ -40,8 +40,9 @@ import { PositionColorCallback } from "../../utils/colormap.ts";
 
 export const DEFAULT_STYLE: Representation[] = [
   {
-    component: "protein",
+    component: "protein",  // protein_calpha
     props: {
+      // type: "spacefill",
       type: "cartoon",
       color: "sequence-id",
       // color: "sequencemap-custom",
@@ -50,6 +51,9 @@ export const DEFAULT_STYLE: Representation[] = [
       //
       // color: "sequence-id",
       // colorParams: def,
+
+      // size: "uniform",
+      // sizeParams: { value: 1 },
     },
     // props: { type: "cartoon", color: "residue-id", colorParams: def },
   },

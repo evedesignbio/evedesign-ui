@@ -245,32 +245,33 @@ export const useHeatmapCellSelections = (
     });
   }, [matrix, dataSelection.mutations, dataSelection.instances]);
 
-const exampleSiteHighlights: SiteHighlightTargetPos[] = [
-  {
-    pos: 100,
-    representationId: "100_sphere",
-    props: {
-      type: "spacefill",
-      color: "uniform",
-      colorParams: { value: Color(0xfffff) },
-    },
-  },
-  {
-    pos: 50,
-    representationId: "50_sphere",
-    props: {
-      type: "spacefill",
-      color: "uniform",
-      colorParams: { value: Color(0xaaaaaa) },
-    },
-  },
-];
+// const exampleSiteHighlights: SiteHighlightTargetPos[] = [
+//   {
+//     pos: 100,
+//     representationId: "100_sphere",
+//     props: {
+//       type: "spacefill",
+//       color: "uniform",
+//       colorParams: { value: Color(0xfffff) },
+//     },
+//   },
+//   {
+//     pos: 50,
+//     representationId: "50_sphere",
+//     props: {
+//       type: "spacefill",
+//       color: "uniform",
+//       colorParams: { value: Color(0xaaaaaa) },
+//     },
+//   },
+// ];
 
 export const useStructureStyles = (
   _matrix: MutationMatrix,
   isMutationScan: boolean,
   dataSelection: DataInteractionReducerState,
-) => {
+  activeInstances: SystemInstanceSpecEnhanced[],
+): SiteHighlightTargetPos[] => {
   // show spheres for any clicked mutation (encoded by instances for mutation scan)
   const highlightPos = new Set(
     mutationsToMutatedPositions(
@@ -279,8 +280,7 @@ export const useStructureStyles = (
   );
 
   // discarding entity information here for now
-  // TODO: apply colors, with outside colormap?
-  return [...highlightPos].map((posEnc) => {
+  const selectedPosStyling = [...highlightPos].map((posEnc) => {
     const posDec = decodePosition(posEnc);
     return {
       pos: posDec.pos,
@@ -288,12 +288,25 @@ export const useStructureStyles = (
       props: {
         type: "spacefill",
         color: "uniform",
-        colorParams: { value: Color(0xaaaaaa) },
+        colorParams: { value: Color(0xaaaaaa) }, // TODO: apply colors, with outside colormap?
       },
     };
   });
 
+  // highlight changed positions as ball and sticks for single selected sequence
+  let mutatedPosStyling: SiteHighlightTargetPos[] = [];
+  if (!isMutationScan && dataSelection.instances.size === 1) {
+    mutatedPosStyling = activeInstances[0].mutant.map((mutation) => ({
+      pos: mutation.pos,
+      representationId: `${mutation.pos}_ballandstick`,
+      props: {
+        type: "ball-and-stick",
+        color: "uniform",
+        colorParams: { value: Color(0xaaaaaa) }, // TODO: apply colors, with outside colormap?
+      },
+    }));
+    console.log(mutatedPosStyling);
+  }
 
-
-  return exampleSiteHighlights;
+  return [...selectedPosStyling, ...mutatedPosStyling];
 };
