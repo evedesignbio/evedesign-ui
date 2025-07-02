@@ -20,6 +20,7 @@ import {
 } from "./reducers.ts";
 import { colorMapFromNameOrList, toHexString } from "../../utils/colormap.ts";
 import { Color } from "molstar/lib/mol-util/color";
+import { SiteHighlightTargetPos } from "../../features/structurepanel/data.ts";
 
 export const useAnnotationTracks = (matrix: MutationMatrix) => {
   return useMemo(
@@ -244,12 +245,55 @@ export const useHeatmapCellSelections = (
     });
   }, [matrix, dataSelection.mutations, dataSelection.instances]);
 
-// export const useHeatmapColumnSelections = (
-//   matrix: MutationMatrix,
-//   dataSelection: DataInteractionReducerState,
-// ) =>
-//   useMemo(() => {
-//     return [...dataSelection.positions].map(
-//       (posEnc) => matrix.positions.get(posEnc)!,
-//     );
-//   }, [matrix, dataSelection.positions]);
+const exampleSiteHighlights: SiteHighlightTargetPos[] = [
+  {
+    pos: 100,
+    representationId: "100_sphere",
+    props: {
+      type: "spacefill",
+      color: "uniform",
+      colorParams: { value: Color(0xfffff) },
+    },
+  },
+  {
+    pos: 50,
+    representationId: "50_sphere",
+    props: {
+      type: "spacefill",
+      color: "uniform",
+      colorParams: { value: Color(0xaaaaaa) },
+    },
+  },
+];
+
+export const useStructureStyles = (
+  _matrix: MutationMatrix,
+  isMutationScan: boolean,
+  dataSelection: DataInteractionReducerState,
+) => {
+  // show spheres for any clicked mutation (encoded by instances for mutation scan)
+  const highlightPos = new Set(
+    mutationsToMutatedPositions(
+      isMutationScan ? dataSelection.instances : dataSelection.mutations,
+    ),
+  );
+
+  // discarding entity information here for now
+  // TODO: apply colors, with outside colormap?
+  return [...highlightPos].map((posEnc) => {
+    const posDec = decodePosition(posEnc);
+    return {
+      pos: posDec.pos,
+      representationId: `${posDec.pos}_sphere`,
+      props: {
+        type: "spacefill",
+        color: "uniform",
+        colorParams: { value: Color(0xaaaaaa) },
+      },
+    };
+  });
+
+
+
+  return exampleSiteHighlights;
+};

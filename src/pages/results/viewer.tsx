@@ -12,7 +12,6 @@ import {
 } from "../../models/api.ts";
 import { DEFAULT_STYLE, StructurePanel } from "../../features/structurepanel";
 import { PositionColorCallback } from "../../utils/colormap.ts";
-import { SiteHighlightTargetPos } from "../../features/structurepanel/data.ts";
 import { AutowrapHeatmap } from "../../components/autowrapheatmap";
 import "./viewer.css";
 import { useInstances, useMatrix } from "./data.ts";
@@ -37,6 +36,7 @@ import {
   useHeatmapColorMap,
   useHeatmapYLabels,
   useLabelRenderer,
+  useStructureStyles,
   useTooltipStyle,
 } from "./elements.tsx";
 
@@ -56,27 +56,6 @@ const colorPos: PositionColorCallback = (pos: number | null) => {
     }
   }
 };
-
-const exampleSiteHighlights: SiteHighlightTargetPos[] = [
-  // {
-  //   pos: 100,
-  //   representationId: "100_sphere",
-  //   props: {
-  //     type: "spacefill",
-  //     color: "uniform",
-  //     colorParams: { value: Color(0xfffff) },
-  //   },
-  // },
-  // {
-  //   pos: 50,
-  //   representationId: "50_sphere",
-  //   props: {
-  //     type: "spacefill",
-  //     color: "uniform",
-  //     colorParams: { value: Color(0xaaaaaa) },
-  //   },
-  // },
-];
 
 export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   const [dnaOpen, { toggle: toggleDnaOpen }] = useDisclosure(false);
@@ -148,6 +127,11 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     dataSelection,
   );
 
+  const structureStyles = useStructureStyles(
+    matrix,
+    isMutationScan,
+    dataSelection,
+  );
   const structureClickHandler = useStructureClickHandler(
     matrix,
     isMutationScan,
@@ -205,7 +189,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       useStructureAssembly={true}
       handleClick={structureClickHandler}
       colorCallback={colorPos}
-      siteHighlights={exampleSiteHighlights}
+      siteHighlights={structureStyles}
     />
   );
 
