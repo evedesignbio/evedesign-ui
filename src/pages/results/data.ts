@@ -20,6 +20,8 @@ import {
   mutationsToMutatedPositions,
 } from "./reducers.ts";
 
+export type AggregationFunc = "avg" | "min" | "max";
+
 export const encodePosition = (pos: Position) => {
   return `${pos.entity}_${pos.pos}`;
 };
@@ -254,7 +256,9 @@ export const instancesToCountMatrix = (
       ]),
   );
 
-  const scores = [...posToIdx].map((_symbol) => Array(subsToIdx.size).fill(null));
+  const scores = [...posToIdx].map((_symbol) =>
+    Array(subsToIdx.size).fill(null),
+  );
 
   if (!isMutationScan) {
     // initialize count array to same length as number of designed positions
@@ -387,4 +391,97 @@ export const useMatrix = (
       );
     }
   }, [instances, designedPositions, spec, activeInstancesCond]);
+};
+
+/**
+ * Select data point corresponding to given percentile from mutation effect matrix
+ * @param mutations Mutation effect prediction matrices
+ * @param mutationPredictionType Selected prediction type
+ * @param percentile Percentile to determine for given selected prediction type
+ * @returns Data point corresponding to percentile
+ */
+export const effectPercentile = (
+  mutations: MutationMatrix,
+  mutationPredictionType: string,
+  percentile: number,
+): number => {
+  // extract relevant prediction matrix into flattened array without null elements (e.g. WT substitutions)
+  const matFlat = mutations.data[
+    mutations.names.get(mutationPredictionType)!
+  ]!.flat()
+    .filter((e) => e !== null)
+    .sort((a, b) => a! - b!);
+
+  // compute index of element corresponding to requested percentile
+  const elemIndex = Math.round(percentile * (matFlat.length - 1));
+  return matFlat[elemIndex]!;
+};
+
+/**
+ * Compute position-wise aggregation of mutation matrix for a selected submatrix
+ * @param mutations Mutation matrix to aggregate
+ * @param mutationPredictionType Submatrix to select
+ * @param aggFunc Aggregation function to apply on a position-wise basis
+ */
+export const aggregateMutationMatrix = (
+  mutations: MutationMatrix,
+  mutationPredictionType: string,
+  aggFunc: AggregationFunc,
+) => {
+  const matFilt = mutations.data[
+    mutations.names.get(mutationPredictionType)!
+  ]!.map((posVector) => posVector.filter((e) => e !== null));
+
+  // console.log("##### MATRIX FILT", matFilt);
+
+  // select aggregation function to apply to matrix
+  let aggMat: (number | null)[];
+  switch (aggFunc) {
+    case "avg":
+      aggMat = matFilt.map((posVec) =>
+        posVec.length === 0
+          ? null
+          : posVec.reduce((sum, x) => sum! + x!)! / posVec.length,
+      );
+      break;
+    case "min":
+      aggMat = matFilt.map((posVec) =>
+        posVec.length === 0 ? null : Math.min(...(posVec as number[])),
+      );
+      break;
+    case "max":
+      aggMat = matFilt.map((posVec) =>
+        posVec.length === 0 ? null : Math.max(...(posVec as number[])),
+      );
+      break;
+    default:
+      throw new Error("Invalid aggregation function selected");
+  }
+
+  return aggMat;
+};
+
+/**
+ * Get minimum and maximum value in data matrix
+ * @param mutations Full mutation matrix
+ * @param verifiedMutationPredictionType Currently selected prediction score
+ * @returns Object with min/max
+ */
+export const getDataRange = (
+  mutations: MutationMatrix,
+  verifiedMutationPredictionType: string,
+) => {
+  const minValue = effectPercentile(
+    mutations,
+    verifiedMutationPredictionType,
+    0,
+  );
+
+  const maxValue = effectPercentile(
+    mutations,
+    verifiedMutationPredictionType,
+    1,
+  );
+
+  return { minValue: minValue, maxValue };
 };

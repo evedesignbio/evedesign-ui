@@ -31,6 +31,7 @@ import {
 import { useReducer, useState } from "react";
 import {
   useAnnotationTracks,
+  useColorMap,
   useHeatmapCellMarks,
   useHeatmapCellSelections,
   useHeatmapColorMap,
@@ -98,6 +99,10 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     spec,
   );
 
+  // derive global colormap for heatmap / 3D structure coloring (individual colors will
+  // be derived from this intermediate object)
+  const { colorMap } = useColorMap(matrix, isMutationScan);
+
   const heatmapAnnotationTracks = useAnnotationTracks(matrix);
   const heatmapTooltipStyle = useTooltipStyle(computedColorScheme);
   const heatmapLabelRenderer = useLabelRenderer(matrix, isMutationScan);
@@ -119,6 +124,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     matrix,
     isMutationScan,
     dataSelection,
+    colorMap,
   );
 
   const heatmapCellSelections = useHeatmapCellSelections(

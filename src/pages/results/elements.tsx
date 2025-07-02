@@ -1,6 +1,9 @@
 import {
+  aggregateMutationMatrix,
+  AggregationFunc,
   decodeMutation,
   decodePosition,
+  effectPercentile,
   encodePosition,
   instancesToCountMatrix,
   MutationMatrix,
@@ -18,9 +21,39 @@ import {
   DataInteractionReducerState,
   mutationsToMutatedPositions,
 } from "./reducers.ts";
-import { colorMapFromNameOrList, toHexString } from "../../utils/colormap.ts";
+import {
+  ColorBarParams,
+  ColorBarSpec,
+  ColorMapBoundaryType,
+  ColorMapCallback,
+  colorMapFromNameOrList,
+  ColorMapParams,
+  toGrayScale,
+  toHexString,
+} from "../../utils/colormap.ts";
 import { Color } from "molstar/lib/mol-util/color";
 import { SiteHighlightTargetPos } from "../../features/structurepanel/data.ts";
+
+// Per-effect score visualization properties
+export interface ScoreParameters {
+  // name of score in data file
+  key: string;
+  // priority of score in automatic score selection (lower number is higher priority)
+  priority: number;
+  // display name of score
+  displayName: string;
+  // display group of score (used in score selection dialog)
+  group: string;
+  // colormap to use for visualization of score
+  colorMap?: ColorMapParams;
+  // if true, allow to override score-specific colormap with
+  // global default based on UI setting
+  allowDefaultColorMap: boolean;
+  // parameters for corresponding colobar
+  colorBar?: ColorBarParams;
+  // only show in expert mode?
+  expertModeOnly: boolean;
+}
 
 export const useAnnotationTracks = (matrix: MutationMatrix) => {
   return useMemo(
@@ -186,44 +219,6 @@ export const useHeatmapCellMarks = (
 export const useHeatmapYLabels = (matrix: MutationMatrix) =>
   useMemo(() => [...matrix.substitutions.keys()], [matrix.substitutions]);
 
-export const useHeatmapColorMap = (
-  matrix: MutationMatrix,
-  isMutationScan: boolean,
-  dataSelection: DataInteractionReducerState,
-) =>
-  useMemo(() => {
-    const cmap = isMutationScan
-      ? colorMapFromNameOrList("viridis", -10, 0, false)
-      : colorMapFromNameOrList(
-          // [0x000000, 0x701069, 0x207fdf, 0x20c9df, 0xffd080,] as ColorListEntry[],
-          "blues",
-          0,
-          1,
-          true,
-        );
-
-    // only use last selected mutation position for now
-    const mutPos = new Set(
-      mutationsToMutatedPositions(dataSelection.mutations).slice(-1),
-    );
-
-    return (value: number | null, i?: number, _j?: number) => {
-      if (value === null) {
-        return "#aaaaaa";
-      } else {
-        const pos = matrix.indexToPositions.get(i!)!;
-        if (!isMutationScan && mutPos.has(pos)) {
-          // TODO: move to own function
-          const [r, g, b] = Color.toRgb(cmap(value!));
-          const grey = 0.299 * r + 0.587 * g + 0.114 * b;
-          return toHexString(Color.fromRgb(grey, grey, grey));
-        } else {
-          return toHexString(cmap(value!));
-        }
-      }
-    };
-  }, [isMutationScan, dataSelection, matrix]);
-
 export const useHeatmapCellSelections = (
   matrix: MutationMatrix,
   isMutationScan: boolean,
@@ -310,3 +305,250 @@ export const useStructureStyles = (
 
   return [...selectedPosStyling, ...mutatedPosStyling];
 };
+
+/**
+ * Select one representative effect per position in the mutation matrix, either
+ * by aggregating values or selecting one global substitution
+ * @param mutations Full mutation matrix
+ * @param mutationPredictionType Selected submatrix
+ * @param aggFunc Aggregation function to apply
+ * @param substitution Selected global substitution, will override aggregation function if defined
+ * @returns Position-wise effect (aggregated or fixed substitution)
+ */
+export const computePositionEffect = (
+  mutations: MutationMatrix,
+  mutationPredictionType: string,
+  aggFunc: AggregationFunc,
+  substitution: string | undefined,
+) => {
+  // selected substitution overrides aggregation function
+  if (substitution) {
+    return mutations.data[mutations.names.get(mutationPredictionType)!]!.map(
+      (posVector) => posVector[mutations.substitutions.get(substitution)!],
+    );
+  } else {
+    return aggregateMutationMatrix(mutations, mutationPredictionType, aggFunc);
+  }
+};
+
+/**
+ * Derive colormap based on score specification
+ * @param mutations Full mutation matrix
+ * @param verifiedMutationPredictionType Currently selected prediction score
+ * @param defaultColorMap Default color map
+ * @param overrideWithDefault If true, override score-specific colormap with defaultColorMap
+ * @param scoreParams Prediction-score specific settings (used to extract score-specific colormap)
+ * @returns Mapping function from value to color
+ */
+export const deriveColorMap = (
+  mutations: MutationMatrix,
+  verifiedMutationPredictionType: string,
+  defaultColorMap: ColorMapParams,
+  overrideWithDefault = false,
+  scoreParams?: ScoreParameters[],
+) => {
+  // extract params for currently selected score (if available)
+  const selectedScoreParams = scoreParams
+    ?.filter((p) => p.key === verifiedMutationPredictionType)
+    .at(0);
+
+  const selectedColorMap =
+    selectedScoreParams && selectedScoreParams.colorMap && !overrideWithDefault
+      ? selectedScoreParams.colorMap
+      : defaultColorMap;
+
+  // helper function to avoid code repetition
+  const getBoundary = (boundaryType: ColorMapBoundaryType, boundary: number) =>
+    boundaryType === "fixed"
+      ? boundary
+      : effectPercentile(mutations, verifiedMutationPredictionType, boundary);
+
+  // derive colorbar information first, if settings for it are present
+  let colorBarSpec = undefined;
+  if (selectedColorMap.colorBarParams) {
+    if (
+      selectedColorMap.colorBarParams.maxBoundary === undefined ||
+      selectedColorMap.colorBarParams.maxBoundaryType === undefined ||
+      selectedColorMap.colorBarParams.minBoundary === undefined ||
+      selectedColorMap.colorBarParams.minBoundaryType === undefined
+    ) {
+      throw new Error("Colorbar specification is incomplete");
+    }
+
+    colorBarSpec = {
+      ...selectedColorMap.colorBarParams,
+      minBoundaryValue: getBoundary(
+        selectedColorMap.colorBarParams.minBoundaryType,
+        selectedColorMap.colorBarParams.minBoundary,
+      ),
+      maxBoundaryValue: getBoundary(
+        selectedColorMap.colorBarParams.maxBoundaryType,
+        selectedColorMap.colorBarParams.maxBoundary,
+      ),
+      // determine data min/max in any case
+      minDataValue: getBoundary("percentile", 0),
+      maxDataValue: getBoundary("percentile", 1),
+    } as ColorBarSpec;
+  }
+
+  // check if we got supplied with a mapping function or need to derive the colormap ourselves
+  if (typeof selectedColorMap.colorScale === "function") {
+    // if function, return right away (range etc. expected to be specified by user outisde)
+    return {
+      colorMap: selectedColorMap.colorScale,
+      colorBarSpec: colorBarSpec,
+    };
+  } else {
+    // check if all necessary attributes are defined
+    if (
+      selectedColorMap.maxBoundary === undefined ||
+      selectedColorMap.maxBoundaryType === undefined ||
+      selectedColorMap.minBoundary === undefined ||
+      selectedColorMap.minBoundaryType === undefined ||
+      selectedColorMap.invert === undefined
+    ) {
+      throw new Error("Colormap specification is incomplete");
+    }
+    // derive min/max values for color map range
+    const rangeMin = getBoundary(
+      selectedColorMap.minBoundaryType,
+      selectedColorMap.minBoundary,
+    );
+
+    const rangeMax = getBoundary(
+      selectedColorMap.maxBoundaryType,
+      selectedColorMap.maxBoundary,
+    );
+
+    // create colormap
+    return {
+      colorMap: colorMapFromNameOrList(
+        selectedColorMap.colorScale,
+        rangeMin,
+        rangeMax,
+        selectedColorMap.invert,
+      ),
+      colorBarSpec: colorBarSpec,
+    };
+  }
+};
+
+// useMemo(() => {
+//   const cmap = isMutationScan
+//       ? colorMapFromNameOrList("viridis", -10, 0, false)
+//       : colorMapFromNameOrList(
+//           // [0x000000, 0x701069, 0x207fdf, 0x20c9df, 0xffd080,] as ColorListEntry[],
+//           "blues",
+//           0,
+//           1,
+//           true,
+//       );
+//
+//   // only use last selected mutation position for now
+//   const mutPos = new Set(
+//       mutationsToMutatedPositions(dataSelection.mutations).slice(-1),
+//   );
+//
+//   return (value: number | null, i?: number, _j?: number) => {
+//     if (value === null) {
+//       return "#aaaaaa";
+//     } else {
+//       const pos = matrix.indexToPositions.get(i!)!;
+//       if (!isMutationScan && mutPos.has(pos)) {
+//         // TODO: move to own function
+//         const [r, g, b] = Color.toRgb(cmap(value!));
+//         const grey = 0.299 * r + 0.587 * g + 0.114 * b;
+//         return toHexString(Color.fromRgb(grey, grey, grey));
+//       } else {
+//         return toHexString(cmap(value!));
+//       }
+//     }
+//   };
+// }, [isMutationScan, dataSelection, matrix]);
+
+// default color map (if not specified on a per-score basis)
+const COLOR_MAP_SETTINGS_SCAN: ColorMapParams = {
+  colorScale: "viridis",
+  minBoundaryType: "percentile",
+  minBoundary: 0.05,
+  maxBoundaryType: "percentile",
+  maxBoundary: 0.95,
+  invert: false,
+  colorBarParams: {
+    minBoundaryType: "percentile",
+    minBoundary: 0.05,
+    maxBoundaryType: "percentile",
+    maxBoundary: 0.95,
+    displayDataRange: false,
+  },
+};
+
+const COLOR_MAP_SETTINGS_PIPELINE: ColorMapParams = {
+  colorScale: "blues",
+  minBoundaryType: "percentile",
+  minBoundary: 0.05,
+  maxBoundaryType: "percentile",
+  maxBoundary: 0.95,
+  invert: true,
+  colorBarParams: {
+    minBoundaryType: "percentile",
+    minBoundary: 0.05,
+    maxBoundaryType: "percentile",
+    maxBoundary: 0.95,
+    displayDataRange: false,
+  },
+};
+
+export const useColorMap = (
+  matrix: MutationMatrix,
+  isMutationScan: boolean,
+) => {
+  return useMemo(() => {
+    return deriveColorMap(
+      matrix,
+      isMutationScan ? "scores" : "freqs",
+      isMutationScan ? COLOR_MAP_SETTINGS_SCAN : COLOR_MAP_SETTINGS_PIPELINE,
+      false,
+      undefined, // specify this parameter to dynamically derive color map params from object
+    );
+  }, [matrix, isMutationScan]);
+};
+
+export const useHeatmapColorMap = (
+  matrix: MutationMatrix,
+  isMutationScan: boolean,
+  dataSelection: DataInteractionReducerState,
+  colorMapCallback: ColorMapCallback,
+) =>
+  // TODO: apply log for design runs?
+  useMemo(() => {
+    // only use last selected mutation position for now
+    const mutPos = new Set(
+      mutationsToMutatedPositions(dataSelection.mutations).slice(-1),
+    );
+
+    return (value: number | null, i?: number, _j?: number) => {
+      if (value === null) {
+        return "#aaaaaa";
+      } else {
+        const pos = matrix.indexToPositions.get(i!)!;
+        const color = colorMapCallback(value!);
+        if (!isMutationScan && mutPos.has(pos)) {
+          return toHexString(toGrayScale(color));
+        } else {
+          return toHexString(color);
+        }
+      }
+    };
+  }, [isMutationScan, dataSelection, matrix]);
+
+// // derive colormap for structure coloring
+// const structureColorMap = useMemo(() => {
+//   return getStructureColorMap(
+//       mutations,
+//       posEffect,
+//       structureSelection,
+//       colorMap,
+//       nullColorStructure
+//   );
+// }, [mutations, posEffect, structureSelection, colorMap, nullColorStructure]);

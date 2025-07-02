@@ -24,7 +24,7 @@ export type ColorMapScale = ColorMapCallback | ColorMapScaleNoFunction;
 export type ColorMapBoundaryType = "fixed" | "percentile";
 
 // colormap settings for default and per-score coloring
-export type ColorMapParams = {
+export interface ColorMapParams {
   colorScale: ColorMapScale;
   // following attributes not needed if specifying function (ColorMapCallback)
   minBoundaryType?: ColorMapBoundaryType;
@@ -33,22 +33,22 @@ export type ColorMapParams = {
   maxBoundary?: number;
   invert?: boolean;
   colorBarParams?: ColorBarParams;
-};
+}
 
-export type ColorBarParams = {
+export interface ColorBarParams {
   minBoundaryType: ColorMapBoundaryType;
   minBoundary: number;
   maxBoundaryType: ColorMapBoundaryType;
   maxBoundary: number;
   displayDataRange: boolean;
-};
+}
 
-export type ColorBarSpec = ColorBarParams & {
+export interface ColorBarSpec extends ColorBarParams {
   minBoundaryValue: number;
   maxBoundaryValue: number;
   minDataValue: number;
   maxDataValue: number;
-};
+}
 
 // for color options, see here: https://github.com/molstar/molstar/blob/908fff80419baa0dab12b17a1215c7d2f3e18243/src/mol-util/color/lists.ts
 export const colorMapFromNameOrList = (
@@ -90,4 +90,10 @@ export const highContrastColor = (
   var L = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
   return L > threshold ? darkColor : lightColor;
   // return L > 0.21 ? darkColor : lightColor;
+};
+
+export const toGrayScale = (color: Color): Color => {
+  const [r, g, b] = Color.toRgb(color);
+  const grey = 0.299 * r + 0.587 * g + 0.114 * b;
+  return Color.fromRgb(grey, grey, grey);
 };
