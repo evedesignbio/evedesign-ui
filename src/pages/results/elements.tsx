@@ -395,7 +395,7 @@ const COLOR_MAP_SETTINGS_PIPELINE: ColorMapParams = {
   minBoundaryType: "fixed",
   minBoundary: 0,
   maxBoundaryType: "fixed",
-  maxBoundary: 0.7,
+  maxBoundary: 1.0,
   invert: true,
   colorBarParams: {
     minBoundaryType: "percentile",
@@ -448,8 +448,6 @@ export const useHeatmapColorMap = (
     );
 
     return (value: number | null, i?: number, _j?: number) => {
-      // const valueTransformed = isMutationScan ? value : Math.log2(value + 0.0001);
-      // console.log(valueTransformed, Math.log2(0.0001));
       const valueTransformed = value!;
 
       const pos = matrix.indexToPositions.get(i!)!;
@@ -468,12 +466,29 @@ const reduceVector = (vec: number[], aggFunc: AggregationFunc) => {
   }
 
   switch (aggFunc) {
+    case "sum":
+      return vec.reduce((sum, x) => sum + x);
     case "avg":
       return vec.reduce((sum, x) => sum + x) / vec.length;
     case "min":
       return Math.min(...vec);
     case "max":
       return Math.max(...vec);
+    case "entropy":
+      // use same calculation (normalized case) as here:
+      // https://github.com/debbiemarkslab/EVcouplings/blob/75bfc9677fc9412ddb7089a9f26c7a01f65bfa12/evcouplings/utils/calculations.py#L11
+      //     X_ = X[X > 0]
+      //     H = -np.sum(X_ * np.log2(X_))
+      //
+      //     if normalize:
+      //         return 1 - (H / np.log2(len(X)))
+      //     else:
+      //         return H
+
+      // TODO: handle subset/single element case, just return x?
+      const X_ = vec.filter((x) => x > 0);
+      const H = -X_.map((x) => x * Math.log2(x)).reduce((sum, x) => sum + x);
+      return 1 - H / Math.log2(vec.length);
     default:
       throw new Error("Invalid aggregation function selected");
   }
@@ -484,7 +499,7 @@ export const aggregateMatrixToPositions = (
   matrixEntry: string,
   mutations: Set<string>,
   aggFunc: AggregationFunc,
-) => {
+): (number | null)[] => {
   const subMat = matrix.data[matrix.names.get(matrixEntry)!];
 
   // create mapping from position to any mutation filters to apply
@@ -504,8 +519,19 @@ export const aggregateMatrixToPositions = (
           acceptable.includes(matrix.indexToSubstitutions.get(symbolIdx)!),
       ) as number[];
     } else {
-      // otherwise only filter null values
-      posVecFilt = posVec.filter((value) => value !== null);
+      // in case of summation (only for frequencies), only use non-WT scores
+      if (aggFunc === "sum") {
+        posVecFilt = posVec.filter((value, symbolIdx) => {
+          const ref = matrix.ref.get(pos);
+          return (
+            value !== null &&
+            matrix.indexToSubstitutions.get(symbolIdx)! !== ref
+          );
+        }) as number[];
+      } else {
+        // otherwise only filter null values
+        posVecFilt = posVec.filter((value) => value !== null);
+      }
     }
 
     return reduceVector(posVecFilt, aggFunc);
@@ -527,7 +553,7 @@ export const useStructureStyles = (
       matrix,
       matrixEntry,
       isMutationScan ? dataSelection.instances : dataSelection.mutations,
-      isMutationScan ? "avg" : "avg",
+      isMutationScan ? "avg" : "sum",
     );
 
     // show spheres for any clicked mutation (encoded by instances for mutation scan)

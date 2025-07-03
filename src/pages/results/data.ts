@@ -20,7 +20,7 @@ import {
   mutationsToMutatedPositions,
 } from "./reducers.ts";
 
-export type AggregationFunc = "avg" | "min" | "max";
+export type AggregationFunc = "sum" | "avg" | "min" | "max" | "entropy";
 
 export const encodePosition = (pos: Position) => {
   return `${pos.entity}_${pos.pos}`;
