@@ -471,7 +471,15 @@ export const aggregateMatrixToPositions = (
   // TODO: apply log for design runs?
   // TODO: best way to average? how done for popEVE?
   // TODO: greying out last position?
-  return subMat.map((_posVec, posIdx) => posIdx / 263);
+  // TODO: need to filter positions
+  return subMat.map((_posVec, posIdx) => {
+    if (matrixEntry === "freqs") {
+      // console.log(posVec);
+      return 0;
+    } else {
+      return posIdx / 263;
+    }
+  });
 };
 
 export const useStructureStyles = (
@@ -482,7 +490,6 @@ export const useStructureStyles = (
   colorMapCallback: ColorMapCallbackWithNull,
 ) => {
   // compute positional averages of scores for coloring (all or subset of symbols)
-  // TODO: allow flexible aggregation type?
   const matrixEntry = isMutationScan ? "scores" : "freqs";
 
   const matrixAgg = aggregateMatrixToPositions(
@@ -498,7 +505,6 @@ export const useStructureStyles = (
     ),
   );
 
-  // TODO: need to average selection for color
   // discarding entity information here for now
   const selectedPosStyling = [...highlightPos].map((posEnc) => {
     const posDec = decodePosition(posEnc);
@@ -542,11 +548,16 @@ export const useStructureStyles = (
     if (pos === null) {
       return toHexString(colorMapCallback(null));
     } else {
-      // map position to matrix index
+      // position may be valid structure position but not a data position, so need to check here
+      // if position is present in data or return null color
       const posIdx = matrix.positions.get(
         encodePosition({ entity: 0, pos: pos }),
-      )!;
-      return toHexString(colorMapCallback(matrixAgg[posIdx]));
+      );
+      if (posIdx === undefined) {
+        return toHexString(colorMapCallback(null));
+      } else {
+        return toHexString(colorMapCallback(matrixAgg[posIdx]));
+      }
     }
   };
 

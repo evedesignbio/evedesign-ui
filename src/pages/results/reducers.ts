@@ -386,9 +386,14 @@ export const useStructureClickHandler = (
         _ai: AtomInfo[],
       ) => {
         if (pos !== null) {
+          // positions in structure may not be included in matrix, so need to check first if covered
+          const posEnc = encodePosition({ entity: 0, pos: pos });
+          if (!matrix.positions.has(posEnc)) {
+            return;
+          }
           const payload = positionSelectionPayload(
             matrix,
-            encodePosition({ entity: 0, pos: pos }),
+            posEnc,
             isMutationScan,
             modifiers,
             "STRUCTURE",
@@ -446,7 +451,9 @@ export const useHeatmapClickHandler = (
             });
           }
         } else if (locationType === "annotation") {
-          const posMapped = matrix.indexToPositions.get(payload.column)!;
+          const posMapped = matrix.indexToPositions.get(payload.column);
+          // should not happen here as we are only rendering defined positions
+          if (posMapped === undefined) return;
           const posPayload = positionSelectionPayload(
             matrix,
             posMapped,
