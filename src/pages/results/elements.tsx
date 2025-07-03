@@ -20,6 +20,7 @@ import {
 import {
   DataInteractionReducerState,
   mutationsToMutatedPositions,
+  mutationsToPosMap,
 } from "./reducers.ts";
 import {
   ColorBarParams,
@@ -374,7 +375,7 @@ const COLOR_MAP_SETTINGS_SCAN: ColorMapParams = {
   minBoundaryType: "percentile",
   minBoundary: 0.05,
   maxBoundaryType: "percentile",
-  maxBoundary: 0.95,
+  maxBoundary: 0.99,
   invert: false,
   colorBarParams: {
     minBoundaryType: "percentile",
@@ -461,24 +462,59 @@ export const useHeatmapColorMap = (
     };
   }, [isMutationScan, dataSelection, matrix]);
 
+const reduceVector = (vec: number[], aggFunc: AggregationFunc) => {
+  if (vec.length === 0) {
+    return null;
+  }
+
+  switch (aggFunc) {
+    case "avg":
+      return vec.reduce((sum, x) => sum + x) / vec.length;
+    case "min":
+      return Math.min(...vec);
+    case "max":
+      return Math.max(...vec);
+    default:
+      throw new Error("Invalid aggregation function selected");
+  }
+};
+
 export const aggregateMatrixToPositions = (
   matrix: MutationMatrix,
   matrixEntry: string,
-  _dataSelection: DataInteractionReducerState,
+  mutations: Set<string>,
+  aggFunc: AggregationFunc,
 ) => {
   const subMat = matrix.data[matrix.names.get(matrixEntry)!];
-  // TODO: skip na values
-  // TODO: apply log for design runs?
-  // TODO: best way to average? how done for popEVE?
-  // TODO: greying out last position?
-  // TODO: need to filter positions
-  return subMat.map((_posVec, posIdx) => {
-    if (matrixEntry === "freqs") {
-      // console.log(posVec);
-      return 0;
+
+  // create mapping from position to any mutation filters to apply
+  const slicedPos = mutationsToPosMap(mutations);
+
+  console.log("POSMAP", slicedPos); // TODO: remove
+
+  // TODO: allow different aggregations to be calculated (min/max/mean)
+  // TODO: apply log for design runs? (make different agg type "entropy")
+
+  return subMat.map((posVec, posIdx) => {
+    // get full position info corresponding to index
+    const pos = matrix.indexToPositions.get(posIdx)!;
+
+    let posVecFilt: number[];
+    if (slicedPos.has(pos)) {
+      const acceptable = slicedPos.get(pos)!;
+      // filter vector down to selected symbols and non-null entries
+      posVecFilt = posVec.filter(
+        (value, symbolIdx) =>
+          value !== null &&
+          acceptable.includes(matrix.indexToSubstitutions.get(symbolIdx)!),
+      ) as number[];
+      console.log("FILTERED", pos, posVecFilt, acceptable); // TODO: remove
     } else {
-      return posIdx / 263;
+      // otherwise only filter null values
+      posVecFilt = posVec.filter((value) => value !== null);
     }
+
+    return reduceVector(posVecFilt, aggFunc);
   });
 };
 
@@ -489,83 +525,101 @@ export const useStructureStyles = (
   activeInstances: SystemInstanceSpecEnhanced[],
   colorMapCallback: ColorMapCallbackWithNull,
 ) => {
-  // compute positional averages of scores for coloring (all or subset of symbols)
-  const matrixEntry = isMutationScan ? "scores" : "freqs";
+  return useMemo(() => {
+    // compute positional averages of scores for coloring (all or subset of symbols)
+    const matrixEntry = isMutationScan ? "scores" : "freqs";
 
-  const matrixAgg = aggregateMatrixToPositions(
-    matrix,
-    matrixEntry,
-    dataSelection,
-  );
-
-  // show spheres for any clicked mutation (encoded by instances for mutation scan)
-  const highlightPos = new Set(
-    mutationsToMutatedPositions(
+    const matrixAgg = aggregateMatrixToPositions(
+      matrix,
+      matrixEntry,
       isMutationScan ? dataSelection.instances : dataSelection.mutations,
-    ),
-  );
+      isMutationScan ? "avg" : "avg",
+    );
 
-  // discarding entity information here for now
-  const selectedPosStyling = [...highlightPos].map((posEnc) => {
-    const posDec = decodePosition(posEnc);
-    return {
-      pos: posDec.pos,
-      representationId: `${posDec.pos}_sphere`,
-      props: {
-        type: "spacefill",
-        color: "uniform",
-        colorParams: {
-          value: colorMapCallback(matrixAgg[matrix.positions.get(posEnc)!]),
+    // show spheres for any clicked mutation (encoded by instances for mutation scan)
+    const highlightPos = new Set(
+      mutationsToMutatedPositions(
+        isMutationScan ? dataSelection.instances : dataSelection.mutations,
+      ),
+    );
+
+    // TODO: grey out last selected pos?
+
+    // discarding entity information here for now
+    const selectedPosStyling = [...highlightPos].map((posEnc) => {
+      const posDec = decodePosition(posEnc);
+      const color = colorMapCallback(matrixAgg[matrix.positions.get(posEnc)!]);
+      return {
+        pos: posDec.pos,
+        representationId: `${posDec.pos}_sphere_${toHexString(color)}`,
+        props: {
+          type: "spacefill",
+          color: "uniform",
+          colorParams: {
+            value: color,
+          },
         },
-      },
-    };
-  });
+      };
+    });
 
-  // highlight changed positions as ball and sticks for single selected sequence
-  let mutatedPosStyling: SiteHighlightTargetPos[] = [];
-  if (!isMutationScan && dataSelection.instances.size === 1) {
-    mutatedPosStyling = activeInstances[0].mutant.map((mutation) => ({
-      pos: mutation.pos,
-      representationId: `${mutation.pos}_ballandstick`,
-      props: {
-        type: "ball-and-stick",
-        color: "uniform",
-        colorParams: {
-          value: colorMapCallback(
-            matrixAgg[
-              matrix.positions.get(
-                encodePosition({ entity: mutation.entity, pos: mutation.pos }),
-              )!
-            ],
-          ),
-        },
-      },
-    }));
-  }
+    // highlight changed positions as ball and sticks for single selected sequence
+    let mutatedPosStyling: SiteHighlightTargetPos[] = [];
+    if (!isMutationScan && dataSelection.instances.size === 1) {
+      mutatedPosStyling = activeInstances[0].mutant.map((mutation) => {
+        const color = colorMapCallback(
+          matrixAgg[
+            matrix.positions.get(
+              encodePosition({
+                entity: mutation.entity,
+                pos: mutation.pos,
+              }),
+            )!
+          ],
+        );
+        return {
+          pos: mutation.pos,
+          representationId: `${mutation.pos}_ballandstick_${toHexString(color)}`,
+          props: {
+            type: "ball-and-stick",
+            color: "uniform",
+            colorParams: {
+              value: color,
+            },
+          },
+        };
+      });
+    }
 
-  // note that pos parameter for structure colormap callbcak currently implies entity == 0
-  const colorMap = (pos: number | null) => {
-    if (pos === null) {
-      return toHexString(colorMapCallback(null));
-    } else {
-      // position may be valid structure position but not a data position, so need to check here
-      // if position is present in data or return null color
-      const posIdx = matrix.positions.get(
-        encodePosition({ entity: 0, pos: pos }),
-      );
-      if (posIdx === undefined) {
+    // note that pos parameter for structure colormap callbcak currently implies entity == 0
+    const colorMap = (pos: number | null) => {
+      if (pos === null) {
         return toHexString(colorMapCallback(null));
       } else {
-        return toHexString(colorMapCallback(matrixAgg[posIdx]));
+        // position may be valid structure position but not a data position, so need to check here
+        // if position is present in data or return null color
+        const posIdx = matrix.positions.get(
+          encodePosition({ entity: 0, pos: pos }),
+        );
+        if (posIdx === undefined) {
+          return toHexString(colorMapCallback(null));
+        } else {
+          return toHexString(colorMapCallback(matrixAgg[posIdx]));
+        }
       }
-    }
-  };
+    };
 
-  return {
-    siteHighlights: [
-      ...selectedPosStyling,
-      ...mutatedPosStyling,
-    ] as SiteHighlightTargetPos[],
-    structureColorMap: colorMap,
-  };
+    return {
+      siteHighlights: [
+        ...selectedPosStyling,
+        ...mutatedPosStyling,
+      ] as SiteHighlightTargetPos[],
+      structureColorMap: colorMap,
+    };
+  }, [
+    matrix,
+    isMutationScan,
+    dataSelection,
+    activeInstances,
+    colorMapCallback,
+  ]);
 };

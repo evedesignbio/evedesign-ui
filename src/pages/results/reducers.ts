@@ -490,3 +490,17 @@ export const mutationsToMutatedPositions = (mutations: Set<string>): string[] =>
     });
     return posEnc;
   });
+
+export const mutationsToPosMap = (mutations: Set<string>) => {
+  const posMap = new Map<string, string[]>();
+  mutations.forEach((mutEnc) => {
+    const mutDec = decodeMutation(mutEnc);
+    const posEnc = encodePosition(mutDec);
+    if (!posMap.has(posEnc)) {
+      posMap.set(posEnc, [mutDec.to]);
+    } else {
+      posMap.get(posEnc)!.push(mutDec.to);
+    }
+  });
+  return posMap;
+};
