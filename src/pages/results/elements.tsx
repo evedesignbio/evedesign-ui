@@ -490,11 +490,6 @@ export const aggregateMatrixToPositions = (
   // create mapping from position to any mutation filters to apply
   const slicedPos = mutationsToPosMap(mutations);
 
-  console.log("POSMAP", slicedPos); // TODO: remove
-
-  // TODO: allow different aggregations to be calculated (min/max/mean)
-  // TODO: apply log for design runs? (make different agg type "entropy")
-
   return subMat.map((posVec, posIdx) => {
     // get full position info corresponding to index
     const pos = matrix.indexToPositions.get(posIdx)!;
@@ -508,7 +503,6 @@ export const aggregateMatrixToPositions = (
           value !== null &&
           acceptable.includes(matrix.indexToSubstitutions.get(symbolIdx)!),
       ) as number[];
-      console.log("FILTERED", pos, posVecFilt, acceptable); // TODO: remove
     } else {
       // otherwise only filter null values
       posVecFilt = posVec.filter((value) => value !== null);
@@ -543,12 +537,19 @@ export const useStructureStyles = (
       ),
     );
 
-    // TODO: grey out last selected pos?
+    // grey out last selected position for mutation selection (not in single mutation scan)
+    // grey out last selected pos? - but looks confusing in grey
+    // const lastMutPos = new Set(
+    //     mutationsToMutatedPositions(dataSelection.mutations).slice(-1),
+    // );
 
     // discarding entity information here for now
     const selectedPosStyling = [...highlightPos].map((posEnc) => {
       const posDec = decodePosition(posEnc);
-      const color = colorMapCallback(matrixAgg[matrix.positions.get(posEnc)!]);
+      let color = colorMapCallback(matrixAgg[matrix.positions.get(posEnc)!]);
+      // if (lastMutPos.has(posEnc)) {
+      //   color = toGrayScale(color);
+      // }
       return {
         pos: posDec.pos,
         representationId: `${posDec.pos}_sphere_${toHexString(color)}`,
