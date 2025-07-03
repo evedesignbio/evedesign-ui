@@ -44,6 +44,7 @@ export const InstanceTable = ({
   // TODO: prop whether to show mutants or sequence of designed positions (with ellipsis)
   // TODO: implement selection of range of designs with shift key (all up or down from last selection)
   // TODO: implement scrolling to selected designs when resetting displayed designs
+  // TODO: show design count (if multiple occurrences)=
 
   // handle for imperative scrolling
   const virtuoso = useRef<TableVirtuosoHandle>(null);

@@ -14,6 +14,8 @@ import {
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
 import { validTranslation } from "../../utils/bio.ts";
+import { SystemInstanceSpecEnhanced } from "../../models/design.ts";
+import { download } from "../../utils/download.ts";
 
 const SCORE_NUM_DIGITS = 3;
 
@@ -176,4 +178,36 @@ export const useDownloadButton = (
       </Button>
     );
   }, [results, format, id]);
+};
+
+export const downloadInstances = (
+  enhancedInstances: SystemInstanceSpecEnhanced[],
+  basket: Set<String>,
+  fileName: string,
+  format: "csv" | "fasta",
+) => {
+  // filter instances to basket selection
+  const instFilt = enhancedInstances.filter((inst) => basket.has(inst.id));
+
+  let dataOut = "";
+  if (format === "csv") {
+    dataOut = instFilt
+      .map(
+        (x) =>
+          `${x.id},${x.score?.toFixed(SCORE_NUM_DIGITS)},${x.entity_instances[0].rep}`,
+      )
+      .join("\n");
+    dataOut = "id,score,sequence\n" + dataOut;
+  } else if (format === "fasta") {
+    dataOut = instFilt
+      .map(
+        (x) =>
+          `>${x.id} score=${x.score?.toFixed(SCORE_NUM_DIGITS)}\n${x.entity_instances[0].rep}\n`,
+      )
+      .join("");
+  } else {
+    throw new Error("Unsupported format");
+  }
+
+  download(dataOut, `${fileName}.${format}`, "text/plain");
 };
