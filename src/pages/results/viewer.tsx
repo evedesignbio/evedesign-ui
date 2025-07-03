@@ -11,7 +11,6 @@ import {
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
 import { DEFAULT_STYLE, StructurePanel } from "../../features/structurepanel";
-import { PositionColorCallback } from "../../utils/colormap.ts";
 import { AutowrapHeatmap } from "../../components/autowrapheatmap";
 import "./viewer.css";
 import { useInstances, useMatrix } from "./data.ts";
@@ -46,17 +45,7 @@ export interface AnalysisViewerProps {
   results: PipelineApiResult | SingleMutationScanApiResult;
 }
 
-const colorPos: PositionColorCallback = (pos: number | null) => {
-  if (pos === null) {
-    return "#aaaaaa";
-  } else {
-    if (pos > 30) {
-      return "#ff0000";
-    } else {
-      return "#00ff00";
-    }
-  }
-};
+const NA_COLOR = 0xaaaaaa;
 
 export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   const [dnaOpen, { toggle: toggleDnaOpen }] = useDisclosure(false);
@@ -101,7 +90,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
 
   // derive global colormap for heatmap / 3D structure coloring (individual colors will
   // be derived from this intermediate object)
-  const { colorMap } = useColorMap(matrix, isMutationScan);
+  const { colorMap } = useColorMap(matrix, isMutationScan, NA_COLOR);
 
   const heatmapAnnotationTracks = useAnnotationTracks(matrix);
   const heatmapTooltipStyle = useTooltipStyle(computedColorScheme);
@@ -133,12 +122,14 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     dataSelection,
   );
 
-  const structureStyles = useStructureStyles(
+  const { structureColorMap, siteHighlights } = useStructureStyles(
     matrix,
     isMutationScan,
     dataSelection,
     activeInstances,
+    colorMap,
   );
+
   const structureClickHandler = useStructureClickHandler(
     matrix,
     isMutationScan,
@@ -195,8 +186,8 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       useFullStructureModel={true}
       useStructureAssembly={true}
       handleClick={structureClickHandler}
-      colorCallback={colorPos}
-      siteHighlights={structureStyles}
+      colorCallback={structureColorMap}
+      siteHighlights={siteHighlights}
     />
   );
 

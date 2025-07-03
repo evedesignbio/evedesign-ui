@@ -44,8 +44,8 @@ export const DEFAULT_STYLE: Representation[] = [
     props: {
       // type: "spacefill",
       type: "cartoon",
-      color: "sequence-id",
-      // color: "sequencemap-custom",
+      // color: "sequence-id",
+      color: "sequencemap-custom",
       // color: "secondary-structure",
       // colorParams: { default: Color(0xff0000) },
       //
@@ -184,6 +184,7 @@ export const StructurePanel = ({
         ref={molstarRef}
         getData={mappingExtractor}
         handleClick={molstarClickHandler}
+        // handleHover={(x) => console.log(x)}
         colorMap={molstarColorMap}
       />
       {overlay}

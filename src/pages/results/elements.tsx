@@ -26,13 +26,14 @@ import {
   ColorBarSpec,
   ColorMapBoundaryType,
   ColorMapCallback,
+  ColorMapCallbackWithNull,
   colorMapFromNameOrList,
   ColorMapParams,
   toGrayScale,
   toHexString,
 } from "../../utils/colormap.ts";
-import { Color } from "molstar/lib/mol-util/color";
 import { SiteHighlightTargetPos } from "../../features/structurepanel/data.ts";
+import { Color } from "molstar/lib/mol-util/color";
 
 // Per-effect score visualization properties
 export interface ScoreParameters {
@@ -240,72 +241,6 @@ export const useHeatmapCellSelections = (
     });
   }, [matrix, dataSelection.mutations, dataSelection.instances]);
 
-// const exampleSiteHighlights: SiteHighlightTargetPos[] = [
-//   {
-//     pos: 100,
-//     representationId: "100_sphere",
-//     props: {
-//       type: "spacefill",
-//       color: "uniform",
-//       colorParams: { value: Color(0xfffff) },
-//     },
-//   },
-//   {
-//     pos: 50,
-//     representationId: "50_sphere",
-//     props: {
-//       type: "spacefill",
-//       color: "uniform",
-//       colorParams: { value: Color(0xaaaaaa) },
-//     },
-//   },
-// ];
-
-export const useStructureStyles = (
-  _matrix: MutationMatrix,
-  isMutationScan: boolean,
-  dataSelection: DataInteractionReducerState,
-  activeInstances: SystemInstanceSpecEnhanced[],
-): SiteHighlightTargetPos[] => {
-  // show spheres for any clicked mutation (encoded by instances for mutation scan)
-  const highlightPos = new Set(
-    mutationsToMutatedPositions(
-      isMutationScan ? dataSelection.instances : dataSelection.mutations,
-    ),
-  );
-
-  // discarding entity information here for now
-  const selectedPosStyling = [...highlightPos].map((posEnc) => {
-    const posDec = decodePosition(posEnc);
-    return {
-      pos: posDec.pos,
-      representationId: `${posDec.pos}_sphere`,
-      props: {
-        type: "spacefill",
-        color: "uniform",
-        colorParams: { value: Color(0xaaaaaa) }, // TODO: apply colors, with outside colormap?
-      },
-    };
-  });
-
-  // highlight changed positions as ball and sticks for single selected sequence
-  let mutatedPosStyling: SiteHighlightTargetPos[] = [];
-  if (!isMutationScan && dataSelection.instances.size === 1) {
-    mutatedPosStyling = activeInstances[0].mutant.map((mutation) => ({
-      pos: mutation.pos,
-      representationId: `${mutation.pos}_ballandstick`,
-      props: {
-        type: "ball-and-stick",
-        color: "uniform",
-        colorParams: { value: Color(0xaaaaaa) }, // TODO: apply colors, with outside colormap?
-      },
-    }));
-    console.log(mutatedPosStyling);
-  }
-
-  return [...selectedPosStyling, ...mutatedPosStyling];
-};
-
 /**
  * Select one representative effect per position in the mutation matrix, either
  * by aggregating values or selecting one global substitution
@@ -433,39 +368,6 @@ export const deriveColorMap = (
   }
 };
 
-// useMemo(() => {
-//   const cmap = isMutationScan
-//       ? colorMapFromNameOrList("viridis", -10, 0, false)
-//       : colorMapFromNameOrList(
-//           // [0x000000, 0x701069, 0x207fdf, 0x20c9df, 0xffd080,] as ColorListEntry[],
-//           "blues",
-//           0,
-//           1,
-//           true,
-//       );
-//
-//   // only use last selected mutation position for now
-//   const mutPos = new Set(
-//       mutationsToMutatedPositions(dataSelection.mutations).slice(-1),
-//   );
-//
-//   return (value: number | null, i?: number, _j?: number) => {
-//     if (value === null) {
-//       return "#aaaaaa";
-//     } else {
-//       const pos = matrix.indexToPositions.get(i!)!;
-//       if (!isMutationScan && mutPos.has(pos)) {
-//         // TODO: move to own function
-//         const [r, g, b] = Color.toRgb(cmap(value!));
-//         const grey = 0.299 * r + 0.587 * g + 0.114 * b;
-//         return toHexString(Color.fromRgb(grey, grey, grey));
-//       } else {
-//         return toHexString(cmap(value!));
-//       }
-//     }
-//   };
-// }, [isMutationScan, dataSelection, matrix]);
-
 // default color map (if not specified on a per-score basis)
 const COLOR_MAP_SETTINGS_SCAN: ColorMapParams = {
   colorScale: "viridis",
@@ -485,10 +387,14 @@ const COLOR_MAP_SETTINGS_SCAN: ColorMapParams = {
 
 const COLOR_MAP_SETTINGS_PIPELINE: ColorMapParams = {
   colorScale: "blues",
-  minBoundaryType: "percentile",
-  minBoundary: 0.05,
-  maxBoundaryType: "percentile",
-  maxBoundary: 0.95,
+  // minBoundaryType: "percentile",
+  // minBoundary: 0.05,
+  // maxBoundaryType: "percentile",
+  // maxBoundary: 0.95,
+  minBoundaryType: "fixed",
+  minBoundary: 0,
+  maxBoundaryType: "fixed",
+  maxBoundary: 0.7,
   invert: true,
   colorBarParams: {
     minBoundaryType: "percentile",
@@ -502,15 +408,28 @@ const COLOR_MAP_SETTINGS_PIPELINE: ColorMapParams = {
 export const useColorMap = (
   matrix: MutationMatrix,
   isMutationScan: boolean,
+  naColor: number,
 ) => {
   return useMemo(() => {
-    return deriveColorMap(
+    const { colorMap, colorBarSpec } = deriveColorMap(
       matrix,
       isMutationScan ? "scores" : "freqs",
       isMutationScan ? COLOR_MAP_SETTINGS_SCAN : COLOR_MAP_SETTINGS_PIPELINE,
       false,
       undefined, // specify this parameter to dynamically derive color map params from object
     );
+
+    return {
+      // wrap for null/NA value handling
+      colorMap: ((value: number | null): Color => {
+        if (value === null) {
+          return Color(naColor);
+        } else {
+          return colorMap(value);
+        }
+      }) as ColorMapCallbackWithNull,
+      colorBarSpec: colorBarSpec,
+    };
   }, [matrix, isMutationScan]);
 };
 
@@ -528,27 +447,114 @@ export const useHeatmapColorMap = (
     );
 
     return (value: number | null, i?: number, _j?: number) => {
-      if (value === null) {
-        return "#aaaaaa";
+      // const valueTransformed = isMutationScan ? value : Math.log2(value + 0.0001);
+      // console.log(valueTransformed, Math.log2(0.0001));
+      const valueTransformed = value!;
+
+      const pos = matrix.indexToPositions.get(i!)!;
+      const color = colorMapCallback(valueTransformed!);
+      if (!isMutationScan && mutPos.has(pos)) {
+        return toHexString(toGrayScale(color));
       } else {
-        const pos = matrix.indexToPositions.get(i!)!;
-        const color = colorMapCallback(value!);
-        if (!isMutationScan && mutPos.has(pos)) {
-          return toHexString(toGrayScale(color));
-        } else {
-          return toHexString(color);
-        }
+        return toHexString(color);
       }
     };
   }, [isMutationScan, dataSelection, matrix]);
 
-// // derive colormap for structure coloring
-// const structureColorMap = useMemo(() => {
-//   return getStructureColorMap(
-//       mutations,
-//       posEffect,
-//       structureSelection,
-//       colorMap,
-//       nullColorStructure
-//   );
-// }, [mutations, posEffect, structureSelection, colorMap, nullColorStructure]);
+export const aggregateMatrixToPositions = (
+  matrix: MutationMatrix,
+  matrixEntry: string,
+  _dataSelection: DataInteractionReducerState,
+) => {
+  const subMat = matrix.data[matrix.names.get(matrixEntry)!];
+  // TODO: skip na values
+  // TODO: apply log for design runs?
+  // TODO: best way to average? how done for popEVE?
+  // TODO: greying out last position?
+  return subMat.map((_posVec, posIdx) => posIdx / 263);
+};
+
+export const useStructureStyles = (
+  matrix: MutationMatrix,
+  isMutationScan: boolean,
+  dataSelection: DataInteractionReducerState,
+  activeInstances: SystemInstanceSpecEnhanced[],
+  colorMapCallback: ColorMapCallbackWithNull,
+) => {
+  // compute positional averages of scores for coloring (all or subset of symbols)
+  // TODO: allow flexible aggregation type?
+  const matrixEntry = isMutationScan ? "scores" : "freqs";
+
+  const matrixAgg = aggregateMatrixToPositions(
+    matrix,
+    matrixEntry,
+    dataSelection,
+  );
+
+  // show spheres for any clicked mutation (encoded by instances for mutation scan)
+  const highlightPos = new Set(
+    mutationsToMutatedPositions(
+      isMutationScan ? dataSelection.instances : dataSelection.mutations,
+    ),
+  );
+
+  // TODO: need to average selection for color
+  // discarding entity information here for now
+  const selectedPosStyling = [...highlightPos].map((posEnc) => {
+    const posDec = decodePosition(posEnc);
+    return {
+      pos: posDec.pos,
+      representationId: `${posDec.pos}_sphere`,
+      props: {
+        type: "spacefill",
+        color: "uniform",
+        colorParams: {
+          value: colorMapCallback(matrixAgg[matrix.positions.get(posEnc)!]),
+        },
+      },
+    };
+  });
+
+  // highlight changed positions as ball and sticks for single selected sequence
+  let mutatedPosStyling: SiteHighlightTargetPos[] = [];
+  if (!isMutationScan && dataSelection.instances.size === 1) {
+    mutatedPosStyling = activeInstances[0].mutant.map((mutation) => ({
+      pos: mutation.pos,
+      representationId: `${mutation.pos}_ballandstick`,
+      props: {
+        type: "ball-and-stick",
+        color: "uniform",
+        colorParams: {
+          value: colorMapCallback(
+            matrixAgg[
+              matrix.positions.get(
+                encodePosition({ entity: mutation.entity, pos: mutation.pos }),
+              )!
+            ],
+          ),
+        },
+      },
+    }));
+  }
+
+  // note that pos parameter for structure colormap callbcak currently implies entity == 0
+  const colorMap = (pos: number | null) => {
+    if (pos === null) {
+      return toHexString(colorMapCallback(null));
+    } else {
+      // map position to matrix index
+      const posIdx = matrix.positions.get(
+        encodePosition({ entity: 0, pos: pos }),
+      )!;
+      return toHexString(colorMapCallback(matrixAgg[posIdx]));
+    }
+  };
+
+  return {
+    siteHighlights: [
+      ...selectedPosStyling,
+      ...mutatedPosStyling,
+    ] as SiteHighlightTargetPos[],
+    structureColorMap: colorMap,
+  };
+};
