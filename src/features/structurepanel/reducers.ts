@@ -199,6 +199,7 @@ export const createMolstarClickHandler = (
     buttons: number,
     atomInfo: AtomInfo[],
   ) => void,
+  ignoreEmpty: boolean = true,
 ) => {
   if (!structureMap || !handleClick) {
     return undefined;
@@ -212,7 +213,13 @@ export const createMolstarClickHandler = (
     buttons,
   }: MolstarEventHandlerArgs) => {
     // guard clauses so we don't process any invalid input (shouldn't happen)
-    if (atomInfo.length === 0) return;
+    if (atomInfo.length === 0) {
+      if (!ignoreEmpty) {
+        handleClick(null, modifiers, button, buttons, atomInfo);
+      }
+      return;
+    }
+
     const info = atomInfo[0];
     if (!info.inputStructureId || !structureMap.has(info.inputStructureId))
       return;

@@ -35,6 +35,7 @@ import {
 } from "../../utils/colormap.ts";
 import { SiteHighlightTargetPos } from "../../features/structurepanel/data.ts";
 import { Color } from "molstar/lib/mol-util/color";
+import { PosAndAtomInfo } from "../../features/structurepanel";
 
 // Per-effect score visualization properties
 export interface ScoreParameters {
@@ -650,3 +651,19 @@ export const useStructureStyles = (
     colorMapCallback,
   ]);
 };
+
+export const useStructureHoverLabelRenderer = (matrix: MutationMatrix) =>
+  useMemo(() => {
+    return (x: PosAndAtomInfo) => (
+      <div style={{ position: "absolute", top: "20px", left: "20px" }}>
+        <Stack gap={0}>
+          <Text>
+            Pos: <b>{x.pos}</b>
+          </Text>
+          <Text>
+            Ref: <b>{matrix.ref.get(encodePosition({entity: 0, pos: x.pos!}))}</b>
+          </Text>
+        </Stack>
+      </div>
+    );
+  }, [matrix]);

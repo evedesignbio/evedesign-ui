@@ -40,7 +40,7 @@ import { PositionColorCallback } from "../../utils/colormap.ts";
 
 export const DEFAULT_STYLE: Representation[] = [
   {
-    component: "protein",  // protein_calpha
+    component: "protein", // protein_calpha
     props: {
       // type: "spacefill",
       type: "cartoon",
@@ -85,6 +85,12 @@ export interface StructurePanelProps {
   siteHighlights?: SiteHighlightTargetPos[];
   loadingOverlay?: ReactNode;
   errorOverlay?: ReactNode;
+  hoverOverlayRenderer?: (posAndAtomInfo: PosAndAtomInfo) => ReactNode;
+}
+
+export interface PosAndAtomInfo {
+  pos: number | null;
+  atomInfo: AtomInfo[];
 }
 
 /*
@@ -102,6 +108,7 @@ export const StructurePanel = ({
   siteHighlights = undefined,
   loadingOverlay = undefined,
   errorOverlay = undefined,
+  hoverOverlayRenderer = undefined,
 }: StructurePanelProps) => {
   // initialize structure selection reducer
   const [structureSelection, dispatchStructureSelection] = useReducer(
@@ -154,7 +161,25 @@ export const StructurePanel = ({
   // set up click handler for Molstar (needs to transform from structure coords to target seq coords),
   // needs to be updated whenever structure selection with mapping changes
   const molstarClickHandler = useMemo(
-    () => createMolstarClickHandler(structureSelectionWithMapping, handleClick),
+    () =>
+      createMolstarClickHandler(
+        structureSelectionWithMapping,
+        handleClick,
+        true,
+      ),
+    [structureSelectionWithMapping, handleClick],
+  );
+
+  const molstarHoverHandler = useMemo(
+    () =>
+      hoverOverlayRenderer
+        ? createMolstarClickHandler(
+            structureSelectionWithMapping,
+            (pos, _modifiers, _button, _buttons, atomInfo) =>
+              setHoverInfo({ pos: pos, atomInfo: atomInfo }),
+            false,
+          )
+        : undefined,
     [structureSelectionWithMapping, handleClick],
   );
 
@@ -170,8 +195,14 @@ export const StructurePanel = ({
   );
 
   const molstarRef = useRef<MolstarHandle>(null);
+  const [hoverInfo, setHoverInfo] = useState<PosAndAtomInfo | null>(null);
   const overlay = anyError ? errorOverlay : anyLoading ? loadingOverlay : null;
-  
+
+  const hoverLabel =
+    hoverOverlayRenderer && hoverInfo && hoverInfo.pos
+      ? hoverOverlayRenderer(hoverInfo)
+      : undefined;
+
   return (
     <>
       <Molstar
@@ -184,9 +215,10 @@ export const StructurePanel = ({
         ref={molstarRef}
         getData={mappingExtractor}
         handleClick={molstarClickHandler}
-        // handleHover={(x) => console.log(x)}
+        handleHover={molstarHoverHandler}
         colorMap={molstarColorMap}
       />
+      {hoverLabel}
       {overlay}
     </>
   );

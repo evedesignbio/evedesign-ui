@@ -36,6 +36,7 @@ import {
   useHeatmapColorMap,
   useHeatmapYLabels,
   useLabelRenderer,
+  useStructureHoverLabelRenderer,
   useStructureStyles,
   useTooltipStyle,
 } from "./elements.tsx";
@@ -135,6 +136,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     isMutationScan,
     dispatchDataSelection,
   );
+  const structureHoverLabelRenderer = useStructureHoverLabelRenderer(matrix);
 
   const dnaModal = (
     <Modal
@@ -188,6 +190,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       handleClick={structureClickHandler}
       colorCallback={structureColorMap}
       siteHighlights={siteHighlights}
+      hoverOverlayRenderer={structureHoverLabelRenderer}
     />
   );
 
