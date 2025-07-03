@@ -51,6 +51,7 @@ export interface SystemInstanceSpecEnhanced extends SystemInstanceSpec {
   id: string;
   mutant: Mutation[];
   seqMap?: Map<string, string>;
+  count: number;
 }
 
 export const systemInstanceFromSystem = (

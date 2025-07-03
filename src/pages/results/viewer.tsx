@@ -275,6 +275,9 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
             Remove
           </Button>
         </Button.Group>
+        <Button disabled={basket.size < 100000000} variant={"default"}>
+          Download
+        </Button>
         <Button onClick={toggleDnaOpen} disabled={basket.size === 0}>
           Build DNA...
         </Button>

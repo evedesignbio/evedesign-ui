@@ -125,6 +125,15 @@ export interface EnhancedInstanceData {
   designedPositions: Position[];
 }
 
+const uniqueInstanceRepString = (inst: SystemInstanceSpec): string => {
+  return inst.entity_instances.map((ei) => ei.rep).join(":");
+};
+
+interface InstanceProperties {
+  index: number;
+  score: number | null;
+}
+
 export const useInstances = (
   results: DesignJobApiResult,
 ): EnhancedInstanceData =>
@@ -139,19 +148,48 @@ export const useInstances = (
         ),
       );
 
+      // identify occurrences of unique instances (in case solution found multiple times while sampling)
+      const uniqueInstanceMap = new Map<string, InstanceProperties[]>();
+      resultsCast.instances.forEach((instRaw, instIdx) => {
+        const key = uniqueInstanceRepString(instRaw);
+        if (!uniqueInstanceMap.has(key)) {
+          uniqueInstanceMap.set(key, []);
+        }
+        uniqueInstanceMap
+          .get(key)!
+          .push({ index: instIdx, score: instRaw.score });
+      });
+
+      // sort counts per unique instance (descending order, best score first)
+      uniqueInstanceMap.forEach((countList) =>
+        countList.sort((a, b) =>
+          a.score !== null && b.score !== null ? b.score - a.score : 0,
+        ),
+      );
+
       // add mutation count and mutation info to instances (for now only fixed length for simplicity;
       // modify in place)
 
       const instancesEnhanced: SystemInstanceSpecEnhanced[] = [];
+      let instIdCount = 1; // manually track instance IDs since we might skip some entries
       resultsCast.instances.forEach((instRaw, instIdx) => {
         // make a deep copy of instance
         const inst: SystemInstanceSpecEnhanced = JSON.parse(
           JSON.stringify(instRaw),
         );
 
-        inst.id = `${instIdx + 1}`;
+        // retrieve occurrence count/scores, only keep instance if it is the best-scoring if multiple copies exist
+        const occs = uniqueInstanceMap.get(uniqueInstanceRepString(instRaw))!;
+
+        // skip instance if it is not the highest scoring one (first in occurrence list)
+        if (instIdx !== occs[0].index) {
+          return;
+        }
+
+        inst.id = `${instIdCount}`;
         inst.mutant = [];
         inst.seqMap = new Map<string, string>();
+        inst.count = occs.length;
 
         if (fixedLength) {
           inst.entity_instances.forEach((ei, eiIdx) => {
@@ -176,6 +214,7 @@ export const useInstances = (
           });
         }
         instancesEnhanced.push(inst);
+        instIdCount++;
       });
 
       return {

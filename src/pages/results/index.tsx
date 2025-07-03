@@ -25,7 +25,7 @@ import { BoxedLayout, JobStatusBadge, useDownloadButton } from "./helpers.tsx";
 import { useViewportProperties } from "../../utils/ui.ts";
 import { singleMutationScanToInstances } from "./data.ts";
 import { useDisclosure } from "@mantine/hooks";
-import {useHashLocation} from "wouter/use-hash-location";
+import { useHashLocation } from "wouter/use-hash-location";
 
 export interface FinishedResultsWrapperProps {
   id: string;
