@@ -25,7 +25,6 @@ import { BoxedLayout, JobStatusBadge, useDownloadButton } from "./helpers.tsx";
 import { useViewportProperties } from "../../utils/ui.ts";
 import { singleMutationScanToInstances } from "./data.ts";
 import { useDisclosure } from "@mantine/hooks";
-import { useHashLocation } from "wouter/use-hash-location";
 
 export interface FinishedResultsWrapperProps {
   id: string;
@@ -142,7 +141,6 @@ export const FinishedResultsPageWrapper = ({
   results,
 }: FinishedResultsWrapperProps) => {
   // TODO: temporary lock on showing result viewer in productino
-  const hashLoc = useHashLocation();
 
   // render result view depending on screen size; only display
   // full result viewer when minimal width is available, otherwise display download view only
@@ -157,7 +155,7 @@ export const FinishedResultsPageWrapper = ({
   // don't render anything until we have a defined width
   if (viewportProps.screenSize.width === 0) return <></>;
 
-  if (isDesignJob && viewportProps.isDesktop && hashLoc[0] !== "/") {
+  if (isDesignJob && viewportProps.isDesktop) {
     return <AnalysisViewer id={id} results={results! as DesignJobApiResult} />;
   } else {
     return (
