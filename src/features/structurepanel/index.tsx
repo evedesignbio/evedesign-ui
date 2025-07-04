@@ -180,7 +180,7 @@ export const StructurePanel = ({
             false,
           )
         : undefined,
-    [structureSelectionWithMapping, handleClick],
+    [structureSelectionWithMapping, hoverOverlayRenderer],
   );
 
   const molstarColorMap = useMemo(
