@@ -653,22 +653,66 @@ export const useStructureStyles = (
   ]);
 };
 
-export const useStructureHoverLabelRenderer = (matrix: MutationMatrix) =>
+export const useStructureHoverLabelRenderer = (
+  matrix: MutationMatrix,
+  isMutationScan: boolean,
+  dataSelection: DataInteractionReducerState,
+  activeInstances: SystemInstanceSpecEnhanced[],
+  valueType: string = "freqs",
+) =>
   useMemo(() => {
-    return (x: PosAndAtomInfo) => (
-      <div style={{ position: "absolute", top: "20px", left: "20px" }}>
-        <Stack gap={0}>
-          <Text>
-            Pos: <b>{x.pos}</b>
-          </Text>
-          <Text>
-            Ref:{" "}
-            <b>{matrix.ref.get(encodePosition({ entity: 0, pos: x.pos! }))}</b>
-          </Text>
-        </Stack>
-      </div>
-    );
-  }, [matrix]);
+    return (x: PosAndAtomInfo) => {
+      const posEnc = encodePosition({ entity: 0, pos: x.pos! });
+
+      // note: might be undefined already, in this case return right away
+      const ref = matrix.ref.get(posEnc);
+      if (ref === undefined) return <></>;
+
+      // add substitution info if single instance is selected
+      let subsInfo = undefined;
+      if (!isMutationScan && dataSelection.instances.size === 1) {
+        // check if there is a mutation for the current position, otherwise we have ref symbol here
+        const subsMut = activeInstances[0].mutant.filter(
+          (mutation) => mutation.entity === 0 && mutation.pos === x.pos,
+        );
+
+        const subs = subsMut.length === 1 ? subsMut[0].to : ref;
+
+        // retrieve pos index (we know this has to work given we retrieved ref above)
+        const posIdx = matrix.positions.get(posEnc)!;
+        const value =
+          matrix.data[matrix.names.get(valueType)!][posIdx][
+            matrix.substitutions.get(subs)!
+          ];
+
+        subsInfo = (
+          <>
+            <Text>
+              Subs: <b>{subs}</b>
+            </Text>
+            <Text>
+              % designs:{" "}
+              <b>{value !== null ? (value * 100).toFixed(1) : "n/a"}</b>
+            </Text>
+          </>
+        );
+      }
+
+      return (
+        <div style={{ position: "absolute", top: "20px", left: "20px" }}>
+          <Stack gap={0}>
+            <Text>
+              Pos: <b>{x.pos}</b>
+            </Text>
+            <Text>
+              Ref: <b>{ref}</b>
+            </Text>
+            {subsInfo}
+          </Stack>
+        </div>
+      );
+    };
+  }, [matrix, isMutationScan, activeInstances, dataSelection.instances]);
 
 export interface DownloadMenuProps {
   id: string;
@@ -684,7 +728,10 @@ export const InstanceDownloadMenu = ({
   return (
     <Menu shadow="md" width={200} position="bottom-start">
       <Menu.Target>
-        <Button disabled={basket !== null && basket.size === 0} variant={"default"}>
+        <Button
+          disabled={basket !== null && basket.size === 0}
+          variant={"default"}
+        >
           Download
         </Button>
       </Menu.Target>

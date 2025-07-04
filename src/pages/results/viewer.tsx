@@ -17,10 +17,7 @@ import { useInstances, useMatrix } from "./data.ts";
 import { InstanceTable } from "./table.tsx";
 import { useDisclosure } from "@mantine/hooks";
 import { DNAGenerationDialog } from "./dna.tsx";
-import {
-  BoxedLayout,
-
-} from "./helpers.tsx";
+import { BoxedLayout } from "./helpers.tsx";
 import {
   dataInteractionReducer,
   emptyDataInteractionState,
@@ -141,7 +138,12 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     colorMap,
   );
 
-  const structureHoverLabelRenderer = useStructureHoverLabelRenderer(matrix);
+  const structureHoverLabelRenderer = useStructureHoverLabelRenderer(
+    matrix,
+    isMutationScan,
+    dataSelection,
+    activeInstances,
+  );
 
   const dnaModal = (
     <Modal
