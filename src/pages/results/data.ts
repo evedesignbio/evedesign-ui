@@ -17,6 +17,7 @@ import {
 import { range } from "../../utils/helpers.ts";
 import {
   DataInteractionReducerState,
+  filterByMutationSelection,
   mutationsToMutatedPositions,
 } from "./reducers.ts";
 
@@ -400,9 +401,28 @@ export const useMatrix = (
       let altInstances: Map<string, SystemInstanceSpecEnhanced[]> | null = null;
       if (dataSelection.mutations.size > 0) {
         altInstances = new Map<string, SystemInstanceSpecEnhanced[]>();
-        mutationsToMutatedPositions(dataSelection.mutations)
-          .slice(-1) // only use last selected position for now for source distribution
-          .forEach((posEnc) => altInstances!.set(posEnc, instances));
+        const lastMutationPos = mutationsToMutatedPositions(
+          dataSelection.mutations,
+        ).slice(-1)[0];
+        const lastMutationPosDec = decodePosition(lastMutationPos);
+        const otherPosMutations = new Set(
+          [...dataSelection.mutations].filter((mut) => {
+            const mutDec = decodeMutation(mut);
+            return !(
+              mutDec.pos === lastMutationPosDec.pos &&
+              mutDec.entity === lastMutationPosDec.entity
+            );
+          }),
+        );
+
+        if (otherPosMutations.size > 0) {
+          altInstances.set(
+            lastMutationPos,
+            filterByMutationSelection(instances, otherPosMutations),
+          );
+        } else {
+          altInstances.set(lastMutationPos, instances);
+        }
       }
 
       // do not use activeInstancesCond if single instance selected

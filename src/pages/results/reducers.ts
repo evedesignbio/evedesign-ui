@@ -121,6 +121,8 @@ export const dataInteractionReducer = (
         });
       });
 
+      console.log("AVAILABLE", newMuts);  // TODO: remove
+
       // return state as is if no mutants available
       if (newMuts.length === 0) return state;
 
@@ -398,6 +400,7 @@ export const useStructureClickHandler = (
             modifiers,
             "STRUCTURE",
           );
+
           dispatchDataSelection(payload);
         }
       };
