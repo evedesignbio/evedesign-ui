@@ -182,12 +182,14 @@ export const useDownloadButton = (
 
 export const downloadInstances = (
   enhancedInstances: SystemInstanceSpecEnhanced[],
-  basket: Set<String>,
+  basket: Set<String> | null,
   fileName: string,
   format: "csv" | "fasta",
 ) => {
   // filter instances to basket selection
-  const instFilt = enhancedInstances.filter((inst) => basket.has(inst.id));
+  const instFilt = enhancedInstances.filter(
+    (inst) => basket === null || basket.has(inst.id),
+  );
 
   let dataOut = "";
   if (format === "csv") {

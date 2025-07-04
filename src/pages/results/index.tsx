@@ -19,12 +19,12 @@ import {
   SingleMutationScanApiResult,
 } from "../../models/api.ts";
 import { DNAGenerationDialog } from "./dna.tsx";
-import { SystemInstanceSpec } from "../../models/design.ts";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { BoxedLayout, JobStatusBadge, useDownloadButton } from "./helpers.tsx";
 import { useViewportProperties } from "../../utils/ui.ts";
-import { singleMutationScanToInstances } from "./data.ts";
+import { useInstances } from "./data.ts";
 import { useDisclosure } from "@mantine/hooks";
+import { InstanceDownloadMenu } from "./elements.tsx";
 
 export interface FinishedResultsWrapperProps {
   id: string;
@@ -43,36 +43,14 @@ export interface DownloadViewerProps {
   message?: string;
 }
 
-export const DownloadOnlyViewer = ({
-  results,
-  id,
-  message,
-}: DownloadViewerProps) => {
+interface InstanceDownloadProps {
+  results: PipelineApiResult | SingleMutationScanApiResult;
+  id: string;
+}
+
+export const InstanceDownload = ({ id, results }: InstanceDownloadProps) => {
   const [dnaOpen, { toggle: toggleDnaOpen }] = useDisclosure(false);
-  const [downloadFormat, setDownloadFormat] = useState<string | null>(null);
-  // create download conditionally to avoid using to many resources in browser
-  const downloadButton = useDownloadButton(results, downloadFormat, id);
-
-  const isDesignJob =
-    results.spec?.key === "pipeline" ||
-    results.spec?.key === "single_mutation_scan";
-
-  // build instances for DNA generation
-  let instances: SystemInstanceSpec[] | null = useMemo(() => {
-    // gather instances if available
-    if (results.spec?.key === "pipeline") {
-      return (results as PipelineApiResult).instances;
-    } else if (results.spec?.key === "single_mutation_scan") {
-      return singleMutationScanToInstances(
-        results.spec.system,
-        results.spec.system_instance,
-        (results as SingleMutationScanApiResult).scores,
-      );
-    }
-
-    // otherwise no instances available
-    return null;
-  }, [results]);
+  const enhancedInstances = useInstances(results);
 
   const dnaModal = (
     <Modal
@@ -88,8 +66,8 @@ export const DownloadOnlyViewer = ({
       <BoxedLayout title={"DNA library generation"}>
         <DNAGenerationDialog
           id={id}
-          system={(results as DesignJobApiResult).spec.system}
-          instances={instances!}
+          system={results.spec.system}
+          instances={enhancedInstances.instances}
         />
       </BoxedLayout>
     </Modal>
@@ -98,6 +76,71 @@ export const DownloadOnlyViewer = ({
   return (
     <>
       {dnaModal}
+      <InstanceDownloadMenu
+        id={id}
+        instances={enhancedInstances.instances}
+        basket={null}
+      />
+      <Space />
+      <Button onClick={toggleDnaOpen}>Build DNA sequences...</Button>
+    </>
+  );
+};
+
+interface NucleotidesDownloadProps {
+  results: ProteinToDnaApiResult;
+  id: string;
+}
+
+export const NucleotidesDownload = ({
+  results,
+  id,
+}: NucleotidesDownloadProps) => {
+  const [downloadFormat, setDownloadFormat] = useState<string | null>(null);
+  // create download conditionally to avoid using to many resources in browser
+  const downloadButton = useDownloadButton(results, downloadFormat, id);
+
+  return (
+    <Group>
+      <Select
+        placeholder="Select a file format"
+        data={["csv", "fasta", "json"].filter((option) => option !== "fasta")}
+        value={downloadFormat}
+        onOptionSubmit={setDownloadFormat}
+      />
+      {downloadButton}
+    </Group>
+  );
+};
+
+export const DownloadOnlyViewer = ({
+  results,
+  id,
+  message,
+}: DownloadViewerProps) => {
+  const isDesignJob =
+    results.spec?.key === "pipeline" ||
+    results.spec?.key === "single_mutation_scan";
+
+  // build instances for DNA generation
+  // let instances: SystemInstanceSpec[] | null = useMemo(() => {
+  //   // gather instances if available
+  //   if (results.spec?.key === "pipeline") {
+  //     return (results as PipelineApiResult).instances;
+  //   } else if (results.spec?.key === "single_mutation_scan") {
+  //     return singleMutationScanToInstances(
+  //       results.spec.system,
+  //       results.spec.system_instance,
+  //       (results as SingleMutationScanApiResult).scores,
+  //     );
+  //   }
+  //
+  //   // otherwise no instances available
+  //   return null;
+  // }, [results]);
+
+  return (
+    <>
       <BoxedLayout id={id} title={"Job result"}>
         <JobStatusBadge
           label={"finished"}
@@ -112,24 +155,14 @@ export const DownloadOnlyViewer = ({
             </>
           ) : null}
           <Space />
-          <Group>
-            <Select
-              placeholder="Select a file format"
-              data={["csv", "fasta", "json"].filter(
-                (option) =>
-                  results.spec?.key === "pipeline" || option !== "fasta",
-              )}
-              value={downloadFormat}
-              onOptionSubmit={setDownloadFormat}
-            />
-            {downloadButton}
-          </Group>
           {isDesignJob ? (
-            <>
-              <Space />
-              <Button onClick={toggleDnaOpen}>Build DNA sequences...</Button>
-            </>
-          ) : null}
+            <InstanceDownload id={id} results={results as DesignJobApiResult} />
+          ) : (
+            <NucleotidesDownload
+              id={id}
+              results={results as ProteinToDnaApiResult}
+            />
+          )}
         </Stack>
       </BoxedLayout>
     </>

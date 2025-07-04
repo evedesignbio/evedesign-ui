@@ -2,7 +2,6 @@ import {
   Badge,
   Button,
   Group,
-  Menu,
   Modal,
   useComputedColorScheme,
   useMantineTheme,
@@ -18,7 +17,10 @@ import { useInstances, useMatrix } from "./data.ts";
 import { InstanceTable } from "./table.tsx";
 import { useDisclosure } from "@mantine/hooks";
 import { DNAGenerationDialog } from "./dna.tsx";
-import { BoxedLayout, downloadInstances } from "./helpers.tsx";
+import {
+  BoxedLayout,
+
+} from "./helpers.tsx";
 import {
   dataInteractionReducer,
   emptyDataInteractionState,
@@ -30,6 +32,7 @@ import {
 } from "./reducers.ts";
 import { useReducer, useState } from "react";
 import {
+  InstanceDownloadMenu,
   useAnnotationTracks,
   useColorMap,
   useHeatmapCellMarks,
@@ -277,30 +280,11 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
             Remove
           </Button>
         </Button.Group>
-        <Menu shadow="md" width={200} position="bottom-start">
-          <Menu.Target>
-            <Button disabled={basket.size === 0} variant={"default"}>
-              Download
-            </Button>
-          </Menu.Target>
-          <Menu.Dropdown>
-            {["csv", "fasta"].map((format) => (
-              <Menu.Item
-                key={format}
-                onClick={() =>
-                  downloadInstances(
-                    enhancedInstances.instances,
-                    basket,
-                    id,
-                    format as "csv" | "fasta",
-                  )
-                }
-              >
-                {format.toUpperCase()} format
-              </Menu.Item>
-            ))}
-          </Menu.Dropdown>
-        </Menu>
+        <InstanceDownloadMenu
+          id={id}
+          instances={enhancedInstances.instances}
+          basket={basket}
+        />
         <Button onClick={toggleDnaOpen} disabled={basket.size === 0}>
           Build DNA...
         </Button>

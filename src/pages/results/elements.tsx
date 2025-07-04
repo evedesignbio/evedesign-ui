@@ -9,7 +9,7 @@ import {
   MutationMatrix,
 } from "./data.ts";
 import { useMemo } from "react";
-import { Stack, Text } from "@mantine/core";
+import { Button, Menu, Stack, Text } from "@mantine/core";
 import { CellCoords, LabelData } from "../../components/autowrapheatmap";
 import {
   PipelineSpec,
@@ -36,6 +36,7 @@ import {
 import { SiteHighlightTargetPos } from "../../features/structurepanel/data.ts";
 import { Color } from "molstar/lib/mol-util/color";
 import { PosAndAtomInfo } from "../../features/structurepanel";
+import { downloadInstances } from "./helpers.tsx";
 
 // Per-effect score visualization properties
 export interface ScoreParameters {
@@ -661,9 +662,49 @@ export const useStructureHoverLabelRenderer = (matrix: MutationMatrix) =>
             Pos: <b>{x.pos}</b>
           </Text>
           <Text>
-            Ref: <b>{matrix.ref.get(encodePosition({entity: 0, pos: x.pos!}))}</b>
+            Ref:{" "}
+            <b>{matrix.ref.get(encodePosition({ entity: 0, pos: x.pos! }))}</b>
           </Text>
         </Stack>
       </div>
     );
   }, [matrix]);
+
+export interface DownloadMenuProps {
+  id: string;
+  instances: SystemInstanceSpecEnhanced[];
+  basket: Set<String> | null;
+}
+
+export const InstanceDownloadMenu = ({
+  id,
+  instances,
+  basket,
+}: DownloadMenuProps) => {
+  return (
+    <Menu shadow="md" width={200} position="bottom-start">
+      <Menu.Target>
+        <Button disabled={basket !== null && basket.size === 0} variant={"default"}>
+          Download
+        </Button>
+      </Menu.Target>
+      <Menu.Dropdown>
+        {["csv", "fasta"].map((format) => (
+          <Menu.Item
+            key={format}
+            onClick={() =>
+              downloadInstances(
+                instances,
+                basket,
+                id,
+                format as "csv" | "fasta",
+              )
+            }
+          >
+            {format.toUpperCase()} format
+          </Menu.Item>
+        ))}
+      </Menu.Dropdown>
+    </Menu>
+  );
+};
