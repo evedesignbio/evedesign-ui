@@ -137,7 +137,6 @@ interface InstanceProperties {
 export const useInstances = (
   results: DesignJobApiResult,
 ): EnhancedInstanceData =>
-  // TODO: would it be beneficial to deduplicate designs / annotate this information?
   useMemo(() => {
     // gather instances if available
     if (results.spec.key === "pipeline") {
@@ -406,11 +405,14 @@ export const useMatrix = (
           .forEach((posEnc) => altInstances!.set(posEnc, instances));
       }
 
-      return instancesToCountMatrix(
-        // do not use activeInstancesCond if single instance selected
+      // do not use activeInstancesCond if single instance selected
+      const mainInstances =
         activeInstancesCond!.length > 1 || dataSelection.instances.size === 0
           ? activeInstancesCond!
-          : instances,
+          : instances;
+
+      return instancesToCountMatrix(
+        mainInstances,
         altInstances,
         designedPositions,
         0,

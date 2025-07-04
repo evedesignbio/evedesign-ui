@@ -50,6 +50,10 @@ import {
   SecondaryStructureType,
 } from "molstar/lib/mol-model/structure/model/types";
 import { arraySetAdd } from "molstar/lib/mol-util/array";
+import { PluginSpec } from "molstar/lib/mol-plugin/spec";
+import Behavior = PluginSpec.Behavior;
+import { useCallback, useSyncExternalStore } from "react";
+import { skip } from "rxjs";
 
 export type RawStructure = {
   id: string;
@@ -128,7 +132,7 @@ export type MolstarEventHandlerArgs = {
 };
 
 export type MolstarEventHandler = (
-  args: MolstarEventHandlerArgs
+  args: MolstarEventHandlerArgs,
   // atomInfo: AtomInfo[],
   // modifiers: ModifiersKeys,
   // button: number,
@@ -220,7 +224,7 @@ function transform(
   plugin: PluginContext,
   s: StateObjectRef<PSO.Molecule.Structure>,
   matrix: Mat4,
-  coordinateSystem?: SymmetryOperator
+  coordinateSystem?: SymmetryOperator,
 ) {
   // more elaborate implementation from GUI
   // https://github.com/molstar/molstar/blob/7c4202186d53736a0a9633fde963bc6f369d4c0e/src/mol-plugin-ui/structure/superposition.tsx
@@ -230,7 +234,7 @@ function transform(
     q
       .byRef(r.transform.ref)
       .subtree()
-      .withTransformer(StateTransforms.Model.TransformStructureConformation)
+      .withTransformer(StateTransforms.Model.TransformStructureConformation),
   )[0];
 
   const transform =
@@ -272,7 +276,7 @@ function transform(
 */
 const runSuperposition = async (
   plugin: PluginContext,
-  superpositionMethod: SuperpositionMethod
+  superpositionMethod: SuperpositionMethod,
 ) => {
   const xs = plugin.managers.structure.hierarchy.current.structures;
   if (xs.length > 1) {
@@ -283,8 +287,8 @@ const runSuperposition = async (
 
     const selections = xs.map((s) =>
       StructureSelection.toLociWithSourceUnits(
-        query.query(new QueryContext(s.cell.obj!.data))
-      )
+        query.query(new QueryContext(s.cell.obj!.data)),
+      ),
     );
 
     // const pivot = plugin.managers.structure.hierarchy.findStructure(locis[0]?.structure);
@@ -305,7 +309,7 @@ const runSuperposition = async (
         plugin,
         xs[i].cell,
         transforms[i - 1].bTransform,
-        coordinateSystem
+        coordinateSystem,
       );
     }
 
@@ -369,7 +373,7 @@ export const extractSecondaryStructure = (structure: SO.Molecule.Structure) => {
       const l = StructureElement.Location.create(
         structure.data,
         unit,
-        segs.offsets[current.index]
+        segs.offsets[current.index],
       );
 
       // const secStruc = SecondaryStructureProvider.get(l.structure).value?.get(
@@ -482,20 +486,20 @@ const cAlphaQuery = StructureSelectionQuery(
     "entity-test": _proteinEntityTest,
     "atom-test": MS.core.rel.eq([MS.ammp("label_atom_id"), "CA"]),
   }),
-  { category: "" }
+  { category: "" },
 );
 
 export const updateStructures = async (
   plugin: PluginContext,
   structureHandles: StructureHandle[],
   structures: RawStructure[],
-  superpositionMethod: SuperpositionMethod
+  superpositionMethod: SuperpositionMethod,
   // dataUpdateCallback?: DataUpdateCallback
 ) => {
   // identify outdated structures (those that are in still in handle but not in props anymore)
   // removal based on https://github.com/molstar/molstar/issues/454
   const oldStructures = structureHandles.filter(
-    (h) => !structures.find((s) => s.id === h.id)
+    (h) => !structures.find((s) => s.id === h.id),
   );
 
   if (oldStructures) {
@@ -519,7 +523,7 @@ export const updateStructures = async (
     oldStructures.forEach((hOld) => {
       structureHandles.splice(
         structureHandles.findIndex((h) => h.id === hOld.id),
-        1
+        1,
       );
     });
     await update.commit();
@@ -545,7 +549,7 @@ export const updateStructures = async (
 
     const trajectory = await plugin.builders.structure.parseTrajectory(
       data,
-      s.format
+      s.format,
     );
 
     const model = await plugin.builders.structure.createModel(trajectory);
@@ -562,38 +566,38 @@ export const updateStructures = async (
     const components = {
       polymer: await plugin.builders.structure.tryCreateComponentStatic(
         structure,
-        "polymer"
+        "polymer",
       ),
       protein: await plugin.builders.structure.tryCreateComponentStatic(
         structure,
-        "protein"
+        "protein",
       ),
       ligand: await plugin.builders.structure.tryCreateComponentStatic(
         structure,
-        "ligand"
+        "ligand",
       ),
       nucleic: await plugin.builders.structure.tryCreateComponentStatic(
         structure,
-        "nucleic"
+        "nucleic",
       ),
       water: await plugin.builders.structure.tryCreateComponentStatic(
         structure,
-        "water"
+        "water",
       ),
       ion: await plugin.builders.structure.tryCreateComponentStatic(
         structure,
-        "ion"
+        "ion",
       ),
       lipid: await plugin.builders.structure.tryCreateComponentStatic(
         structure,
-        "lipid"
+        "lipid",
       ),
       // additional custom components
       protein_calpha:
         await plugin.builders.structure.tryCreateComponentFromSelection(
           structure,
           cAlphaQuery,
-          `${s.id}_calpha`
+          `${s.id}_calpha`,
         ),
     };
     // console.log("*** components", components);
@@ -638,7 +642,7 @@ export const updateStructures = async (
 export const updateStructureVisibility = (
   plugin: PluginContext,
   structureHandles: StructureHandle[],
-  structures: RawStructure[]
+  structures: RawStructure[],
 ) => {
   // based on: https://github.com/molstar/molstar/blob/80d1986c611a47c65394b73bff06294abef9ff3a/src/mol-plugin-state/manager/structure/hierarchy.ts
   for (const h of structureHandles) {
@@ -651,7 +655,7 @@ export const updateStructureVisibility = (
       setSubtreeVisibility(
         plugin.state.data,
         h.structure.cell.transform.ref,
-        !shouldBeVisible
+        !shouldBeVisible,
       );
     }
   }
@@ -670,7 +674,7 @@ export const updateStructureVisibility = (
 };
 
 /*
-Extra docs: 
+Extra docs:
 
     // for reference: direct addition of representation (wraps around buildRepresentations())
     // const reps =
@@ -715,7 +719,7 @@ export const buildRepresentations = async (
   siteHighlights: SiteHighlight[],
   pairHighlights: PairHighlight[],
   colorMapRef: ColorMapHandle,
-  colorMap?: ColorCallback
+  colorMap?: ColorCallback,
 ) => {
   // first, check if we need to update the colormap;
   // we retain reference to color mapping function to check if we need to create
@@ -729,7 +733,7 @@ export const buildRepresentations = async (
     if (colorMapRef.registryObject) {
       // console.log("**** Destroy old colormap");
       plugin.representation.structure.themes.colorThemeRegistry.remove(
-        colorMapRef.registryObject
+        colorMapRef.registryObject,
       );
     }
 
@@ -738,7 +742,7 @@ export const buildRepresentations = async (
       colorMapRef.callback = colorMap;
       colorMapRef.registryObject = generateColormap(colorMap, structureHandles);
       plugin.representation.structure.themes.colorThemeRegistry.add(
-        colorMapRef.registryObject
+        colorMapRef.registryObject,
       );
 
       // console.log("**** Registered new colormap !!!!!");
@@ -800,7 +804,7 @@ export const buildRepresentations = async (
             update,
             h.components[r.component],
             r.props,
-            r.options
+            r.options,
           );
 
           // store reference handle for later deletion
@@ -815,7 +819,7 @@ export const buildRepresentations = async (
           update
             .to(h.representationRefs[r.component])
             .update(
-              createStructureRepresentationParams(plugin, undefined, r.props)
+              createStructureRepresentationParams(plugin, undefined, r.props),
             );
           //.commit();
         }
@@ -831,7 +835,7 @@ export const buildRepresentations = async (
     plugin,
     structureHandles,
     siteHighlights,
-    update
+    update,
   );
 
   // update/create pair highlight representations
@@ -839,7 +843,7 @@ export const buildRepresentations = async (
     plugin,
     structureHandles,
     pairHighlights,
-    update
+    update,
   );
 
   await update.commit();
@@ -850,7 +854,7 @@ export const buildRepresentations = async (
 const selectResidueAtomQuery = (
   authAsymId: string,
   authResidueId: AuthorResidueId,
-  atomLabel = "CA"
+  atomLabel = "CA",
 ) => {
   const query = StructureSelectionQuery(
     "Residue",
@@ -865,7 +869,7 @@ const selectResidueAtomQuery = (
       ]),
       "atom-test": MS.core.rel.eq([MS.ammp("label_atom_id"), atomLabel]),
     }),
-    { category: "" }
+    { category: "" },
   );
 
   return query;
@@ -889,10 +893,10 @@ const selectResidueAtomQuery = (
 
 const getSelectionFromStructure = (
   structure: Structure,
-  query: StructureSelectionQuery
+  query: StructureSelectionQuery,
 ) => {
   return StructureSelection.toLociWithSourceUnits(
-    query.query(new QueryContext(structure))
+    query.query(new QueryContext(structure)),
   );
 };
 
@@ -904,7 +908,7 @@ const addDistance = (
   id: string,
   a: StructureElement.Loci,
   b: StructureElement.Loci,
-  props?: any
+  props?: any,
 ) => {
   const cellA = plugin.helpers.substructureParent.get(a.structure);
   const cellB = plugin.helpers.substructureParent.get(b.structure);
@@ -936,7 +940,7 @@ const addDistance = (
         isTransitive: true,
         label: "Distance",
       },
-      { dependsOn, tags: id }
+      { dependsOn, tags: id },
     )
     .apply(StateTransforms.Representation.StructureSelectionsDistance3D, {
       // no label by default
@@ -966,7 +970,7 @@ export const updatePairHighlightRepresentations = async (
   plugin: PluginContext,
   structureHandles: StructureHandle[],
   pairHighlights: PairHighlight[],
-  update: StateBuilder.Root
+  update: StateBuilder.Root,
 ) => {
   // atom of each residue to draw line representation between;
   // using C instead of CA gives better visual with strand cartoon representation
@@ -974,7 +978,7 @@ export const updatePairHighlightRepresentations = async (
 
   // Track all currently defined pair highlight IDs, to identify any others that should be removed
   const pairHighlightsIds = new Set(
-    pairHighlights.map((ph) => generatePairHighlightComponentId(ph))
+    pairHighlights.map((ph) => generatePairHighlightComponentId(ph)),
   );
   // console.log("::: defined highlights", pairHighlightsIds);
 
@@ -982,7 +986,7 @@ export const updatePairHighlightRepresentations = async (
   for (const h of structureHandles) {
     // determine which actively defined highlights we have for current structure
     const curPairHighlights = pairHighlights.filter(
-      (ph) => ph.inputStructureId === h.id
+      (ph) => ph.inputStructureId === h.id,
     );
 
     // console.log("::: current", h.id, curPairHighlights);
@@ -1009,7 +1013,7 @@ export const updatePairHighlightRepresentations = async (
             authSeqId: highlight.firstAuthResidueId.authSeqId,
             insertionCode: highlight.firstAuthResidueId.insertionCode,
           },
-          DEFAULT_ATOM_SELECTION
+          DEFAULT_ATOM_SELECTION,
         );
 
         const querySecond = selectResidueAtomQuery(
@@ -1018,18 +1022,18 @@ export const updatePairHighlightRepresentations = async (
             authSeqId: highlight.secondAuthResidueId.authSeqId,
             insertionCode: highlight.secondAuthResidueId.insertionCode,
           },
-          DEFAULT_ATOM_SELECTION
+          DEFAULT_ATOM_SELECTION,
         );
 
         // get loci corresponding to each query
         const lociFirst = getSelectionFromStructure(
           h.structure.data,
-          queryFirst
+          queryFirst,
         );
 
         const lociSecond = getSelectionFromStructure(
           h.structure.data,
-          querySecond
+          querySecond,
         );
         // console.log("::: l12", lociFirst, lociSecond);
 
@@ -1046,7 +1050,7 @@ export const updatePairHighlightRepresentations = async (
     // remove outdated highlights:
     // first find if we have any...
     const outdatedHighlights = h.pairHighlights.filter(
-      (ph) => !pairHighlightsIds.has(ph.id)
+      (ph) => !pairHighlightsIds.has(ph.id),
     );
     // console.log(
     //   "::: outdated",
@@ -1061,7 +1065,7 @@ export const updatePairHighlightRepresentations = async (
       for (const ph of outdatedHighlights) {
         // console.log("::: remove", ph);
         const cells = plugin.state.data.selectQ((q) =>
-          q.root.subtree().withTag(ph.id)
+          q.root.subtree().withTag(ph.id),
         );
         // console.log("::: cells", cells);
         if (cells[0]) {
@@ -1071,7 +1075,7 @@ export const updatePairHighlightRepresentations = async (
 
       // update handles on current structure to keep only active highlights
       h.pairHighlights = h.pairHighlights.filter((ph) =>
-        pairHighlightsIds.has(ph.id)
+        pairHighlightsIds.has(ph.id),
       );
     }
   } // for const h
@@ -1136,7 +1140,7 @@ const generateHighlightComponentId = (highlight: SiteHighlight) => {
     residueIdsJoined = highlight.authResidueIds
       .map(
         (pos) =>
-          `auth:${pos.authSeqId}${pos.insertionCode ? pos.insertionCode : ""}`
+          `auth:${pos.authSeqId}${pos.insertionCode ? pos.insertionCode : ""}`,
       )
       .join("/");
   } else if (highlight.labelResidueIds !== undefined) {
@@ -1145,7 +1149,7 @@ const generateHighlightComponentId = (highlight: SiteHighlight) => {
       .join("/");
   } else {
     throw new Error(
-      "Need to define authResidueIds or labelResidueIds for highlighting"
+      "Need to define authResidueIds or labelResidueIds for highlighting",
     );
   }
 
@@ -1162,14 +1166,14 @@ const generateHighlightComponentId = (highlight: SiteHighlight) => {
 export const createSiteHighlightComponents = async (
   plugin: PluginContext,
   structureHandles: StructureHandle[],
-  siteHighlights: SiteHighlight[]
+  siteHighlights: SiteHighlight[],
 ) => {
   // console.log("+++ build components");
   // build highlight components for each structure as needed
   for (const h of structureHandles) {
     // determine which highlights we have for current structure
     const curSiteHighlights = siteHighlights.filter(
-      (sh) => sh.inputStructureId === h.id
+      (sh) => sh.inputStructureId === h.id,
     );
     // console.log("+++ current:", curSiteHighlights);
 
@@ -1206,7 +1210,7 @@ export const createSiteHighlightComponents = async (
           isAuthChain = true;
         } else {
           throw new Error(
-            "Need to define labelAsymId or authAsymId for highlighting"
+            "Need to define labelAsymId or authAsymId for highlighting",
           );
         }
 
@@ -1219,7 +1223,7 @@ export const createSiteHighlightComponents = async (
               ]),
               MS.core.rel.eq([MS.ammp("auth_seq_id"), res.authSeqId]),
               MS.core.rel.eq([MS.ammp("pdbx_PDB_ins_code"), res.insertionCode]),
-            ])
+            ]),
           );
         } else if (highlight.labelResidueIds !== undefined) {
           resQueryExpr = highlight.labelResidueIds.map((res) =>
@@ -1229,11 +1233,11 @@ export const createSiteHighlightComponents = async (
                 chainSelector,
               ]),
               MS.core.rel.eq([MS.ammp("label_seq_id"), res]),
-            ])
+            ]),
           );
         } else {
           throw new Error(
-            "Need to define authResidueIds or labelResidueIds for highlighting"
+            "Need to define authResidueIds or labelResidueIds for highlighting",
           );
         }
 
@@ -1247,14 +1251,14 @@ export const createSiteHighlightComponents = async (
             // ]),
             "residue-test": MS.core.logic.or(resQueryExpr),
           }),
-          { category: "", priority: 1000 }
+          { category: "", priority: 1000 },
         );
 
         const component =
           await plugin.builders.structure.tryCreateComponentFromSelection(
             h.structure,
             query,
-            id
+            id,
           );
 
         // console.log("+++ COMPONENT", component);
@@ -1281,13 +1285,13 @@ export const updateSiteHighlightRepresentations = async (
   plugin: PluginContext,
   structureHandles: StructureHandle[],
   siteHighlights: SiteHighlight[],
-  update: StateBuilder.Root
+  update: StateBuilder.Root,
 ) => {
   // console.log("+++ render highlights", siteHighlights, structureHandles);
 
   // Track all currently defined highlight IDs, to identify any others that should be removed
   const siteHighlightsIds = new Set(
-    siteHighlights.map((sh) => generateHighlightComponentId(sh))
+    siteHighlights.map((sh) => generateHighlightComponentId(sh)),
   );
   // console.log("+++ defined highlights", siteHighlightsIds);
 
@@ -1306,7 +1310,7 @@ export const updateSiteHighlightRepresentations = async (
             plugin.builders.structure.representation.buildRepresentation(
               update,
               highlight.componentRef,
-              highlight.props
+              highlight.props,
             );
         }
       } else {
@@ -1320,7 +1324,7 @@ export const updateSiteHighlightRepresentations = async (
 
     // finally, remove highlights from handle list on structure
     h.siteHighlights = h.siteHighlights!.filter((sh) =>
-      siteHighlightsIds.has(sh.id)
+      siteHighlightsIds.has(sh.id),
     );
   }
 };
@@ -1341,7 +1345,7 @@ export const updateSiteHighlightRepresentations = async (
 
 export const describeAtom = (
   l: StructureElement.Location<Unit>,
-  modelIdMap?: Map<string, string>
+  modelIdMap?: Map<string, string>,
 ): AtomInfo => {
   // console.log(
   //   "*** SSE",
@@ -1406,7 +1410,7 @@ export const addEventHandler = (
   behavior: BehaviorSubject<
     InteractivityManager.HoverEvent | InteractivityManager.ClickEvent | any
   >,
-  handler: MolstarEventHandler
+  handler: MolstarEventHandler,
 ) => {
   // create subscription
   const subscriber = behavior.subscribe((e) => {
@@ -1422,6 +1426,42 @@ export const addEventHandler = (
 
   // return cleanup function for useEffect which unsubscribes
   return () => subscriber.unsubscribe();
+};
+
+export const useBehaviorReact = (s: Behavior | undefined) => {
+  return useSyncExternalStore(
+    useCallback(
+      (callback: () => void) => {
+        const sub = (s as any)?.pipe(skip(1)).subscribe(callback);
+        return () => sub?.unsubscribe();
+      },
+      [s],
+    ),
+    //@ts-ignore
+    useCallback(() => s?.value, [s]),
+  );
+};
+
+export const applyHandler = (
+  handler: any,
+  behaviour: any,
+  structureHandlesRef: any,
+) => {
+  if (!handler || !behaviour || !structureHandlesRef.current) {
+    return;
+  }
+
+  const atomInfo = getAtomInfo(
+    behaviour.current.loci,
+    structureHandlesRef.current,
+  );
+
+  handler({
+    atomInfo: atomInfo,
+    modifiers: behaviour.modifiers,
+    button: behaviour.button,
+    buttons: behaviour.buttons,
+  });
 };
 
 export const toggleAxes = (plugin: PluginContext, showAxes: boolean) => {
@@ -1473,7 +1513,7 @@ export const setColors = (
   plugin: PluginContext,
   backgroundColor?: number | ColorName,
   highlightColor?: number | ColorName,
-  selectColor?: number | ColorName
+  selectColor?: number | ColorName,
 ) => {
   const renderer = plugin.canvas3d!.props.renderer;
   const update: {

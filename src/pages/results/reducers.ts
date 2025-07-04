@@ -373,12 +373,12 @@ const positionSelectionPayload = (
 
 export const useStructureClickHandler = (
   matrix: MutationMatrix,
-  isMutationScan: boolean,
   dispatchDataSelection: DataInteractionReducerDispatchFunc,
+  isMutationScan: boolean,
 ) =>
   useMemo(
-    () =>
-      (
+    () => {
+      return (
         pos: number | null,
         modifiers: ModifiersKeys,
         _button: number,
@@ -398,12 +398,11 @@ export const useStructureClickHandler = (
             modifiers,
             "STRUCTURE",
           );
-          // console.log("CLICK STRUCTURE", pos, payload); // TODO: remove
           dispatchDataSelection(payload);
         }
-      },
-    // TODO: exclude matrix from dependencies here, for some reason it creates an infinite loop with reducer
-    [dispatchDataSelection, isMutationScan],
+      };
+    },
+    [matrix, dispatchDataSelection, isMutationScan],
   );
 
 export const useHeatmapClickHandler = (
@@ -411,62 +410,59 @@ export const useHeatmapClickHandler = (
   dispatchDataSelection: DataInteractionReducerDispatchFunc,
   isMutationScan: boolean,
 ) =>
-  useMemo(
-    () =>
-      ({ locationType, payload, modifiers }: ClickEvent) => {
-        if (locationType === "data") {
-          const posMapped = matrix.indexToPositions.get(payload.column)!;
-          const symbolMapped = matrix.indexToSubstitutions.get(payload.row)!;
-          const ref = matrix.ref.get(posMapped)!;
+  useMemo(() => {
+    return ({ locationType, payload, modifiers }: ClickEvent) => {
+      if (locationType === "data") {
+        const posMapped = matrix.indexToPositions.get(payload.column)!;
+        const symbolMapped = matrix.indexToSubstitutions.get(payload.row)!;
+        const ref = matrix.ref.get(posMapped)!;
 
-          const mutation = {
-            ...decodePosition(posMapped),
-            ref: ref,
-            to: symbolMapped,
-          };
+        const mutation = {
+          ...decodePosition(posMapped),
+          ref: ref,
+          to: symbolMapped,
+        };
 
-          // do not allow to click cells without valid value
-          if (payload.value === null) return;
+        // do not allow to click cells without valid value
+        if (payload.value === null) return;
 
-          // for mutation scans, each cell corresponds to a single instance which we can directly select;
-          // for regular design runs, we select a mutation filter on the active instance set since
-          // we don't have a 1:1 correspondence between mutation and instance
-          if (isMutationScan) {
-            // curInstance.id = `${row.entity}:${row.ref}${row.pos}${mut.to}`;
-            dispatchDataSelection({
-              type: "SELECT_INSTANCES",
-              source: "MATRIX",
-              modifiers: modifiers,
-              payload: [encodeMutation(mutation)],
-            });
-          } else {
-            // do not allow to click empty cells
-            if (payload.value <= 0) return;
+        // for mutation scans, each cell corresponds to a single instance which we can directly select;
+        // for regular design runs, we select a mutation filter on the active instance set since
+        // we don't have a 1:1 correspondence between mutation and instance
+        if (isMutationScan) {
+          // curInstance.id = `${row.entity}:${row.ref}${row.pos}${mut.to}`;
+          dispatchDataSelection({
+            type: "SELECT_INSTANCES",
+            source: "MATRIX",
+            modifiers: modifiers,
+            payload: [encodeMutation(mutation)],
+          });
+        } else {
+          // do not allow to click empty cells
+          if (payload.value <= 0) return;
 
-            dispatchDataSelection({
-              type: "SELECT_MUTATIONS",
-              source: "MATRIX",
-              modifiers: modifiers,
-              payload: [mutation],
-            });
-          }
-        } else if (locationType === "annotation") {
-          const posMapped = matrix.indexToPositions.get(payload.column);
-          // should not happen here as we are only rendering defined positions
-          if (posMapped === undefined) return;
-          const posPayload = positionSelectionPayload(
-            matrix,
-            posMapped,
-            isMutationScan,
-            modifiers,
-            "MATRIX",
-          );
-          // console.log("CLICK HEATMAP", posPayload);  // TODO: remove
-          dispatchDataSelection(posPayload);
+          dispatchDataSelection({
+            type: "SELECT_MUTATIONS",
+            source: "MATRIX",
+            modifiers: modifiers,
+            payload: [mutation],
+          });
         }
-      },
-    [matrix, dispatchDataSelection, isMutationScan],
-  );
+      } else if (locationType === "annotation") {
+        const posMapped = matrix.indexToPositions.get(payload.column);
+        // should not happen here as we are only rendering defined positions
+        if (posMapped === undefined) return;
+        const posPayload = positionSelectionPayload(
+          matrix,
+          posMapped,
+          isMutationScan,
+          modifiers,
+          "MATRIX",
+        );
+        dispatchDataSelection(posPayload);
+      }
+    };
+  }, [matrix, dispatchDataSelection, isMutationScan]);
 
 export const useBasketInstances = (
   enhancedInstances: SystemInstanceSpecEnhanced[],

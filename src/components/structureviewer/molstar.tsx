@@ -29,11 +29,12 @@ import {
   createSiteHighlightComponents,
   buildRepresentations,
   StructureHandle,
-  addEventHandler,
   MolstarEventHandler,
   toggleAxes,
   setColors,
   toggleStereo,
+  useBehaviorReact,
+  applyHandler,
 } from "./molstar-utils";
 
 // import and re-export following types for easier import of component together
@@ -87,7 +88,7 @@ type ViewerProps = {
   resetCameraKey?: number;
   getRefs?: (
     pluginRef: RefObject<PluginContext | null>,
-    structureRef: RefObject<StructureHandle[]>
+    structureRef: RefObject<StructureHandle[]>,
   ) => void;
   getData?: DataUpdateCallback;
 };
@@ -132,7 +133,7 @@ export const Molstar = React.forwardRef<MolstarHandle, ViewerProps>(
       getRefs = undefined,
       getData = undefined,
     }: ViewerProps,
-    ref
+    ref,
   ) => {
     const parentRef = useRef<HTMLDivElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -293,37 +294,71 @@ export const Molstar = React.forwardRef<MolstarHandle, ViewerProps>(
     plugin.current.behaviors.interaction.hover e -> e.labels
     ================================================================================================
   */
-    useEffect(() => {
-      if (
-        initialized &&
-        plugin.current &&
-        structureHandlesRef.current &&
-        handleClick
-      ) {
-        return addEventHandler(
-          plugin.current,
-          structureHandlesRef.current,
-          plugin.current.behaviors.interaction.click,
-          handleClick
-        );
-      }
-    }, [initialized, handleClick]);
+
+    // new event handling - works around race conditions if handler changes as result to event itself
+
+    const clickBehavior = useBehaviorReact(
+      // @ts-ignore
+      plugin.current?.behaviors.interaction.click,
+    );
+    const lastClickEvent = useRef(undefined);
 
     useEffect(() => {
-      if (
-        initialized &&
-        plugin.current &&
-        structureHandlesRef.current &&
-        handleHover
-      ) {
-        return addEventHandler(
-          plugin.current,
-          structureHandlesRef.current,
-          plugin.current.behaviors.interaction.hover,
-          handleHover
-        );
+      if (lastClickEvent.current === clickBehavior) {
+        return;
       }
-    }, [initialized, handleHover]);
+      // update ref and execute
+      lastClickEvent.current = clickBehavior;
+      applyHandler(handleClick, clickBehavior, structureHandlesRef);
+    }, [clickBehavior, handleClick]);
+
+    const hoverBehavior = useBehaviorReact(
+      // @ts-ignore
+      plugin.current?.behaviors.interaction.hover,
+    );
+    const lastHoverEvent = useRef(undefined);
+
+    useEffect(() => {
+      if (lastHoverEvent.current === hoverBehavior) {
+        return;
+      }
+      // update ref and execute
+      lastHoverEvent.current = hoverBehavior;
+      applyHandler(handleHover, hoverBehavior, structureHandlesRef);
+    }, [hoverBehavior, handleHover]);
+
+    // old event handling - susceptible to race conditions if handler changes as result to event itself
+    // useEffect(() => {
+    //   if (
+    //     initialized &&
+    //     plugin.current &&
+    //     structureHandlesRef.current &&
+    //     handleClick
+    //   ) {
+    //     return addEventHandler(
+    //       plugin.current,
+    //       structureHandlesRef.current,
+    //       plugin.current.behaviors.interaction.click,
+    //       handleClick
+    //     );
+    //   }
+    // }, [initialized, handleClick]);
+    //
+    // useEffect(() => {
+    //   if (
+    //     initialized &&
+    //     plugin.current &&
+    //     structureHandlesRef.current &&
+    //     handleHover
+    //   ) {
+    //     return addEventHandler(
+    //       plugin.current,
+    //       structureHandlesRef.current,
+    //       plugin.current.behaviors.interaction.hover,
+    //       handleHover
+    //     );
+    //   }
+    // }, [initialized, handleHover]);
 
     /*
     ================================================================================================
@@ -343,13 +378,13 @@ export const Molstar = React.forwardRef<MolstarHandle, ViewerProps>(
             plugin.current!,
             structureHandlesRef.current,
             structures,
-            superpositionMethod
+            superpositionMethod,
           );
 
           updateStructureVisibility(
             plugin.current!,
             structureHandlesRef.current,
-            structures
+            structures,
           );
 
           // first build components for site highlights after all structures are present;
@@ -361,7 +396,7 @@ export const Molstar = React.forwardRef<MolstarHandle, ViewerProps>(
           await createSiteHighlightComponents(
             plugin.current!,
             structureHandlesRef.current,
-            siteHighlights
+            siteHighlights,
           );
 
           // Note we will always want to run this without a shallow reference check,
@@ -376,7 +411,7 @@ export const Molstar = React.forwardRef<MolstarHandle, ViewerProps>(
             siteHighlights,
             pairHighlights,
             colorMapRef.current,
-            colorMap
+            colorMap,
           );
 
           // trigger data callback to notify outside world about new data state
@@ -417,5 +452,5 @@ export const Molstar = React.forwardRef<MolstarHandle, ViewerProps>(
         />
       </div>
     );
-  }
+  },
 );

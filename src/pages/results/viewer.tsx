@@ -124,6 +124,12 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     dataSelection,
   );
 
+  const structureClickHandler = useStructureClickHandler(
+    matrix,
+    dispatchDataSelection,
+    isMutationScan,
+  );
+
   const { structureColorMap, siteHighlights } = useStructureStyles(
     matrix,
     isMutationScan,
@@ -132,11 +138,6 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     colorMap,
   );
 
-  const structureClickHandler = useStructureClickHandler(
-    matrix,
-    isMutationScan,
-    dispatchDataSelection,
-  );
   const structureHoverLabelRenderer = useStructureHoverLabelRenderer(matrix);
 
   const dnaModal = (
