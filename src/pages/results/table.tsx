@@ -10,6 +10,7 @@ import {
   ActionIcon,
   Container,
   CopyButton,
+  Flex,
   Table,
   ThemeIcon,
   Tooltip,
@@ -146,7 +147,7 @@ const AUX_COLUMNS: ColumnRenderSpec[] = [
     sortKey: null,
     render: (instance, spec, basket) => {
       return (
-        <>
+        <Flex>
           <ActionIcon
             color={"gray"}
             variant="subtle"
@@ -190,7 +191,7 @@ const AUX_COLUMNS: ColumnRenderSpec[] = [
           >
             <IconBasketCheck size={16} />
           </ThemeIcon>
-        </>
+        </Flex>
       );
     },
   },
@@ -205,11 +206,11 @@ const PIPELINE_COLUMNS: ColumnRenderSpec[] = [
   {
     header: "Score",
     sortKey: "SCORE",
-    render: (instance) => (
-      <div style={{ textAlign: "left", minWidth: "40px" }}>
-        {instance.score?.toFixed(2)}
-      </div>
-    ),
+    render: (instance) => {
+      const scoreStr =
+        `${instance.score?.toFixed(2)}`.padStart(6, "\u2007") + "\u2007\u2007";
+      return <div style={{ textAlign: "center" }}>{scoreStr}</div>;
+    },
   },
   {
     header: "Muts",
@@ -255,6 +256,7 @@ const MUTATION_SCAN_COLUMNS: ColumnRenderSpec[] = [
             backgroundColor: bgColor,
             color: fontColor,
             textAlign: "center",
+            borderRadius: "2px",
           }}
         >
           {instance.score?.toFixed(2)}
@@ -381,7 +383,7 @@ export const InstanceTable = ({
                 ...props,
                 withRowBorders: false,
                 highlightOnHover: true,
-                // verticalSpacing: 5,
+                verticalSpacing: 7,
                 style: { ...props.style },
               }}
             />
