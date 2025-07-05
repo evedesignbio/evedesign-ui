@@ -825,6 +825,7 @@ export const renderStructureSelectionMenu = (
   return (
     <div style={{ position: "absolute", top: "20px", right: "20px" }}>
       <Select
+        className="select-in-panel"
         width={300}
         disabled={structureHits.length === 0}
         placeholder={

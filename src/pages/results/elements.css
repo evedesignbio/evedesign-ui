@@ -7,3 +7,7 @@
     align-items: center;
     justify-content: center;
 }
+
+.select-in-panel:not(:hover):not(:focus-within){
+    opacity: 0.5;
+}
