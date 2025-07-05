@@ -116,9 +116,17 @@ const SORTING_FUNCS = {
   POS: (a: SystemInstanceSpecEnhanced, b: SystemInstanceSpecEnhanced) =>
     a.mutant[0].pos - b.mutant[0].pos,
   REF: (a: SystemInstanceSpecEnhanced, b: SystemInstanceSpecEnhanced) =>
-    a.mutant[0].ref > b.mutant[0].ref ? 1 : -1,
+    a.mutant[0].ref === b.mutant[0].ref
+      ? 0
+      : a.mutant[0].ref > b.mutant[0].ref
+        ? 1
+        : -1,
   SUBS: (a: SystemInstanceSpecEnhanced, b: SystemInstanceSpecEnhanced) =>
-    a.mutant[0].to > b.mutant[0].to ? 1 : -1,
+    a.mutant[0].to === b.mutant[0].to
+      ? 0
+      : a.mutant[0].to > b.mutant[0].to
+        ? 1
+        : -1,
 };
 
 interface ColumnRenderSpec {
@@ -192,13 +200,15 @@ const PIPELINE_COLUMNS: ColumnRenderSpec[] = [
   {
     header: "ID",
     sortKey: null,
-    render: (instance) => <div style={{minWidth: "40px"}}>{instance.id}</div>,
+    render: (instance) => <div style={{ minWidth: "40px" }}>{instance.id}</div>,
   },
   {
     header: "Score",
     sortKey: "SCORE",
     render: (instance) => (
-      <div style={{ textAlign: "left", minWidth: "40px"}}>{instance.score?.toFixed(2)}</div>
+      <div style={{ textAlign: "left", minWidth: "40px" }}>
+        {instance.score?.toFixed(2)}
+      </div>
     ),
   },
   {
