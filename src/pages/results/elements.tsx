@@ -793,11 +793,6 @@ export const renderStructureSelectionMenu = (
   useFullStructureModel: boolean,
   useStructureAssembly: boolean,
 ) => {
-  // TODO: make transparent (on hover)?
-  // TODO: avoid text cursor?
-  // TODO: display % identity
-  // TODO: allow typing?
-
   const idToPayload = new Map<string, StructureReducerAction>();
 
   const data = structureHits.map((s) => {
@@ -810,8 +805,13 @@ export const renderStructureSelectionMenu = (
     const id = structureSelectionId(p.payload.selectedStructures[0]);
     idToPayload.set(id, p);
 
-    const [idNoRange, range] = id.replace("_assembly", "").replace("_full", "").split("_");
-    const percentIdentity = ((1.0 - s.missmatches / s.alnLength) * 100).toFixed(0);
+    const [idNoRange, range] = id
+      .replace("_assembly", "")
+      .replace("_full", "")
+      .split("_");
+    const percentIdentity = ((1.0 - s.missmatches / s.alnLength) * 100).toFixed(
+      0,
+    );
 
     return {
       label: `${idNoRange} (${range}, ${percentIdentity}% identity)`,
@@ -823,14 +823,13 @@ export const renderStructureSelectionMenu = (
     structureSelection.size > 0 ? [...structureSelection.keys()][0] : null;
 
   return (
-    <div style={{ position: "absolute", top: "20px", right: "20px"}}>
+    <div style={{ position: "absolute", top: "20px", right: "20px" }}>
       <Select
         disabled={structureHits.length === 0}
         placeholder={
           structureHits.length === 0 ? "No structures available" : undefined
         }
         allowDeselect={false}
-        searchable={true}
         data={data}
         value={selectedId}
         onChange={(value) => {
