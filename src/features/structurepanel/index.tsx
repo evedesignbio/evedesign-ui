@@ -186,7 +186,7 @@ export const StructurePanel = ({
   const molstarColorMap = useMemo(
     () =>
       makeMolstarColorCallback(structureSelectionWithMapping, colorCallback),
-    [structureSelectionWithMapping],
+    [colorCallback, structureSelectionWithMapping],
   );
 
   const siteHighlightsMapped = useMemo(

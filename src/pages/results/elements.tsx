@@ -557,7 +557,7 @@ export const useStructureStyles = (
       isMutationScan ? dataSelection.instances : dataSelection.mutations,
       isMutationScan ? "avg" : "sum",
     );
-
+    
     // show spheres for any clicked mutation (encoded by instances for mutation scan)
     const highlightPos = new Set(
       mutationsToMutatedPositions(
