@@ -793,10 +793,10 @@ export const renderStructureSelectionMenu = (
   useFullStructureModel: boolean,
   useStructureAssembly: boolean,
 ) => {
-  // console.log(structureHits.slice(0, 1));
-  // console.log(structureSelection); // TODO: remove
   // TODO: make transparent (on hover)?
-  // TODO: no deselect
+  // TODO: avoid text cursor?
+  // TODO: display % identity
+  // TODO: allow typing?
 
   const idToPayload = new Map<string, StructureReducerAction>();
 
@@ -820,7 +820,7 @@ export const renderStructureSelectionMenu = (
     structureSelection.size > 0 ? [...structureSelection.keys()][0] : null;
 
   return (
-    <div style={{ position: "absolute", top: "20px", right: "20px" }}>
+    <div style={{ position: "absolute", top: "20px", right: "20px"}}>
       <Select
         disabled={structureHits.length === 0}
         placeholder={

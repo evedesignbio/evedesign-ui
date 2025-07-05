@@ -187,10 +187,21 @@ export const extractMappings = (
 
     // group residues by chain ID
     const chainMap = new Map<string, ChainPos[]>();
+
+    // also track models, only record one per chain
+    const chainModelMap = new Map<string, number>();
+
     residues.forEach((r) => {
       if (!r.isResidue) {
         return;
       }
+
+      if (!chainModelMap.has(r.labelAsymId)) {
+        chainModelMap.set(r.labelAsymId, r.modelId);
+      }
+
+      // do not accumulate residues if they belong to a model other than the first model
+      if (chainModelMap.get(r.labelAsymId)! != r.modelId) return;
 
       if (!chainMap.has(r.labelAsymId)) {
         chainMap.set(r.labelAsymId, []);
@@ -199,8 +210,6 @@ export const extractMappings = (
       chainMap
         .get(r.labelAsymId)!
         .push({ labelSeqId: r.labelSeqId, labelCompId: r.labelCompId });
-
-      // console.log(r.isResidue, r.labelAsymId, r.labelSeqId, r.labelCompId);
     });
 
     // create mapping from one-letter code AA sequence to chain IDs,
