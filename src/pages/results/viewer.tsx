@@ -179,8 +179,8 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       dataSelection={dataSelection}
       basket={basket}
       isMutationScan={isMutationScan}
-      instanceRenderType={"sequence"}
       dispatchDataSelection={dispatchDataSelection}
+      colorMap={colorMap}
     />
   );
 

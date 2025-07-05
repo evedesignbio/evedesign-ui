@@ -12,6 +12,7 @@
   "dependencies": {
     "@mantine/core": "^7.17.3",
     "@mantine/hooks": "^7.17.3",
+    "@tabler/icons-react": "^3.34.0",
     "@tanstack/react-query": "^5.72.0",
     "molstar": "^4.18.0",
     "react": "^19.0.0",
