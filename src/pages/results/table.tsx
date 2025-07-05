@@ -136,7 +136,6 @@ const AUX_COLUMNS: ColumnRenderSpec[] = [
   {
     header: "",
     sortKey: null,
-    // TODO: render view button and show in sequence viewer
     render: (instance, spec, basket) => {
       return (
         <>
@@ -193,12 +192,14 @@ const PIPELINE_COLUMNS: ColumnRenderSpec[] = [
   {
     header: "ID",
     sortKey: null,
-    render: (instance) => <>{instance.id}</>,
+    render: (instance) => <div style={{minWidth: "40px"}}>{instance.id}</div>,
   },
   {
     header: "Score",
     sortKey: "SCORE",
-    render: (instance) => <>{instance.score?.toFixed(2)}</>,
+    render: (instance) => (
+      <div style={{ textAlign: "left", minWidth: "40px"}}>{instance.score?.toFixed(2)}</div>
+    ),
   },
   {
     header: "Muts",
@@ -382,7 +383,6 @@ export const InstanceTable = ({
                 onClick={(event) => {
                   clickHandler(event, props.item);
                 }}
-                // TODO: this collides with tooltip rendering...
                 data-striped={
                   props["data-item-index"] % 2 === 1 ? "mark" : "not"
                 }
