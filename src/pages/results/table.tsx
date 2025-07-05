@@ -1,10 +1,14 @@
 import { TableVirtuoso, TableVirtuosoHandle } from "react-virtuoso";
 import {
+  PipelineSpec,
+  SingleMutationScanSpec,
   SystemInstanceSpec,
   SystemInstanceSpecEnhanced,
+  Mutation,
 } from "../../models/design.ts";
 import {
   ActionIcon,
+  Container,
   CopyButton,
   Table,
   ThemeIcon,
@@ -30,7 +34,14 @@ import {
 } from "../../utils/colormap.ts";
 import { Color } from "molstar/lib/mol-util/color";
 import toHexStyle = Color.toHexStyle;
-import { IconCopy, IconCheck, IconBasketCheck } from "@tabler/icons-react";
+import {
+  IconCopy,
+  IconCheck,
+  IconBasketCheck,
+  IconEye,
+} from "@tabler/icons-react";
+import { ChildrenType } from "react-tooltip";
+import { SequenceViewer } from "../../components/sequenceviewer";
 
 export type InstanceTableEventHandler = (
   instance: SystemInstanceSpec,
@@ -45,6 +56,7 @@ export interface InstanceTableProps {
   isMutationScan: boolean;
   basket: Set<string>;
   colorMap: ColorMapCallbackWithNull;
+  spec: PipelineSpec | SingleMutationScanSpec;
 }
 
 export const DEFAULT_SORT_KEY = "default_NONE";
@@ -114,6 +126,7 @@ interface ColumnRenderSpec {
   sortKey: string | null;
   render: (
     instance: SystemInstanceSpecEnhanced,
+    spec: SingleMutationScanSpec | PipelineSpec,
     basket: Set<string>,
     colorMap: ColorMapCallbackWithNull,
   ) => ReactNode;
@@ -124,9 +137,22 @@ const AUX_COLUMNS: ColumnRenderSpec[] = [
     header: "",
     sortKey: null,
     // TODO: render view button and show in sequence viewer
-    render: (instance, basket) => {
+    render: (instance, spec, basket) => {
       return (
         <>
+          <ActionIcon
+            color={"gray"}
+            variant="subtle"
+            data-tooltip-content={JSON.stringify({
+              instance: instance,
+              firstIndex: spec.system[0].first_index,
+            })}
+            data-tooltip-id="tableViewer"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <IconEye size={16} />
+          </ActionIcon>
+
           <CopyButton value={instance.entity_instances[0].rep} timeout={2000}>
             {({ copied, copy }) => (
               <Tooltip
@@ -155,12 +181,7 @@ const AUX_COLUMNS: ColumnRenderSpec[] = [
               visibility: basket.has(instance.id) ? "visible" : "hidden",
             }}
           >
-            <IconBasketCheck
-              style={{
-                width: "70%",
-                height: "70%",
-              }}
-            />
+            <IconBasketCheck size={16} />
           </ThemeIcon>
         </>
       );
@@ -214,7 +235,7 @@ const MUTATION_SCAN_COLUMNS: ColumnRenderSpec[] = [
   {
     header: "Score",
     sortKey: "SCORE",
-    render: (instance, _basket, colorMap) => {
+    render: (instance, _spec, _basket, colorMap) => {
       const bgColor = toHexStyle(colorMap(instance.score));
       const fontColor = highContrastColor(bgColor, "white", "black");
       return (
@@ -233,15 +254,43 @@ const MUTATION_SCAN_COLUMNS: ColumnRenderSpec[] = [
   ...AUX_COLUMNS,
 ];
 
+export const renderSequenceLabel = (render: {
+  content: string | null;
+  activeAnchor: HTMLElement | null;
+}): ChildrenType => {
+  if (render.content === null) return;
+
+  const dec = JSON.parse(render.content);
+  const mutatedPos = new Set<number>(
+    dec.instance.mutant
+      .filter((mut: Mutation) => mut.entity === 0)
+      .map((mut: Mutation) => mut.pos),
+  );
+  return (
+    <Container mt={20} size={350}>
+      <SequenceViewer
+        seq={dec.instance.entity_instances[0].rep}
+        firstIndex={dec.firstIndex}
+        handleClick={() => {
+          return;
+        }}
+        chunkSize={10}
+        getPosStyle={(pos) => (mutatedPos.has(pos) ? "selected" : "")}
+      />
+    </Container>
+  );
+};
+
 export const InstanceTable = ({
   instances,
   dataSelection,
   isMutationScan,
   basket,
   colorMap,
+  spec,
   dispatchDataSelection = undefined,
 }: InstanceTableProps) => {
-  // TODO: implement selection of range of designs with shift key (all up or down from last selection)
+  // TODO: implement selection of range of designs with shift key (all up or down from last selection)?
 
   // handle for imperative scrolling
   const virtuoso = useRef<TableVirtuosoHandle>(null);
@@ -309,76 +358,82 @@ export const InstanceTable = ({
   const columns = isMutationScan ? MUTATION_SCAN_COLUMNS : PIPELINE_COLUMNS;
 
   return (
-    <TableVirtuoso
-      ref={virtuoso}
-      style={{ height: "100%", width: "100%" }}
-      data={instancesSorted}
-      components={{
-        Table: (props) => (
-          <Table
-            {...{
-              ...props,
-              withRowBorders: false,
-              highlightOnHover: true,
-              // verticalSpacing: 5,
-              style: { ...props.style },
-            }}
-          />
-        ),
-        TableRow: ({ ...props }) => {
-          return (
-            <Table.Tr
-              {...props}
-              onClick={(event) => {
-                clickHandler(event, props.item);
+    <>
+      <TableVirtuoso
+        ref={virtuoso}
+        style={{ height: "100%", width: "100%" }}
+        data={instancesSorted}
+        components={{
+          Table: (props) => (
+            <Table
+              {...{
+                ...props,
+                withRowBorders: false,
+                highlightOnHover: true,
+                // verticalSpacing: 5,
+                style: { ...props.style },
               }}
-              data-striped={props["data-item-index"] % 2 === 1 ? "mark" : "not"}
             />
-          );
-        },
-        TableHead: Table.Thead,
-        TableBody: forwardRef((props, ref) => (
-          <Table.Tbody {...props} ref={ref} className={"tbody-striped"} />
-        )),
-      }}
-      fixedHeaderContent={() => (
-        <Table.Tr bg={"var(--mantine-color-body)"}>
-          {columns.map((column, idx) => {
-            const sortIcon =
-              column.sortKey !== null
-                ? renderSortIcon(column.sortKey, sortKey)
-                : undefined;
-
-            const handleSort =
-              column.sortKey !== null
-                ? () => setSortKey(computeNextSortKey(sortKey, column.sortKey!))
-                : undefined;
-
+          ),
+          TableRow: ({ ...props }) => {
             return (
-              <Table.Th key={idx} onClick={handleSort}>
-                {column.header}
-                {sortIcon}
-              </Table.Th>
+              <Table.Tr
+                {...props}
+                onClick={(event) => {
+                  clickHandler(event, props.item);
+                }}
+                // TODO: this collides with tooltip rendering...
+                data-striped={
+                  props["data-item-index"] % 2 === 1 ? "mark" : "not"
+                }
+              />
             );
-          })}
-        </Table.Tr>
-      )}
-      itemContent={(_index, instance) => {
-        // change background on td so we still get hover effect
-        const bg = selectedIds?.has(instance.id)
-          ? "var(--mantine-color-blue-light)"
-          : undefined;
+          },
+          TableHead: Table.Thead,
+          TableBody: forwardRef((props, ref) => (
+            <Table.Tbody {...props} ref={ref} className={"tbody-striped"} />
+          )),
+        }}
+        fixedHeaderContent={() => (
+          <Table.Tr bg={"var(--mantine-color-body)"}>
+            {columns.map((column, idx) => {
+              const sortIcon =
+                column.sortKey !== null
+                  ? renderSortIcon(column.sortKey, sortKey)
+                  : undefined;
 
-        return (
-          <>
-            {columns.map((column, idx) => (
-              <Table.Td key={idx} bg={bg}>
-                {column.render(instance, basket, colorMap)}
-              </Table.Td>
-            ))}
-          </>
-        );
-      }}
-    />
+              const handleSort =
+                column.sortKey !== null
+                  ? () =>
+                      setSortKey(computeNextSortKey(sortKey, column.sortKey!))
+                  : undefined;
+
+              return (
+                <Table.Th key={idx} onClick={handleSort}>
+                  {column.header}
+                  {sortIcon}
+                </Table.Th>
+              );
+            })}
+          </Table.Tr>
+        )}
+        itemContent={(_index, instance) => {
+          // change background on td so we still get hover effect
+          const bg = selectedIds?.has(instance.id)
+            ? "var(--mantine-color-blue-light)"
+            : undefined;
+
+          return (
+            <>
+              {columns.map((column, idx) => (
+                <Table.Td key={idx} bg={bg}>
+                  {column.render(instance, spec, basket, colorMap)}
+                </Table.Td>
+              ))}
+            </>
+          );
+        }}
+      />
+    </>
   );
 };

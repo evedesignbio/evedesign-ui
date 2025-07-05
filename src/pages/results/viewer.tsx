@@ -14,7 +14,7 @@ import { DEFAULT_STYLE, StructurePanel } from "../../features/structurepanel";
 import { AutowrapHeatmap } from "../../components/autowrapheatmap";
 import "./viewer.css";
 import { useInstances, useMatrix } from "./data.ts";
-import { InstanceTable } from "./table.tsx";
+import { InstanceTable, renderSequenceLabel } from "./table.tsx";
 import { useDisclosure } from "@mantine/hooks";
 import { DNAGenerationDialog } from "./dna.tsx";
 import { BoxedLayout } from "./helpers.tsx";
@@ -29,7 +29,8 @@ import {
 } from "./reducers.ts";
 import { useReducer, useState } from "react";
 import {
-  InstanceDownloadMenu, renderStructureSelectionMenu,
+  InstanceDownloadMenu,
+  renderStructureSelectionMenu,
   StructureErrorOverlay,
   StructureLoadingOverlay,
   useAnnotationTracks,
@@ -43,6 +44,7 @@ import {
   useStructureStyles,
   useTooltipStyle,
 } from "./elements.tsx";
+import { Tooltip as ReactTooltip } from "react-tooltip";
 
 export interface AnalysisViewerProps {
   id: string;
@@ -181,6 +183,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       isMutationScan={isMutationScan}
       dispatchDataSelection={dispatchDataSelection}
       colorMap={colorMap}
+      spec={spec}
     />
   );
 
@@ -299,6 +302,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     </>
   );
 
+  // note: tooltip rendered here to be on top of other components
   return (
     <>
       {dnaModal}
@@ -312,6 +316,11 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
           <div className="resizable-viewer-box">{structurePanel}</div>
         </div>
       </div>
+      <ReactTooltip
+        id="tableViewer"
+        render={renderSequenceLabel}
+        style={heatmapTooltipStyle}
+      />
     </>
   );
 };
