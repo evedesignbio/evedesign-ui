@@ -810,8 +810,11 @@ export const renderStructureSelectionMenu = (
     const id = structureSelectionId(p.payload.selectedStructures[0]);
     idToPayload.set(id, p);
 
+    const [idNoRange, range] = id.replace("_assembly", "").replace("_full", "").split("_");
+    const percentIdentity = ((1.0 - s.missmatches / s.alnLength) * 100).toFixed(0);
+
     return {
-      label: id,
+      label: `${idNoRange} (${range}, ${percentIdentity}% identity)`,
       value: id,
     };
   });
@@ -827,6 +830,7 @@ export const renderStructureSelectionMenu = (
           structureHits.length === 0 ? "No structures available" : undefined
         }
         allowDeselect={false}
+        searchable={true}
         data={data}
         value={selectedId}
         onChange={(value) => {
