@@ -9,7 +9,7 @@ import {
   MutationMatrix,
 } from "./data.ts";
 import { useMemo } from "react";
-import { Button, Loader, Menu, Stack, Text } from "@mantine/core";
+import { Button, Loader, Menu, Select, Stack, Text } from "@mantine/core";
 import { CellCoords, LabelData } from "../../components/autowrapheatmap";
 import {
   PipelineSpec,
@@ -39,6 +39,14 @@ import { PosAndAtomInfo } from "../../features/structurepanel";
 import { downloadInstances } from "./helpers.tsx";
 import "./elements.css";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  createStructureSelectionPayload,
+  SelectedStructureMap,
+  StructureDispatchFunc,
+  StructureReducerAction,
+  structureSelectionId,
+} from "../../features/structurepanel/reducers.ts";
+import { StructureAlignment } from "../../models/structure.ts";
 
 // Per-effect score visualization properties
 export interface ScoreParameters {
@@ -771,9 +779,64 @@ export const StructureErrorOverlay = () => {
   return (
     <div className={"structure-overlay"}>
       <Stack align={"center"}>
-      Error loading 3D structure
-      <Button onClick={() => queryClient.invalidateQueries()}>Retry</Button>
+        Error loading 3D structure
+        <Button onClick={() => queryClient.invalidateQueries()}>Retry</Button>
       </Stack>
+    </div>
+  );
+};
+
+export const renderStructureSelectionMenu = (
+  structureHits: StructureAlignment[],
+  structureSelection: SelectedStructureMap,
+  dispatch: StructureDispatchFunc,
+  useFullStructureModel: boolean,
+  useStructureAssembly: boolean,
+) => {
+  // console.log(structureHits.slice(0, 1));
+  // console.log(structureSelection); // TODO: remove
+  // TODO: make transparent (on hover)?
+  // TODO: no deselect
+
+  const idToPayload = new Map<string, StructureReducerAction>();
+
+  const data = structureHits.map((s) => {
+    // create payload right away, this contains useful parsed information about structure
+    const p = createStructureSelectionPayload(
+      [s],
+      useFullStructureModel,
+      useStructureAssembly,
+    );
+    const id = structureSelectionId(p.payload.selectedStructures[0]);
+    idToPayload.set(id, p);
+
+    return {
+      label: id,
+      value: id,
+    };
+  });
+
+  const selectedId =
+    structureSelection.size > 0 ? [...structureSelection.keys()][0] : null;
+
+  return (
+    <div style={{ position: "absolute", top: "20px", right: "20px" }}>
+      <Select
+        disabled={structureHits.length === 0}
+        placeholder={
+          structureHits.length === 0 ? "No structures available" : undefined
+        }
+        allowDeselect={false}
+        data={data}
+        value={selectedId}
+        onChange={(value) => {
+          if (value === null) {
+            return;
+          }
+
+          dispatch(idToPayload.get(value)!);
+        }}
+      />
     </div>
   );
 };

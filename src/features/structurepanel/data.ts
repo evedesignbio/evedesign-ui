@@ -27,7 +27,7 @@ import { PositionColorCallback } from "../../utils/colormap.ts";
 export const rankStructureHits = (
   structureHits: StructureAlignment[],
   preferExperimentalOverlapFactor = 2, // TODO: raise again
-) => {
+): StructureAlignment[] => {
   // compute adjusted score, removing contribution of disordered stretches in odentified hits
   const structureHitsAdj = structureHits.map((hit) => {
     // extract 3Di aligned region from full DB 3Di sequence

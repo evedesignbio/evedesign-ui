@@ -40,6 +40,26 @@ export interface StructureReducerAction {
   payload: StructureReducerAddPayload;
 }
 
+export type StructureDispatchFunc = (action: StructureReducerAction) => void;
+
+// export const parseStructureHit = (s: StructureAlignment) => {
+//   const fullId = s.target.split(/\s/)[0];
+//   const database = s.db.toLowerCase().startsWith("pdb") ? "pdb" : "afdb";
+//   const structureId = database === "pdb" ? fullId.split("-")[0] : fullId;
+//   const chainId =
+//     database === "pdb" ? fullId.split("_")[1] : PREDICTED_DEFAULT_CHAIN;
+//
+//   const canUseAssembly = s.db.toLowerCase().startsWith("pdb");
+//
+//   return {
+//     fullId: fullId,
+//     database: database,
+//     structureId: structureId,
+//     chainId: chainId,
+//     canUseAssembly: canUseAssembly,
+//   };
+// };
+
 // helper function to prepare payload for reducer;
 // note this applies a global setting about model/assembly use
 // to individual structure selection as a simplifying assumption
@@ -64,8 +84,9 @@ export const createStructureSelectionPayload = (
         const structureId = database === "pdb" ? fullId.split("-")[0] : fullId;
         const chainId =
           database === "pdb" ? fullId.split("_")[1] : PREDICTED_DEFAULT_CHAIN;
-
         const canUseAssembly = s.db.toLowerCase().startsWith("pdb");
+
+        // const { database, structureId, chainId, canUseAssembly } = parseStructureHit(s);
 
         return {
           targetToStructure: s,
@@ -76,7 +97,7 @@ export const createStructureSelectionPayload = (
           useAssembly: useAssembly && canUseAssembly,
           // assemblyId: assemblyId,
           // assembly: assembly,
-        };
+        } as SelectedStructureHit;
       }),
     },
   };

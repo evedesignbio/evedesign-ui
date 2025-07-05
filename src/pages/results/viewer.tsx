@@ -29,7 +29,7 @@ import {
 } from "./reducers.ts";
 import { useReducer, useState } from "react";
 import {
-  InstanceDownloadMenu,
+  InstanceDownloadMenu, renderStructureSelectionMenu,
   StructureErrorOverlay,
   StructureLoadingOverlay,
   useAnnotationTracks,
@@ -202,6 +202,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       hoverOverlayRenderer={structureHoverLabelRenderer}
       loadingOverlay={<StructureLoadingOverlay />}
       errorOverlay={<StructureErrorOverlay />}
+      selectionMenuRenderer={renderStructureSelectionMenu}
     />
   );
 

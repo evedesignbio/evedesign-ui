@@ -20,6 +20,8 @@ import {
   createStructureSelectionPayload,
   generateStructureQueries,
   SelectedStructureHit,
+  SelectedStructureMap,
+  StructureDispatchFunc,
   structureSelectionReducer,
 } from "./reducers.ts";
 import {
@@ -86,6 +88,13 @@ export interface StructurePanelProps {
   loadingOverlay?: ReactNode;
   errorOverlay?: ReactNode;
   hoverOverlayRenderer?: (posAndAtomInfo: PosAndAtomInfo) => ReactNode;
+  selectionMenuRenderer?: (
+    structureHitsSorted: StructureAlignment[],
+    structureSelection: SelectedStructureMap,
+    dispatch: StructureDispatchFunc,
+    useFullStructureModel: boolean,
+    useStructureAssembly: boolean,
+  ) => ReactNode;
 }
 
 export interface PosAndAtomInfo {
@@ -109,6 +118,7 @@ export const StructurePanel = ({
   loadingOverlay = undefined,
   errorOverlay = undefined,
   hoverOverlayRenderer = undefined,
+  selectionMenuRenderer = undefined,
 }: StructurePanelProps) => {
   // initialize structure selection reducer
   const [structureSelection, dispatchStructureSelection] = useReducer(
@@ -203,6 +213,20 @@ export const StructurePanel = ({
       ? hoverOverlayRenderer(hoverInfo)
       : undefined;
 
+  const selectionMenu = useMemo(
+    () =>
+      selectionMenuRenderer
+        ? selectionMenuRenderer(
+            structureHitsSorted,
+            structureSelection,
+            dispatchStructureSelection,
+            useFullStructureModel,
+            useStructureAssembly,
+          )
+        : undefined,
+    [structureHitsSorted, structureSelection, dispatchStructureSelection],
+  );
+
   return (
     <>
       <Molstar
@@ -218,6 +242,7 @@ export const StructurePanel = ({
         handleHover={molstarHoverHandler}
         colorMap={molstarColorMap}
       />
+      {selectionMenu}
       {hoverLabel}
       {overlay}
     </>
