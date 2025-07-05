@@ -30,6 +30,8 @@ import {
 import { useReducer, useState } from "react";
 import {
   InstanceDownloadMenu,
+  StructureErrorOverlay,
+  StructureLoadingOverlay,
   useAnnotationTracks,
   useColorMap,
   useHeatmapCellMarks,
@@ -198,6 +200,8 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       colorCallback={structureColorMap}
       siteHighlights={siteHighlights}
       hoverOverlayRenderer={structureHoverLabelRenderer}
+      loadingOverlay={<StructureLoadingOverlay />}
+      errorOverlay={<StructureErrorOverlay />}
     />
   );
 

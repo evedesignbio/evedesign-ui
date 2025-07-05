@@ -9,7 +9,7 @@ import {
   MutationMatrix,
 } from "./data.ts";
 import { useMemo } from "react";
-import { Button, Menu, Stack, Text } from "@mantine/core";
+import { Button, Loader, Menu, Stack, Text } from "@mantine/core";
 import { CellCoords, LabelData } from "../../components/autowrapheatmap";
 import {
   PipelineSpec,
@@ -37,6 +37,8 @@ import { SiteHighlightTargetPos } from "../../features/structurepanel/data.ts";
 import { Color } from "molstar/lib/mol-util/color";
 import { PosAndAtomInfo } from "../../features/structurepanel";
 import { downloadInstances } from "./helpers.tsx";
+import "./elements.css";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Per-effect score visualization properties
 export interface ScoreParameters {
@@ -557,7 +559,7 @@ export const useStructureStyles = (
       isMutationScan ? dataSelection.instances : dataSelection.mutations,
       isMutationScan ? "avg" : "sum",
     );
-    
+
     // show spheres for any clicked mutation (encoded by instances for mutation scan)
     const highlightPos = new Set(
       mutationsToMutatedPositions(
@@ -753,5 +755,25 @@ export const InstanceDownloadMenu = ({
         ))}
       </Menu.Dropdown>
     </Menu>
+  );
+};
+
+export const StructureLoadingOverlay = () => {
+  return (
+    <div className={"structure-overlay"}>
+      <Loader type="dots" size="xl" />
+    </div>
+  );
+};
+
+export const StructureErrorOverlay = () => {
+  const queryClient = useQueryClient();
+  return (
+    <div className={"structure-overlay"}>
+      <Stack align={"center"}>
+      Error loading 3D structure
+      <Button onClick={() => queryClient.invalidateQueries()}>Retry</Button>
+      </Stack>
+    </div>
   );
 };
