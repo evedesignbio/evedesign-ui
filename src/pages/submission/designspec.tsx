@@ -250,7 +250,7 @@ const buildSpec = (
             type: "linear",
             update: temperatureUpdate,
           },
-          record_full_chain: false,
+          record_full_chain: true,  // TODO: revert this to false
         },
       };
     }
