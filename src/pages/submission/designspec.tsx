@@ -27,6 +27,7 @@ import { range } from "../../utils/helpers.ts";
 import { useDisclosure, useViewportSize } from "@mantine/hooks";
 import { useSubmission } from "../../api/modal.ts";
 import { SubmissionModal } from "../../components/submission/modal.tsx";
+import { TaxoviewModal } from "./taxoview.tsx";
 
 const MIN_NUM_DESIGNS = 1;
 const MAX_NUM_DESIGNS = 20000;
@@ -46,7 +47,7 @@ const MAX_TEMPERATURE_FACTOR = 1000;
 export interface DesignSpecProps {
   targetSeq: SeqWithRegion;
   msa: Sequence[];
-  structures: object,
+  structures: object;
   seqSearchId: string;
   structSearchId: string;
 }
@@ -188,13 +189,16 @@ const buildSpec = (
   // pass MMseqs and FoldSeek IDs, as well as top structure hits
   // TODO: add proper typing here
   // @ts-ignore
-  const topStructures = structSearchResult.results.map(
+  const topStructures = structSearchResult.results
+    .map(
       // @ts-ignore
-      dbHits => dbHits.alignments[0].slice(0, MAX_NUM_STRUCTURE_HITS).map(
+      (dbHits) =>
+        dbHits.alignments[0].slice(0, MAX_NUM_STRUCTURE_HITS).map(
           // @ts-ignore
-          ali => ({db: dbHits.db, ...ali})
-      )
-  ).flat();
+          (ali) => ({ db: dbHits.db, ...ali }),
+        ),
+    )
+    .flat();
 
   const metadata = {
     msa_search_job_id: seqSearchId,
@@ -250,7 +254,7 @@ const buildSpec = (
             type: "linear",
             update: temperatureUpdate,
           },
-          record_full_chain: true,  // TODO: revert this to false
+          record_full_chain: true, // TODO: revert this to false
         },
       };
     }
@@ -297,6 +301,8 @@ export const DesignSpecInput = ({
     targetSeq.start - 1,
     targetSeq.end,
   );
+
+  const [showFilterModal, { toggle: toggleFilterModal }] = useDisclosure(false);
 
   const [model, setModel] = useState<string>("evmutation2_ensembled");
   const [sampler, setSampler] = useState("single_mutation_scan");
@@ -593,6 +599,15 @@ export const DesignSpecInput = ({
 
   return (
     <>
+      <TaxoviewModal
+        opened={showFilterModal}
+        close={toggleFilterModal}
+        msa={msa}
+        submit={(msaFiltered: Sequence[]) =>
+          // TODO: TH will need to connect filtered MSA to downstream processing in this component
+          console.log("filtered MSA", msaFiltered)
+        }
+      />
       <SubmissionModal
         isSubmitting={isSubmitting}
         close={closeSubmitting}
@@ -606,7 +621,7 @@ export const DesignSpecInput = ({
         <Group justify="space-between" pb={"xs"}>
           <Text>{numSeqs} homologous sequences found</Text>
           <Group>
-            <Button variant="default" disabled={true}>
+            <Button variant="default" onClick={toggleFilterModal}>
               Filter
             </Button>
             {downloadButton}
