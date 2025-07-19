@@ -22,5 +22,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src", "src/**/*.d.ts", "src/types/taxoview.d.ts"]
+  "include": ["src"]
 }
