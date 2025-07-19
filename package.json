@@ -19,6 +19,7 @@
     "react-dom": "^19.0.0",
     "react-tooltip": "^5.29.1",
     "react-virtuoso": "^4.13.0",
+    "taxoview": "^2.0.8",
     "wouter": "^3.6.0"
   },
   "devDependencies": {
