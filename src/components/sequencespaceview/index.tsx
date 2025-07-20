@@ -131,22 +131,19 @@ export default function SequenceSpaceView() {
 		svg.selectAll("*").remove();
 		svg.attr("viewBox", `0 0 ${width} ${height}`);
 
-		// Create main group that will be transformed by zoom
-		const mainGroup = svg.append("g").attr("class", "main-group");
-
-		// axes
-		const xAxis = mainGroup
+		// Static axes (not transformed by zoom)
+		const xAxis = svg
 			.append("g")
 			.attr("class", "x-axis")
 			.attr("transform", `translate(0,${height - margin.bottom})`)
 			.call(d3.axisBottom(xScale));
 
-		const yAxis = mainGroup.append("g").attr("class", "y-axis").attr("transform", `translate(${margin.left},0)`).call(d3.axisLeft(yScale));
+		const yAxis = svg.append("g").attr("class", "y-axis").attr("transform", `translate(${margin.left},0)`).call(d3.axisLeft(yScale));
 
-		// points layer
-		const gPoints = mainGroup.append("g").attr("class", "points");
+		// Create group for points that will be transformed by zoom
+		const pointsGroup = svg.append("g").attr("class", "points-group");
 
-		const dots = gPoints
+		const dots = pointsGroup
 			.selectAll("circle")
 			.data(points)
 			.enter()
@@ -212,7 +209,7 @@ export default function SequenceSpaceView() {
 
 			// Find selected points
 			const picked = new Set<string>();
-			const currentTransform = d3.zoomTransform(mainGroup.node()!);
+			const currentTransform = d3.zoomTransform(pointsGroup.node()!);
 
 			dots
 				.style("stroke", "white")
@@ -246,8 +243,18 @@ export default function SequenceSpaceView() {
 		/* ZOOM HANDLER                                                        */
 		/* ------------------------------------------------------------------ */
 		const zoomed = (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
-			// Apply transform to the main group - this is the key difference!
-			mainGroup.attr("transform", event.transform.toString());
+			const transform = event.transform;
+
+			// Apply transform only to the points group
+			pointsGroup.attr("transform", transform.toString());
+
+			// Update axis scales to reflect the current zoom/pan state
+			const newXScale = transform.rescaleX(xScale);
+			const newYScale = transform.rescaleY(yScale);
+
+			// Update axis ticks and labels (but not the axis lines themselves)
+			xAxis.call(d3.axisBottom(newXScale));
+			yAxis.call(d3.axisLeft(newYScale));
 		};
 
 		const zoom = d3
