@@ -1,7 +1,7 @@
 import { Button, Modal, Stack } from "@mantine/core";
 import { Sequence } from "../../models/design.ts";
 import 'taxoview/dist/taxoview.ce.js';   // registers <taxo-view>
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
 export interface TaxoviewModalProps {
   opened: boolean;
@@ -231,28 +231,33 @@ export const TaxoviewModal = ({
   close,
   submit,
 }: TaxoviewModalProps) => {
-	/** callback ref runs every time the element mounts / unmounts */
+	// State for clicked taxon IDs
+	const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
 	const setTaxoEl = useCallback(
 		(el: HTMLElement | null) => {
 			if (!el) return; // unmounted
 
 			const onNodeClicked = (e: Event) => {
 				const [node] = (e as CustomEvent).detail as [any];
-				console.log("clicked node:", node);
+				console.log("clicked node:", node.taxon_id);
 
-				// example: close & submit
-				// submit(filterByNode(msa, node));
-				// close();
+				// Add selected node's taxon_id to list
+				const id = node.taxon_id ?? node.taxID;
+				if (id == null) return;
+				setSelectedIds(
+					(prev) => (prev.includes(id) ? prev : [...prev, id]) // avoid duplicates
+				);
 			};
+
+			// @ts-ignore
+			// el.colorScheme = ["#FFCD73", "#8CB5B5", "#648FFF", "#785EF0"];
 
 			el.addEventListener("node-clicked", onNodeClicked);
 			return () => el.removeEventListener("node-clicked", onNodeClicked);
 		},
 		[msa, submit, close]
 	);
-
-
-
 
 	// TODO: if taxonomic filter selected here, submit filtered sequences to outside component
 	//  with submit() function prop
@@ -264,14 +269,18 @@ export const TaxoviewModal = ({
 			overlayProps={{
 				blur: 3,
 			}}
-			size="auto"
+			size="70%"
 		>
 			<Stack>
 				<div>TaxoView for {msa.length} sequences</div>
+				<div>
+					<strong>Selected taxon IDs:</strong> {selectedIds.length ? selectedIds.join(", ") : "-"}
+				</div>
 				<taxo-view ref={setTaxoEl} raw-data={taxonomyData} font-fill="white" />
 				<Button
 					onClick={() => {
 						// TODO: this is just a dummy for actual taxonomic filtering based on selection in TaxoView component
+						// submit(selectedIds)
 						submit(msa.slice(0, 100));
 						close();
 					}}
