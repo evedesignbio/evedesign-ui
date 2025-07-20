@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
-import type { BrushSelection, D3BrushEvent } from "d3";
 
 // Dummy data structure - replace later
 type Cluster = {
@@ -143,6 +142,28 @@ export default function SequenceSpaceView() {
 		// Create group for points that will be transformed by zoom
 		const pointsGroup = svg.append("g").attr("class", "points-group");
 
+		/* ------------------------------------------------------------------ */
+		/* CLUSTER HIGHLIGHTING                                               */
+		/* ------------------------------------------------------------------ */
+		const highlight = (hoveredCluster: string) => {
+			dots
+				.transition()
+				.duration(200)
+				.style("fill", (d: any) => (d.cluster === hoveredCluster ? d.color : "lightgrey"))
+				.attr("r", (d: any) => (d.cluster === hoveredCluster ? 6 : 3));
+
+			// Bring highlighted cluster points to front
+			dots.filter((d: any) => d.cluster === hoveredCluster).raise();
+		};
+
+		const removeHighlight = () => {
+			dots
+				.transition()
+				.duration(200)
+				.style("fill", (d: any) => d.color)
+				.attr("r", 4);
+		};
+
 		const dots = pointsGroup
 			.selectAll("circle")
 			.data(points)
@@ -153,7 +174,9 @@ export default function SequenceSpaceView() {
 			.attr("cy", (d) => yScale(d.y))
 			.attr("fill", (d) => d.color)
 			.attr("stroke", "white")
-			.attr("stroke-width", 1);
+			.attr("stroke-width", 1)
+			.on("mouseover", (event: MouseEvent, d: any) => highlight(d.cluster))
+			.on("mouseleave", removeHighlight);
 
 		/* ------------------------------------------------------------------ */
 		/* BRUSH HANDLER (Shift + drag only)                                   */
