@@ -157,6 +157,9 @@ export default function SequenceSpaceView() {
 		const handleBrushMove = (event: MouseEvent) => {
 			if (!brushing || !brushStart || !brushRect) return;
 
+			// stop the click from propagating after a brush (prevents interfering with reset click)
+			event.stopPropagation();
+
 			const [currentX, currentY] = d3.pointer(event, svg.node());
 			const x = Math.min(brushStart[0], currentX);
 			const y = Math.min(brushStart[1], currentY);
@@ -198,6 +201,18 @@ export default function SequenceSpaceView() {
 			brushStart = null;
 			brushing = false;
 		};
+
+		// -------------------------------------------------------------
+		// RESET ON CLICK
+		// -------------------------------------------------------------
+		// when you click anywhere (and you’re not brushing), clear highlights
+		svg.on("click.reset", (event: MouseEvent) => {
+		// don’t reset while shift-dragging
+		if (event.shiftKey || brushing) return;
+			// reset all dots to their original fill
+			dots.style("fill", (d: any) => d.color);
+			setSelected(new Set());
+		});
 
 		// Attach brush event listeners
 		svg.on("mousedown.brush", handleBrushStart);
