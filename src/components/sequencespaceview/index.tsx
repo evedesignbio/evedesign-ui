@@ -1,95 +1,44 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
+import { data396 } from "./coords_cluster_396.ts"; // TODO: imports dummy data, remove later
+import { data392 } from "./coords_cluster_392.ts"; // TODO: imports dummy data, remove later
 
 // Dummy data structure - replace later
+type Point = { x: number; y: number };
 type Cluster = {
 	name: string;
 	color: string;
 	shape: "circle" | "triangle";
-	data: { x: number; y: number }[];
+	data: Point[];
 };
 
 // Dummy data
 const clusters: Cluster[] = [
 	{
 		name: "cluster1",
-		color: "red.5",
+		color: "red",
 		shape: "circle",
-		data: [
-			{ x: 25, y: 20 },
-			{ x: 30, y: 22 },
-			{ x: 35, y: 18 },
-			{ x: 40, y: 25 },
-			{ x: 45, y: 30 },
-			{ x: 28, y: 15 },
-			{ x: 22, y: 12 },
-			{ x: 50, y: 28 },
-			{ x: 32, y: 19 },
-			{ x: 48, y: 31 },
-			{ x: 26, y: 24 },
-			{ x: 38, y: 27 },
-			{ x: 42, y: 29 },
-			{ x: 29, y: 16 },
-			{ x: 34, y: 23 },
-			{ x: 44, y: 33 },
-			{ x: 23, y: 14 },
-			{ x: 37, y: 26 },
-			{ x: 49, y: 34 },
-			{ x: 27, y: 17 },
-			{ x: 41, y: 32 },
-			{ x: 31, y: 21 },
-			{ x: 46, y: 35 },
-			{ x: 24, y: 13 },
-			{ x: 33, y: 22 },
-			{ x: 39, y: 28 },
-			{ x: 47, y: 30 },
-			{ x: 36, y: 25 },
-			{ x: 43, y: 29 },
-			{ x: 21, y: 11 },
-		],
+		data: data396,
 	},
 	{
 		name: "cluster2",
-		color: "blue.5",
+		color: "blue",
 		shape: "triangle",
-		data: [
-			{ x: 26, y: 21 },
-			{ x: 31, y: 24 },
-			{ x: 37, y: 19 },
-			{ x: 42, y: 27 },
-			{ x: 29, y: 32 },
-			{ x: 35, y: 18 },
-			{ x: 40, y: 23 },
-			{ x: 45, y: 30 },
-			{ x: 27, y: 15 },
-			{ x: 33, y: 20 },
-			{ x: 38, y: 25 },
-			{ x: 43, y: 29 },
-			{ x: 30, y: 16 },
-			{ x: 36, y: 22 },
-			{ x: 41, y: 28 },
-			{ x: 46, y: 33 },
-			{ x: 28, y: 17 },
-			{ x: 34, y: 22 },
-			{ x: 39, y: 26 },
-			{ x: 44, y: 31 },
-			{ x: 32, y: 18 },
-			{ x: 38, y: 23 },
-			{ x: 43, y: 28 },
-			{ x: 48, y: 35 },
-			{ x: 25, y: 14 },
-			{ x: 31, y: 20 },
-			{ x: 36, y: 25 },
-			{ x: 41, y: 30 },
-			{ x: 29, y: 16 },
-		],
+		data: data392,
 	},
 ];
 
+// Constants for point sizes
+const POINT_RADIUS = {
+	DEFAULT: 1.5,
+	HIGHLIGHTED: 2.5,
+	DIMMED: 1,
+} as const;
+
 // Color palette
 const pallet = new Map([
-	["red.5", "#fa5252"],
-	["blue.5", "#339af0"],
+	["red", "#fa5252"],
+	["blue", "#339af0"],
 ]);
 
 export default function SequenceSpaceView() {
@@ -149,8 +98,7 @@ export default function SequenceSpaceView() {
 			dots
 				.transition()
 				.duration(200)
-				.style("fill", (d: any) => (d.cluster === hoveredCluster ? d.color : "lightgrey"))
-				.attr("r", (d: any) => (d.cluster === hoveredCluster ? 6 : 3));
+				.attr("r", (d: any) => (d.cluster === hoveredCluster ? POINT_RADIUS.HIGHLIGHTED : POINT_RADIUS.DIMMED));
 
 			// Bring highlighted cluster points to front
 			dots.filter((d: any) => d.cluster === hoveredCluster).raise();
@@ -159,9 +107,8 @@ export default function SequenceSpaceView() {
 		const removeHighlight = () => {
 			dots
 				.transition()
-				.duration(200)
-				.style("fill", (d: any) => d.color)
-				.attr("r", 4);
+				.duration(100)
+				.attr("r", POINT_RADIUS.DEFAULT);
 		};
 
 		const dots = pointsGroup
@@ -169,12 +116,10 @@ export default function SequenceSpaceView() {
 			.data(points)
 			.enter()
 			.append("circle")
-			.attr("r", 4)
+			.attr("r", POINT_RADIUS.DEFAULT)
 			.attr("cx", (d) => xScale(d.x))
 			.attr("cy", (d) => yScale(d.y))
 			.attr("fill", (d) => d.color)
-			.attr("stroke", "white")
-			.attr("stroke-width", 1)
 			.on("mouseover", (event: MouseEvent, d: any) => highlight(d.cluster))
 			.on("mouseleave", removeHighlight);
 
@@ -235,8 +180,7 @@ export default function SequenceSpaceView() {
 			const currentTransform = d3.zoomTransform(pointsGroup.node()!);
 
 			dots
-				.style("stroke", "white")
-				.style("stroke-width", 1)
+				.style("fill", "lightgrey")
 				.filter((d: any) => {
 					const screenX = currentTransform.applyX(xScale(d.x));
 					const screenY = currentTransform.applyY(yScale(d.y));
@@ -244,8 +188,7 @@ export default function SequenceSpaceView() {
 					if (hit) picked.add(d.key);
 					return hit;
 				})
-				.style("stroke", "steelblue")
-				.style("stroke-width", 2);
+				.style("fill", (d: any) => d.color);
 
 			setSelected(picked);
 
@@ -295,14 +238,14 @@ export default function SequenceSpaceView() {
 
 	// Render
 	return (
-		<div style={{ border: "1px solid #ddd", borderRadius: 4, padding: 8 }}>
+		<div>
 			<div style={{ marginBottom: 8, fontSize: "14px" }}>
 				Hold Shift + drag to select points, scroll/drag to zoom/pan
 			</div>
 			<div style={{ marginBottom: 8, fontSize: "14px" }}>
 				<strong>Selected:</strong> {selected.size ? `${selected.size} points` : "none"}
 			</div>
-			<svg ref={svgRef} width="100%" height={460} />
+			<svg ref={svgRef} width="100%" height="100%" />
 		</div>
 	);
 }
