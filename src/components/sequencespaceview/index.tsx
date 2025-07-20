@@ -297,7 +297,7 @@ export default function SequenceSpaceView() {
 	return (
 		<div style={{ border: "1px solid #ddd", borderRadius: 4, padding: 8 }}>
 			<div style={{ marginBottom: 8, fontSize: "14px" }}>
-				<strong>Instructions:</strong> Hold Shift + drag to select points, scroll/drag to zoom/pan
+				Hold Shift + drag to select points, scroll/drag to zoom/pan
 			</div>
 			<div style={{ marginBottom: 8, fontSize: "14px" }}>
 				<strong>Selected:</strong> {selected.size ? `${selected.size} points` : "none"}

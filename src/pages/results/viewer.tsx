@@ -12,6 +12,7 @@ import {
 } from "../../models/api.ts";
 import { DEFAULT_STYLE, StructurePanel } from "../../features/structurepanel";
 import { AutowrapHeatmap } from "../../components/autowrapheatmap";
+import SequenceSpaceView from "../../components/sequencespaceview"
 import "./viewer.css";
 import { useInstances, useMatrix } from "./data.ts";
 import { InstanceTable, renderSequenceLabel } from "./table.tsx";
@@ -233,6 +234,10 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     />
   );
 
+  const scatterplotPanel = (
+    <SequenceSpaceView />
+  )
+
   // TODO: factor this out into own component
   const menuPanel = (
     <>
@@ -304,23 +309,20 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
 
   // note: tooltip rendered here to be on top of other components
   return (
-    <>
-      {dnaModal}
-      <div className="outer-wrapper">
-        <div className="menubar-wrapper">{menuPanel}</div>
-        <div className="resizable-viewer-wrapper">
-          <div className="resizable-viewer-box">{tablePanel}</div>
-          <div className="resizable-viewer-box">
-            <div className="heatmap-wrapper">{heatmapPanel}</div>
-          </div>
-          <div className="resizable-viewer-box">{structurePanel}</div>
-        </div>
-      </div>
-      <ReactTooltip
-        id="tableViewer"
-        render={renderSequenceLabel}
-        style={heatmapTooltipStyle}
-      />
-    </>
-  );
+		<>
+			{dnaModal}
+			<div className="outer-wrapper">
+				<div className="menubar-wrapper">{menuPanel}</div>
+				<div className="resizable-viewer-wrapper">
+					<div className="resizable-viewer-box">{tablePanel}</div>
+					<div className="resizable-viewer-box">
+						<div className="heatmap-wrapper">{heatmapPanel}</div>
+					</div>
+					<div className="resizable-viewer-box">{structurePanel}</div>
+					<div className="resizable-viewer-box">{scatterplotPanel}</div>
+				</div>
+			</div>
+			<ReactTooltip id="tableViewer" render={renderSequenceLabel} style={heatmapTooltipStyle} />
+		</>
+	);
 };
