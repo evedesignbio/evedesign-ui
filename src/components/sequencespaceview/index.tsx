@@ -161,22 +161,15 @@ export default function SequenceSpaceView() {
 			event.stopPropagation();
 
 			const [currentX, currentY] = d3.pointer(event, svg.node());
-			const x = Math.min(brushStart[0], currentX);
-			const y = Math.min(brushStart[1], currentY);
-			const width = Math.abs(currentX - brushStart[0]);
-			const height = Math.abs(currentY - brushStart[1]);
-
-			brushRect.attr("x", x).attr("y", y).attr("width", width).attr("height", height);
-		};
-
-		const handleBrushEnd = (event: MouseEvent) => {
-			if (!brushing || !brushStart || !brushRect) return;
-
-			const [currentX, currentY] = d3.pointer(event, svg.node());
 			const x0 = Math.min(brushStart[0], currentX);
 			const y0 = Math.min(brushStart[1], currentY);
 			const x1 = Math.max(brushStart[0], currentX);
 			const y1 = Math.max(brushStart[1], currentY);
+
+			// Draw the brush rectangle
+			const width = Math.abs(currentX - brushStart[0]);
+			const height = Math.abs(currentY - brushStart[1]);
+			brushRect.attr("x", x0).attr("y", y0).attr("width", width).attr("height", height);
 
 			// Find selected points
 			const picked = new Set<string>();
@@ -194,7 +187,11 @@ export default function SequenceSpaceView() {
 				.style("fill", (d: any) => d.color);
 
 			setSelected(picked);
+		};
 
+		const handleBrushEnd = (event: MouseEvent) => {
+			if (!brushing || !brushStart || !brushRect) return;
+			
 			// Clean up
 			brushRect.remove();
 			brushRect = null;
