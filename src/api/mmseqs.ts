@@ -48,6 +48,7 @@ const parseTar = async (blob: Blob) => {
             id: curId,
             key: null,
             type: "protein",
+            metadata: null,
           });
           curId = null;
         }

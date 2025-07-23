@@ -10,7 +10,7 @@ export interface Sequence {
   id: string | null;
   key: string | null;
   type: "protein" | "dna" | "rna";
-  metadata: SequenceMetadata;
+  metadata: SequenceMetadata | null;
 }
 
 export interface SequencesSpec {
