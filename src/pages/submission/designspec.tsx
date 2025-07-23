@@ -285,6 +285,19 @@ const buildSpec = (
             deletions: false,
           },
         },
+        {
+          key: "analyze",
+          analyzer: {
+            key: "seqspace_umap_aligned",
+            variant: "default",
+            args: {
+              num_components: 2,
+              include_system_sequences: true,
+            },
+            data: null,
+          },
+          entity: 0,
+        },
       ],
     } as PipelineSpec;
   }

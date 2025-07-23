@@ -1,10 +1,16 @@
 import { StructureAlignment } from "./structure.ts";
 
+export interface SequenceMetadata {
+  seqspace_projection?: number[];
+  // TODO: add taxonomy here as well
+}
+
 export interface Sequence {
   seq: string;
   id: string | null;
   key: string | null;
   type: "protein" | "dna" | "rna";
+  metadata: SequenceMetadata;
 }
 
 export interface SequencesSpec {
@@ -36,8 +42,7 @@ export interface Mutation {
 }
 
 export interface SystemInstanceMetadata {
-  // id?: string;
-  // mutant?: Mutation[];
+  seqspace_projection?: number[];
 }
 
 export interface SystemInstanceSpec {
