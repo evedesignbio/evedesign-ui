@@ -7,7 +7,6 @@ declare global {
 			interface IntrinsicElements {
 				"taxo-view": {
 					"raw-data": string;
-					// + any other attributes
 				} & React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;
 			}
 		}
