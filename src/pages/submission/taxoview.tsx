@@ -1,6 +1,6 @@
 import { Button, Modal, Stack } from "@mantine/core";
 import { Sequence } from "../../models/design.ts";
-import 'taxoview/dist/taxoview.ce.js';   // registers <taxo-view>
+import 'taxoview/dist/taxoview.ce.js';
 import { useCallback, useState } from "react";
 
 export interface TaxoviewModalProps {
