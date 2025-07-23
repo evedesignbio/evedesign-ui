@@ -6,11 +6,11 @@ import { useCallback, useState } from "react";
 export interface TaxoviewModalProps {
   opened: boolean;
   close: () => void;
-  msa: Sequence[];
-  submit: (msaFiltered: Sequence[]) => void;
+  msa: Sequence[]; // TODO: change to mmseqs taxonomyreport output as a string 
+  submit: (filteredTaxonIds: number[]) => void; 
 }
 
-// TODO: dummy data
+// dummy data
 const taxonomyData = `#clade_proportion	clade_count	taxon_count	rank	taxID	name
 5.9001	32656	32656	no rank	0	unclassified
 94.0999	520822	4	no rank	1	root
@@ -280,8 +280,7 @@ export const TaxoviewModal = ({
 				<Button
 					onClick={() => {
 						// TODO: this is just a dummy for actual taxonomic filtering based on selection in TaxoView component
-						// submit(selectedIds)
-						submit(msa.slice(0, 100));
+						submit(selectedIds)
 						close();
 					}}
 				>

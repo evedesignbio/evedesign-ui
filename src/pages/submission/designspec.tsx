@@ -603,9 +603,9 @@ export const DesignSpecInput = ({
         opened={showFilterModal}
         close={toggleFilterModal}
         msa={msa}
-        submit={(msaFiltered: Sequence[]) =>
+        submit={(filteredTaxonIds: number[]) =>
           // TODO: TH will need to connect filtered MSA to downstream processing in this component
-          console.log("filtered MSA", msaFiltered)
+          console.log("filtered Taxon Ids from TaxoView", filteredTaxonIds)
         }
       />
       <SubmissionModal
