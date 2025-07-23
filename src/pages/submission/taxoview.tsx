@@ -260,7 +260,6 @@ export const TaxoviewModal = ({
 	);
 
 	// TODO: if taxonomic filter selected here, submit filtered sequences to outside component
-	//  with submit() function prop
 	return (
 		<Modal
 			opened={opened}
