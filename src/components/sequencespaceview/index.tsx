@@ -91,9 +91,9 @@ export default function SequenceSpaceView() {
 		// Create group for points that will be transformed by zoom
 		const pointsGroup = svg.append("g").attr("class", "points-group");
 
-		/* ------------------------------------------------------------------ */
-		/* CLUSTER HIGHLIGHTING                                               */
-		/* ------------------------------------------------------------------ */
+		// ------------------------------------------------------------------
+		// CLUSTER HIGHLIGHTING                                               
+		// ------------------------------------------------------------------
 		const highlight = (hoveredCluster: string) => {
 			dots
 				.transition()
@@ -123,9 +123,9 @@ export default function SequenceSpaceView() {
 			.on("mouseover", (event: MouseEvent, d: any) => highlight(d.cluster))
 			.on("mouseleave", removeHighlight);
 
-		/* ------------------------------------------------------------------ */
-		/* BRUSH HANDLER (Shift + drag only)                                   */
-		/* ------------------------------------------------------------------ */
+		// ------------------------------------------------------------------ 
+		// BRUSH HANDLER                              
+		// ------------------------------------------------------------------
 		let brushing = false;
 		let brushStart: [number, number] | null = null;
 		let brushRect: d3.Selection<SVGRectElement, unknown, null, undefined> | null = null;
@@ -191,7 +191,7 @@ export default function SequenceSpaceView() {
 
 		const handleBrushEnd = (event: MouseEvent) => {
 			if (!brushing || !brushStart || !brushRect) return;
-			
+
 			// Clean up
 			brushRect.remove();
 			brushRect = null;
@@ -202,9 +202,9 @@ export default function SequenceSpaceView() {
 		// -------------------------------------------------------------
 		// RESET ON CLICK
 		// -------------------------------------------------------------
-		// when you click anywhere (and you’re not brushing), clear highlights
+		// when you click anywhere (and you're not brushing), clear highlights
 		svg.on("click.reset", (event: MouseEvent) => {
-		// don’t reset while shift-dragging
+		// don't reset while shift-dragging
 		if (event.shiftKey || brushing) return;
 			// reset all dots to their original fill
 			dots.style("fill", (d: any) => d.color);
@@ -217,9 +217,9 @@ export default function SequenceSpaceView() {
 		svg.on("mouseup.brush", handleBrushEnd);
 		svg.on("mouseleave.brush", handleBrushEnd);
 
-		/* ------------------------------------------------------------------ */
-		/* ZOOM HANDLER                                                        */
-		/* ------------------------------------------------------------------ */
+		// ------------------------------------------------------------------
+		// ZOOM HANDLER                                                      
+		// ------------------------------------------------------------------
 		const zoomed = (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
 			const transform = event.transform;
 
@@ -230,7 +230,7 @@ export default function SequenceSpaceView() {
 			const newXScale = transform.rescaleX(xScale);
 			const newYScale = transform.rescaleY(yScale);
 
-			// Update axis ticks and labels (but not the axis lines themselves)
+			// Update axis ticks and labels
 			xAxis.call(d3.axisBottom(newXScale));
 			yAxis.call(d3.axisLeft(newYScale));
 		};
@@ -244,7 +244,6 @@ export default function SequenceSpaceView() {
 				return !event.shiftKey && !brushing;
 			});
 
-		// Apply zoom to the SVG
 		svg.call(zoom);
 	}, []);
 
