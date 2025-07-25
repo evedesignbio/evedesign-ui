@@ -1171,3 +1171,7 @@ export const validTranslation = (dnaSeq: string, aaSeq: string) => {
 
   return true;
 };
+
+// https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=Info&id=2787823&lvl=3&lin=f&keep=1&srchmode=1&unlock
+export const UNCLASSIFIED_TAXONOMY_ID = 2787823;
+export const UNCLASSIFIED_TAXONOMY_LINEAGE = "unclassified entries";

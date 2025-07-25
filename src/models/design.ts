@@ -2,7 +2,8 @@ import { StructureAlignment } from "./structure.ts";
 
 export interface SequenceMetadata {
   seqspace_projection?: number[];
-  // TODO: add taxonomy here as well
+  taxonomy_id?: number;
+  taxonomy_lineage?: string;
 }
 
 export interface Sequence {

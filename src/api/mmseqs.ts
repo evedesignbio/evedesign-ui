@@ -3,6 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import TarReader from "./tar.js";
 import { Sequence } from "../models/design.ts";
 import { usePolling } from "./polling.ts";
+import {
+  UNCLASSIFIED_TAXONOMY_ID,
+  UNCLASSIFIED_TAXONOMY_LINEAGE,
+} from "../utils/bio.ts";
 
 const mmseqsBaseUrl = (): string => "https://api.colabfold.com/";
 
@@ -14,10 +18,15 @@ export const useMmseqsSearch = (seq: string | null) => {
     mmseqsBaseUrl() + "ticket/",
     {
       q: `>1\n${seq}`,
-      mode: "env",
+      mode: "env-taxonomy",
     },
   );
 };
+
+interface TaxonomyInfo {
+  taxonomyId: number;
+  taxonomyLineage: string;
+}
 
 // borrowed from https://hulk.mmseqs.com/mmirdit/scratch/requestmsa.mjs
 const parseTar = async (blob: Blob) => {
@@ -25,9 +34,12 @@ const parseTar = async (blob: Blob) => {
   const reader = await tar.readFile(blob);
 
   let sequences: Sequence[] = [];
+  const idToTaxonomy = new Map<string, TaxonomyInfo>();
+
   for (let i = 0; i < reader.length; i++) {
-    if (reader[i].name.endsWith(".a3m")) {
-      const text = await tar.getTextFile(reader[i].name);
+    const fileName = reader[i].name;
+    if (fileName.endsWith(".a3m")) {
+      const text = await tar.getTextFile(fileName);
       // end of file appears to always have null terminator which we must remove
       const lines = text.replaceAll("\x00", "").trim().split("\n");
       let curId: string | null = null;
@@ -48,13 +60,40 @@ const parseTar = async (blob: Blob) => {
             id: curId,
             key: null,
             type: "protein",
-            metadata: null,
+            metadata: {}, // init metadata here so we can easily add taxonomy info below
           });
           curId = null;
         }
       }
+    } else if (fileName.endsWith("_tax.tsv")) {
+      const text = await tar.getTextFile(fileName);
+      text
+        .replaceAll("\x00", "")
+        .trim()
+        .split("\n")
+        .forEach((line: string) => {
+          const [taxId, seqId, taxLineage] = line.split("\t", 3);
+          idToTaxonomy.set(seqId, {
+            taxonomyId: parseInt(taxId),
+            taxonomyLineage: taxLineage,
+          });
+        });
     }
   }
+
+  // add taxonomy to sequences (modify in-place)
+  sequences.forEach((seq) => {
+    if (seq.id !== null) {
+      const seqId = seq.id.split(/(\s+)/)[0];
+      const seqTax = idToTaxonomy.get(seqId);
+      seq.metadata!.taxonomy_id = seqTax
+        ? seqTax.taxonomyId
+        : UNCLASSIFIED_TAXONOMY_ID;
+      seq.metadata!.taxonomy_lineage = seqTax
+        ? seqTax.taxonomyLineage
+        : UNCLASSIFIED_TAXONOMY_LINEAGE;
+    }
+  });
 
   return new Promise<Sequence[]>((resolve, _) => {
     resolve(sequences);
