@@ -457,7 +457,6 @@ export const DNAGenerationDialog = ({
             // perform submission
             submission.mutate({
               spec: spec,
-              token: token,
               parentId: id,
             });
 
