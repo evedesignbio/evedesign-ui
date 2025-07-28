@@ -6,13 +6,13 @@ import {
 } from "../models/design.ts";
 import { useJobList } from "./local.ts";
 import { ApiJobResult } from "../models/api.ts";
+import { getAccessToken, useSession } from "../context/SessionContext.tsx";
 
 export const getBackendUrl = () =>
   "https://deboramarkslab--designserver-api-fastapi-app.modal.run/";
 
 export interface SubmissionParams {
   spec: PipelineSpec | SingleMutationScanSpec | ProteinToDnaSpec;
-  token: string;
   parentId: string | null;
 }
 
@@ -28,10 +28,13 @@ const POLLING_INTERVAL = 5000;
 
 export const useSubmission = () => {
   const [jobList, setJobList] = useJobList();
+  const { session } = useSession();
+  const token = getAccessToken(session);
 
   return useMutation({
     mutationFn: (params: SubmissionParams) => {
-      const { spec, token } = params;
+      // const { spec, token } = params;
+      const { spec } = params;
       return fetch(getBackendUrl() + "job/", {
         method: "POST",
         headers: {
@@ -71,7 +74,7 @@ export const useJobData = (id: string) => {
   return useQuery({
     queryKey: ["jobdata", id],
     queryFn: (): Promise<ApiJobResult> =>
-        fetch(getBackendUrl() + "job/" + id).then((res) => {
+      fetch(getBackendUrl() + "job/" + id).then((res) => {
         // fetch("http://localhost:8000/" + id + ".json").then((res) => {  // TODO revert
         if (!res.ok) {
           throw new Error(`${res.status}`);

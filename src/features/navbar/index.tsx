@@ -1,8 +1,10 @@
 // import { useState } from "react";
-import { Container, Group } from "@mantine/core";
+import { Button, Container, Group } from "@mantine/core";
 // import { useDisclosure } from "@mantine/hooks";
 import { Link } from "wouter";
 import "./index.css";
+import { signOut, useSession } from "../../context/SessionContext.tsx";
+import { IconLogout } from "@tabler/icons-react";
 
 const links = [
   { link: "/", label: "Start" },
@@ -14,6 +16,8 @@ const links = [
 export function NavBar() {
   // const [opened, { toggle }] = useDisclosure(false);
   // const [active, setActive] = useState(links[0].link);
+
+  const { session } = useSession();
 
   const items = links.map((link) => (
     <Link
@@ -37,6 +41,16 @@ export function NavBar() {
       <Container fluid className="inner">
         <Group gap={5}>{items}</Group>
         {/*<Burger opened={opened} onClick={toggle} hiddenFrom="xs" size="sm" />*/}
+        {session ? (
+          <Button
+            variant="subtle"
+            color={"gray"}
+            onClick={signOut}
+            rightSection={<IconLogout size={16} />}
+          >
+            Sign out
+          </Button>
+        ) : null}
       </Container>
     </header>
   );

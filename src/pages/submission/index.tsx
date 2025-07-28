@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { Container, LoadingOverlay, Loader, Stack, Text } from "@mantine/core";
+import {
+  Container,
+  LoadingOverlay,
+  Loader,
+  Stack,
+  Text,
+} from "@mantine/core";
 import { useMmseqsMsa, useMmseqsSearch } from "../../api/mmseqs.ts";
 import { useFoldseekResult, useFoldseekSearch } from "../../api/foldseek.ts";
 import {
@@ -8,8 +14,13 @@ import {
   SeqWithRegion,
 } from "./sequence.tsx";
 import { DesignSpecInput } from "./designspec.tsx";
+import { useSession } from "../../context/SessionContext.tsx";
+import {AuthenticationForm} from "../../features/auth";
 
 export const SubmissionPage = () => {
+  // login session
+  const { session } = useSession();
+
   // full target sequenceviewer with selected region as fed back by SequenceInput component
   const [targetSeq, setTargetSeq] = useState<SeqWithRegion | null>(null);
 
@@ -46,38 +57,45 @@ export const SubmissionPage = () => {
     foldseekResult.isSuccess;
 
   let render;
-  if (targetSeq === null || anyLoading) {
-    render = (
-      <>
-        <LoadingOverlay
-          visible={anyLoading}
-          zIndex={1000}
-          overlayProps={{ radius: "sm", blur: 2 }}
-          loaderProps={{
-            children: (
-              <Stack align="center">
-                <Loader type="dots" size="xl" />
-                <Text>Retrieving evolutionary sequences and 3D structures</Text>
-              </Stack>
-            ),
-          }}
+  if (session) {
+    if (targetSeq === null || anyLoading) {
+      render = (
+        <>
+          <LoadingOverlay
+            visible={anyLoading}
+            zIndex={1000}
+            overlayProps={{ radius: "sm", blur: 2 }}
+            loaderProps={{
+              children: (
+                <Stack align="center">
+                  <Loader type="dots" size="xl" />
+                  <Text>
+                    Retrieving evolutionary sequences and 3D structures
+                  </Text>
+                </Stack>
+              ),
+            }}
+          />
+          <SequenceInput setTargetSeq={setTargetSeq} />
+        </>
+      );
+    } else if (allCompleted) {
+      render = (
+        <DesignSpecInput
+          targetSeq={targetSeq}
+          msa={msa.data!}
+          structures={foldseekResult.data!}
+          seqSearchId={seqSearch.id}
+          structSearchId={foldseekSearch.id}
         />
-        <SequenceInput setTargetSeq={setTargetSeq} />
-      </>
-    );
-  } else if (allCompleted) {
-    render = (
-      <DesignSpecInput
-        targetSeq={targetSeq}
-        msa={msa.data!}
-        structures={foldseekResult.data!}
-        seqSearchId={seqSearch.id}
-        structSearchId={foldseekSearch.id}
-      />
-    );
+      );
+    } else {
+      render = <MsaOrStructureError reset={() => setTargetSeq(null)} />;
+    }
   } else {
-    render = <MsaOrStructureError reset={() => setTargetSeq(null)} />;
+    render = <AuthenticationForm />
   }
+
   return (
     <Container size="sm" pt="xl">
       <Stack>{render}</Stack>
