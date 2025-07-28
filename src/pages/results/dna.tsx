@@ -5,7 +5,6 @@ import {
   Collapse,
   MultiSelect,
   NumberInput,
-  PasswordInput,
   RangeSlider,
   Select,
   Space,
@@ -181,7 +180,6 @@ export const DNAGenerationDialog = ({
     useState<number>(MAX_REPEAT_LENGTH);
 
   // submission-related
-  const [token, setToken] = useState("");
   const submission = useSubmission();
   const [isSubmitting, { open: openSubmitting, close: closeSubmitting }] =
     useDisclosure(false);
@@ -419,22 +417,13 @@ export const DNAGenerationDialog = ({
           </Stack>
         </Collapse>
         <Space />
-        <PasswordInput
-          label="Submission token"
-          description="Valid token is required for submission to prevent unauthorized access"
-          placeholder="Enter token"
-          value={token}
-          onChange={(event) => setToken(event.currentTarget.value)}
-        />
-        <Space />
         <Button
           size={"md"}
           disabled={
             !isValidUpstream ||
             !isValidDownstream ||
             !isValidRef ||
-            !isValidTranslation ||
-            token.length === 0
+            !isValidTranslation
           }
           onClick={() => {
             const spec = buildSpec(
@@ -463,9 +452,7 @@ export const DNAGenerationDialog = ({
             openSubmitting();
           }}
         >
-          {token.length > 0
-            ? "Generate DNA sequences"
-            : "Submission token required"}
+          Generate DNA sequences
         </Button>
         <Space />
       </Stack>
