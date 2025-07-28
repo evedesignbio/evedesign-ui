@@ -7,7 +7,6 @@ import {
   Collapse,
   Group,
   NumberInput,
-  PasswordInput,
   SegmentedControl,
   Select,
   Space,
@@ -333,7 +332,6 @@ export const DesignSpecInput = ({
   );
 
   // submission-related
-  const [token, setToken] = useState("");
   const submission = useSubmission();
   const [isSubmitting, { open: openSubmitting, close: closeSubmitting }] =
     useDisclosure(false);
@@ -704,18 +702,10 @@ export const DesignSpecInput = ({
       {samplingSettings}
 
       <Space />
-      <PasswordInput
-        label="Submission token"
-        description="Valid token is required for submission to prevent unauthorized access"
-        placeholder="Enter token"
-        value={token}
-        onChange={(event) => setToken(event.currentTarget.value)}
-      />
-      <Space />
       <Button
         variant="filled"
         size="md"
-        disabled={posSelection.length === 0 || token.length === 0}
+        disabled={posSelection.length === 0}
         onClick={() => {
           const spec = buildSpec(
             targetSeqCut,
@@ -739,16 +729,13 @@ export const DesignSpecInput = ({
           // perform submission
           submission.mutate({
             spec: spec,
-            token: token,
             parentId: null,
           });
           openSubmitting();
         }}
       >
         {posSelection.length > 0
-          ? token.length > 0
-            ? "Generate designs"
-            : "Submission token required"
+          ? "Generate designs"
           : "Must select at least one position to design"}
       </Button>
       <Space />
