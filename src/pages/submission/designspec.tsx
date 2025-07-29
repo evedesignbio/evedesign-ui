@@ -628,7 +628,7 @@ export const DesignSpecInput = ({
       <Title order={4} c="blue">
         Your sequence
       </Title>
-      <Card padding="lg" radius="md">
+      <Card padding="lg" radius="md" withBorder>
         <Group justify="space-between" pb={"xs"}>
           <Text>{numSeqs} homologous sequences found</Text>
           <Group>

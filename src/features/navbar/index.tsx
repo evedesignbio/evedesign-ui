@@ -1,10 +1,17 @@
 // import { useState } from "react";
-import { Button, Container, Group } from "@mantine/core";
+import {
+  ActionIcon,
+  Button,
+  Container,
+  Group,
+  useComputedColorScheme,
+} from "@mantine/core";
 // import { useDisclosure } from "@mantine/hooks";
 import { Link } from "wouter";
 import "./index.css";
 import { signOut, useSession } from "../../context/SessionContext.tsx";
-import { IconLogout } from "@tabler/icons-react";
+import { IconLogout, IconSun, IconMoon } from "@tabler/icons-react";
+import { useMantineColorScheme } from "@mantine/core";
 
 const links = [
   { link: "/", label: "Start" },
@@ -18,6 +25,10 @@ export function NavBar() {
   // const [active, setActive] = useState(links[0].link);
 
   const { session } = useSession();
+  const { toggleColorScheme } = useMantineColorScheme();
+  const computedColorScheme = useComputedColorScheme("light", {
+    getInitialValueInEffect: true,
+  });
 
   const items = links.map((link) => (
     <Link
@@ -41,16 +52,29 @@ export function NavBar() {
       <Container fluid className="inner">
         <Group gap={5}>{items}</Group>
         {/*<Burger opened={opened} onClick={toggle} hiddenFrom="xs" size="sm" />*/}
-        {session ? (
-          <Button
-            variant="subtle"
+        <Group gap={1}>
+          <ActionIcon
             color={"gray"}
-            onClick={signOut}
-            rightSection={<IconLogout size={16} />}
+            variant="subtle"
+            onClick={toggleColorScheme}
           >
-            Sign out
-          </Button>
-        ) : null}
+            {computedColorScheme === "dark" ? (
+              <IconSun size={16} />
+            ) : (
+              <IconMoon size={16} />
+            )}
+          </ActionIcon>
+          {session ? (
+            <Button
+              variant="subtle"
+              color={"gray"}
+              onClick={signOut}
+              rightSection={<IconLogout size={16} />}
+            >
+              Sign out
+            </Button>
+          ) : null}
+        </Group>
       </Container>
     </header>
   );
