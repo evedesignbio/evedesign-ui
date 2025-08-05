@@ -7,6 +7,7 @@ import { ResultsPageWrapper } from "./pages/results";
 import { JobListPage } from "./pages/results/joblist.tsx";
 import { NavBar } from "./features/navbar";
 import { SessionProvider } from "./context/SessionContext.tsx";
+import { AuthProtectedRoute } from "./features/auth/protected_route.tsx";
 
 const queryClient = new QueryClient();
 
@@ -20,7 +21,11 @@ const App = () => {
             <Route path="/" component={SubmissionPage} />
             <Route path="/results/" component={JobListPage} />
             <Route path="/results/:id">
-              {(params) => <ResultsPageWrapper id={params.id} />}
+              {(params) => (
+                <AuthProtectedRoute>
+                  <ResultsPageWrapper id={params.id} />
+                </AuthProtectedRoute>
+              )}
             </Route>
             <Route>Error: invalid route</Route>
           </Switch>

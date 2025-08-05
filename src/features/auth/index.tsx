@@ -11,7 +11,13 @@ import React, { useState } from "react";
 import { signIn } from "../../context/SessionContext.tsx";
 import { IconExclamationCircle, IconInfoCircle } from "@tabler/icons-react";
 
-export const AuthenticationForm = () => {
+interface AuthenticationFormProps {
+  title?: string;
+}
+
+export const AuthenticationForm = ({
+  title = undefined,
+}: AuthenticationFormProps) => {
   const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -31,13 +37,19 @@ export const AuthenticationForm = () => {
 
   return (
     <Container size={"sm"}>
-      <Title ta="left">Please sign in to design!</Title>
+      {title ? <Title ta="left">{title}</Title> : null}
 
       {/*<Text>*/}
       {/*  Do not have an account yet? <Anchor>Create account</Anchor>*/}
       {/*</Text>*/}
 
-      <Alert variant="light" color="blue" title="Demo account" mt={20} icon={<IconInfoCircle />}>
+      <Alert
+        variant="light"
+        color="blue"
+        title="Demo account"
+        mt={20}
+        icon={<IconInfoCircle />}
+      >
         Please use the previously provided submission token as password
         <br />
         and username "demo@demo.com".

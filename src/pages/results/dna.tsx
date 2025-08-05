@@ -12,11 +12,12 @@ import {
   Switch,
   Text,
   Textarea,
+  TextInput,
   Title,
 } from "@mantine/core";
 import { RESTRICTION_SITES, validTranslation } from "../../utils/bio.ts";
 import { useDisclosure } from "@mantine/hooks";
-import { useSubmission } from "../../api/modal.ts";
+import { useSubmission } from "../../api/backend.ts";
 import {
   CodonOptimizationMethod,
   EntitySpec,
@@ -29,9 +30,11 @@ import { SubmissionModal } from "../../components/submission/modal.tsx";
 export const DNA_SEQ_REGEXP = RegExp("^[ACGT]+$");
 
 export interface DNAGenerationDialogProps {
-  id: string;
   system: EntitySpec[];
   instances: SystemInstanceSpec[];
+  parentJobId: string | null;
+  projectId: string | null;
+  isPublic: boolean;
 }
 
 const DEFAULT_MIN_GC_CONTENT = 40;
@@ -144,9 +147,11 @@ const buildSpec = (
 };
 
 export const DNAGenerationDialog = ({
-  id,
   system,
   instances,
+  parentJobId = null,
+  projectId = null,
+  isPublic = false,
 }: DNAGenerationDialogProps) => {
   // basic settings
   const [includeTarget, setIncludeTarget] = useState(true);
@@ -180,6 +185,7 @@ export const DNAGenerationDialog = ({
     useState<number>(MAX_REPEAT_LENGTH);
 
   // submission-related
+  const [jobName, setJobName] = useState("");
   const submission = useSubmission();
   const [isSubmitting, { open: openSubmitting, close: closeSubmitting }] =
     useDisclosure(false);
@@ -416,6 +422,13 @@ export const DNAGenerationDialog = ({
             ) : null}
           </Stack>
         </Collapse>
+        <TextInput
+          label="Job name"
+          description="Descriptive name that helps you to find your job at a later time"
+          placeholder="Enter job name (optional)"
+          value={jobName}
+          onChange={(event) => setJobName(event.currentTarget.value)}
+        />
         <Space />
         <Button
           size={"md"}
@@ -445,8 +458,11 @@ export const DNAGenerationDialog = ({
 
             // perform submission
             submission.mutate({
+              name: jobName !== "" ? jobName : null,
+              project_id: projectId,
+              parent_job_id: parentJobId,
+              public: isPublic,
               spec: spec,
-              parentId: id,
             });
 
             openSubmitting();

@@ -1,4 +1,5 @@
 import {
+  InputSpecTypeKeys,
   PipelineSpec, ProteinToDnaResult, ProteinToDnaSpec,
   SingleMutationScanResult,
   SingleMutationScanSpec,
@@ -23,6 +24,19 @@ export interface ProteinToDnaApiResult {
 }
 
 export interface ApiJobResult {
-  status: "initialized" | "running" | "failed" | "finished" | "invalid";
+  type: InputSpecTypeKeys;
+  status: "initialized" | "pending" | "running" | "finished" | "failed" | "terminated" | "invalid" | "paused";
+  name: string | null;
+  project_id: string | null;
+  parent_job_id: string | null;
+  public: boolean;
+  created_at: Date;
+  updated_at: Date;
+  started_at: Date | null;
+  finished_at: Date | null;
   results: PipelineApiResult | SingleMutationScanApiResult | ProteinToDnaApiResult | null;
+}
+
+export interface ApiBalanceResult {
+  balance: number | null;
 }

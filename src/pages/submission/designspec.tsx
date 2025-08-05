@@ -6,6 +6,7 @@ import {
   CloseButton,
   Collapse,
   Group,
+  TextInput,
   NumberInput,
   SegmentedControl,
   Select,
@@ -24,13 +25,14 @@ import { SeqWithRegion } from "./sequence.tsx";
 import { SequenceViewer } from "../../components/sequenceviewer";
 import { range } from "../../utils/helpers.ts";
 import { useDisclosure, useViewportSize } from "@mantine/hooks";
-import { useSubmission } from "../../api/modal.ts";
+import { useBalance, useSubmission } from "../../api/backend.ts";
 import { SubmissionModal } from "../../components/submission/modal.tsx";
 import { TaxoviewModal } from "./taxoview.tsx";
 
 const MIN_NUM_DESIGNS = 1;
 const MAX_NUM_DESIGNS = 20000;
 const DEFAULT_NUM_DESIGNS = 32; // TODO: increase again
+const MINIMUM_CREDIT = 0;
 
 // maximum FoldSeek structure hits forwarded to API
 const MAX_NUM_STRUCTURE_HITS = 100;
@@ -332,9 +334,12 @@ export const DesignSpecInput = ({
   );
 
   // submission-related
+  const [jobName, setJobName] = useState("");
   const submission = useSubmission();
   const [isSubmitting, { open: openSubmitting, close: closeSubmitting }] =
     useDisclosure(false);
+
+  const balance = useBalance();
 
   const { width: viewportWidth } = useViewportSize();
 
@@ -702,10 +707,22 @@ export const DesignSpecInput = ({
       {samplingSettings}
 
       <Space />
+      <TextInput
+        label="Job name"
+        description="Descriptive name that helps you to find your job at a later time"
+        placeholder="Enter job name (optional)"
+        value={jobName}
+        onChange={(event) => setJobName(event.currentTarget.value)}
+      />
+      <Space />
       <Button
         variant="filled"
         size="md"
-        disabled={posSelection.length === 0}
+        disabled={
+          posSelection.length === 0 ||
+          (balance.finished &&
+            (balance.balance === null || balance.balance <= MINIMUM_CREDIT))
+        }
         onClick={() => {
           const spec = buildSpec(
             targetSeqCut,
@@ -728,14 +745,21 @@ export const DesignSpecInput = ({
 
           // perform submission
           submission.mutate({
+            name: jobName !== "" ? jobName : null,
+            project_id: null,
+            parent_job_id: null,
+            public: true,
             spec: spec,
-            parentId: null,
           });
           openSubmitting();
         }}
       >
         {posSelection.length > 0
-          ? "Generate designs"
+          ? balance.finished &&
+            balance.balance !== null &&
+            balance.balance > MINIMUM_CREDIT
+            ? "Generate designs"
+            : "Insufficient compute credits"
           : "Must select at least one position to design"}
       </Button>
       <Space />

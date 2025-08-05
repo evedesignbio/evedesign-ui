@@ -15,3 +15,12 @@ export const symmetricDifference = (a: Set<any>, b: Set<any>) => {
 
 export const setEqual = (a: Set<any>, b: Set<any>) =>
   a.size === b.size && [...a].every((x) => b.has(x));
+
+export const ellipsis = (text: string, maxLength: number) =>
+{
+  if (text.length > maxLength) {
+    return text.substring(0, maxLength) + "...";
+  } else {
+    return text;
+  }
+}
