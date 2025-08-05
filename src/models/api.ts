@@ -36,3 +36,7 @@ export interface ApiJobResult {
   finished_at: Date | null;
   results: PipelineApiResult | SingleMutationScanApiResult | ProteinToDnaApiResult | null;
 }
+
+export interface ApiBalanceResult {
+  balance: number | null;
+}

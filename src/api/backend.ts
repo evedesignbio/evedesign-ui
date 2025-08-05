@@ -5,7 +5,7 @@ import {
   SingleMutationScanSpec,
 } from "../models/design.ts";
 import { useJobList } from "./local.ts";
-import { ApiJobResult } from "../models/api.ts";
+import {ApiBalanceResult, ApiJobResult} from "../models/api.ts";
 import { getAccessToken, useSession } from "../context/SessionContext.tsx";
 
 export const getBackendUrl = () =>
@@ -103,4 +103,41 @@ export const useJobData = (id: string) => {
     staleTime: Infinity,
     // enabled: token !== null,
   });
+};
+
+export const useBalance = () => {
+  const { session } = useSession();
+  const token = getAccessToken(session);
+
+  // status options: initialized, running, failed, finished, invalid
+  const query = useQuery({
+    queryKey: ["balance", token],
+    queryFn: (): Promise<ApiBalanceResult> =>
+        fetch(getBackendUrl() + "balance", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }).then((res) => {
+          if (!res.ok) {
+            throw new Error(`${res.status}`);
+          }
+          return res.json();
+        }),
+    refetchInterval: () => 60 * 1000,  // refresh once per minute
+    enabled: token !== null,
+  });
+
+  if(query.isSuccess) {
+    return {
+      finished: true,
+      balance: query.data?.balance
+    }
+  } else {
+    return {
+      finished: false,
+      balance: null,
+    }
+  }
 };
