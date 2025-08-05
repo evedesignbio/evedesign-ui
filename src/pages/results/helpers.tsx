@@ -23,10 +23,16 @@ interface BoxedLayoutProps {
   children: ReactNode;
   title?: string;
   id?: string;
+  name?: string | null;
 }
 
 // simple layout wrapper for result/status panels except main result viewer
-export const BoxedLayout = ({ children, title, id }: BoxedLayoutProps) => {
+export const BoxedLayout = ({
+  children,
+  title,
+  id,
+  name,
+}: BoxedLayoutProps) => {
   // {isDnaView ? "DNA library generation" : "Job result"}
   return (
     <Container size="sm" pt="xl">
@@ -36,6 +42,11 @@ export const BoxedLayout = ({ children, title, id }: BoxedLayoutProps) => {
           <Title order={4} c="blue">
             ID: {id}
           </Title>
+        ) : null}
+        {name ? (
+            <Title order={4} c="blue">
+              {name}
+            </Title>
         ) : null}
         {children}
       </Stack>

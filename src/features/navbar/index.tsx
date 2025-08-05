@@ -1,6 +1,7 @@
 // import { useState } from "react";
 import {
   ActionIcon,
+  Badge,
   Button,
   Container,
   Group,
@@ -12,6 +13,7 @@ import "./index.css";
 import { signOut, useSession } from "../../context/SessionContext.tsx";
 import { IconLogout, IconSun, IconMoon } from "@tabler/icons-react";
 import { useMantineColorScheme } from "@mantine/core";
+import { useBalance } from "../../api/backend.ts";
 
 const links = [
   { link: "/", label: "Start" },
@@ -30,6 +32,8 @@ export function NavBar() {
     getInitialValueInEffect: true,
   });
 
+  const balance = useBalance();
+
   const items = links.map((link) => (
     <Link
       key={link.label}
@@ -47,12 +51,24 @@ export function NavBar() {
     </Link>
   ));
 
+  const balanceBadge = balance.finished ? (
+    <Badge
+      mr={10}
+      variant={"dot"}
+      color={balance.balance !== null && balance.balance > 0 ? "green" : "red"}
+    >
+      Credit:{" "}
+      {balance.balance !== null ? `$${balance.balance.toFixed(2)}` : "N/A"}
+    </Badge>
+  ) : null;
+
   return (
     <header className="header">
       <Container fluid className="inner">
         <Group gap={5}>{items}</Group>
         {/*<Burger opened={opened} onClick={toggle} hiddenFrom="xs" size="sm" />*/}
         <Group gap={1}>
+          {balanceBadge}
           <ActionIcon
             color={"gray"}
             variant="subtle"
