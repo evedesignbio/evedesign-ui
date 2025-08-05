@@ -3,6 +3,7 @@ import {
   Button,
   Group,
   Modal,
+  Title,
   useComputedColorScheme,
   useMantineTheme,
 } from "@mantine/core";
@@ -45,15 +46,18 @@ import {
   useTooltipStyle,
 } from "./elements.tsx";
 import { Tooltip as ReactTooltip } from "react-tooltip";
+import {ellipsis} from "../../utils/helpers.ts";
 
 export interface AnalysisViewerProps {
   id: string;
+  name: string | null;
   results: PipelineApiResult | SingleMutationScanApiResult;
 }
 
 const NA_COLOR = 0xaaaaaa;
+const MAX_NAME_LENGTH = 40;
 
-export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
+export const AnalysisViewer = ({ results, id, name }: AnalysisViewerProps) => {
   const [dnaOpen, { toggle: toggleDnaOpen }] = useDisclosure(false);
 
   const theme = useMantineTheme();
@@ -236,9 +240,12 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
   // TODO: factor this out into own component
   const menuPanel = (
     <>
-      <Badge variant={"outline"}>
-        {spec.key.replace("_", " ").replace("_", " ")}
-      </Badge>
+      <Group>
+        {name ? <Title order={4}>{ellipsis(name, MAX_NAME_LENGTH)}</Title> : null}
+        <Badge variant={"outline"}>
+          {spec.key.replace("_", " ").replace("_", " ")}
+        </Badge>
+      </Group>
       <Group>
         <Button
           onClick={resetSelection}

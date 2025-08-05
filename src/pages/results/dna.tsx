@@ -11,7 +11,7 @@ import {
   Stack,
   Switch,
   Text,
-  Textarea,
+  Textarea, TextInput,
   Title,
 } from "@mantine/core";
 import { RESTRICTION_SITES, validTranslation } from "../../utils/bio.ts";
@@ -180,6 +180,7 @@ export const DNAGenerationDialog = ({
     useState<number>(MAX_REPEAT_LENGTH);
 
   // submission-related
+  const [jobName, setJobName] = useState("");
   const submission = useSubmission();
   const [isSubmitting, { open: openSubmitting, close: closeSubmitting }] =
     useDisclosure(false);
@@ -416,6 +417,13 @@ export const DNAGenerationDialog = ({
             ) : null}
           </Stack>
         </Collapse>
+        <TextInput
+            label="Job name"
+            description="Descriptive name that helps you to find your job at a later time"
+            placeholder="Enter job name (optional)"
+            value={jobName}
+            onChange={(event) => setJobName(event.currentTarget.value)}
+        />
         <Space />
         <Button
           size={"md"}
@@ -445,8 +453,11 @@ export const DNAGenerationDialog = ({
 
             // perform submission
             submission.mutate({
+              name: jobName !== "" ? jobName : null,
+              project_id: null,
+              parent_job_id: id,
+              public: true,
               spec: spec,
-              parentId: id,
             });
 
             openSubmitting();

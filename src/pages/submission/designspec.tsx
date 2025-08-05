@@ -6,6 +6,7 @@ import {
   CloseButton,
   Collapse,
   Group,
+  TextInput,
   NumberInput,
   SegmentedControl,
   Select,
@@ -332,6 +333,7 @@ export const DesignSpecInput = ({
   );
 
   // submission-related
+  const [jobName, setJobName] = useState("");
   const submission = useSubmission();
   const [isSubmitting, { open: openSubmitting, close: closeSubmitting }] =
     useDisclosure(false);
@@ -702,6 +704,14 @@ export const DesignSpecInput = ({
       {samplingSettings}
 
       <Space />
+      <TextInput
+          label="Job name"
+          description="Descriptive name that helps you to find your job at a later time"
+          placeholder="Enter job name (optional)"
+          value={jobName}
+          onChange={(event) => setJobName(event.currentTarget.value)}
+      />
+      <Space />
       <Button
         variant="filled"
         size="md"
@@ -728,8 +738,11 @@ export const DesignSpecInput = ({
 
           // perform submission
           submission.mutate({
+            name: jobName !== "" ? jobName : null,
+            project_id: null,
+            parent_job_id: null,
+            public: true,
             spec: spec,
-            parentId: null,
           });
           openSubmitting();
         }}

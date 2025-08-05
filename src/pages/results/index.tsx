@@ -28,6 +28,7 @@ import { InstanceDownloadMenu } from "./elements.tsx";
 
 export interface FinishedResultsWrapperProps {
   id: string;
+  name: string | null;
   results:
     | PipelineApiResult
     | SingleMutationScanApiResult
@@ -36,6 +37,7 @@ export interface FinishedResultsWrapperProps {
 
 export interface DownloadViewerProps {
   id: string;
+  name: string | null;
   results:
     | PipelineApiResult
     | SingleMutationScanApiResult
@@ -116,6 +118,7 @@ export const NucleotidesDownload = ({
 export const DownloadOnlyViewer = ({
   results,
   id,
+  name,
   message,
 }: DownloadViewerProps) => {
   const isDesignJob =
@@ -141,7 +144,7 @@ export const DownloadOnlyViewer = ({
 
   return (
     <>
-      <BoxedLayout id={id} title={"Job result"}>
+      <BoxedLayout id={id} name={name} title={"Job result"}>
         <JobStatusBadge
           label={"finished"}
           color={"green"}
@@ -171,6 +174,7 @@ export const DownloadOnlyViewer = ({
 
 export const FinishedResultsPageWrapper = ({
   id,
+  name,
   results,
 }: FinishedResultsWrapperProps) => {
   // TODO: temporary lock on showing result viewer in productino
@@ -189,12 +193,19 @@ export const FinishedResultsPageWrapper = ({
   if (viewportProps.screenSize.width === 0) return <></>;
 
   if (isDesignJob && viewportProps.isDesktop) {
-    return <AnalysisViewer id={id} results={results! as DesignJobApiResult} />;
+    return (
+      <AnalysisViewer
+        id={id}
+        results={results! as DesignJobApiResult}
+        name={name}
+      />
+    );
   } else {
     return (
       <DownloadOnlyViewer
         results={results!}
         id={id}
+        name={name}
         message={
           isDesignJob
             ? "Use a device with a larger screen or resize your browser window to display full analysis viewer"
@@ -215,14 +226,19 @@ export const ResultsPageWrapper = ({ id }: ResultsWrapperProps) => {
   const queryClient = useQueryClient();
 
   if (qJob.isSuccess) {
-    const jobType = qJob.data.results?.spec.key!;
+    const jobType = qJob.data.type;
     const status = qJob.data.status;
+    const name = qJob.data.name;
 
     // finished jobs have different rendering requirements (full page width etc.)
     // so defer full rendering to finished result page in this case
     if (status === "finished") {
       return (
-        <FinishedResultsPageWrapper results={qJob.data.results!} id={id} />
+        <FinishedResultsPageWrapper
+          results={qJob.data.results!}
+          id={id}
+          name={qJob.data.name}
+        />
       );
     } else {
       // otherwise render different flavors of standard view
@@ -235,7 +251,16 @@ export const ResultsPageWrapper = ({ id }: ResultsWrapperProps) => {
         case "failed":
           color = "red";
           break;
+        case "terminated":
+          color = "red";
+          break;
+        case "paused":
+          color = "red";
+          break;
         case "initialized":
+          color = "orange";
+          break;
+        case "pending":
           color = "orange";
           break;
         case "invalid":
@@ -246,7 +271,7 @@ export const ResultsPageWrapper = ({ id }: ResultsWrapperProps) => {
           color = "gray";
       }
       return (
-        <BoxedLayout title={"Job result"} id={id}>
+        <BoxedLayout title={"Job result"} id={id} name={name}>
           <JobStatusBadge label={label} color={color} jobType={jobType} />
         </BoxedLayout>
       );

@@ -174,3 +174,5 @@ export interface Position {
   entity: number;
   pos: number;
 }
+
+export type InputSpecTypeKeys = "pipeline" | "single_mutation_scan" | "protein_to_dna";

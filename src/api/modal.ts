@@ -9,11 +9,16 @@ import { ApiJobResult } from "../models/api.ts";
 import { getAccessToken, useSession } from "../context/SessionContext.tsx";
 
 export const getBackendUrl = () =>
-  "https://deboramarkslab--designserver-api-fastapi-app.modal.run/";
+  // "https://deboramarkslab--designserver-api-fastapi-app.modal.run/";
+  // "https://deboramarkslab--designserver-api-nextgen-api.modal.run/";
+  "http://127.0.0.1:8000/";
 
 export interface SubmissionParams {
   spec: PipelineSpec | SingleMutationScanSpec | ProteinToDnaSpec;
-  parentId: string | null;
+  name: string | null;
+  project_id: string | null;
+  parent_job_id: string | null;
+  public: boolean;
 }
 
 export interface JobListEntry {
@@ -34,15 +39,15 @@ export const useSubmission = () => {
   return useMutation({
     mutationFn: (params: SubmissionParams) => {
       // const { spec, token } = params;
-      const { spec } = params;
-      return fetch(getBackendUrl() + "job/", {
+      // const { spec } = params;
+      return fetch(getBackendUrl() + "job", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(spec),
+        body: JSON.stringify(params),
       }).then((res) => {
         if (!res.ok) {
           throw new Error(`${res.status}`);
@@ -52,7 +57,7 @@ export const useSubmission = () => {
       });
     },
     onSuccess: (data, params) => {
-      const { parentId, spec } = params;
+      const { parent_job_id, spec } = params;
       if (typeof data?.job_id !== "string") {
         return;
       }
@@ -61,7 +66,7 @@ export const useSubmission = () => {
         jobList.concat({
           jobId: data.job_id,
           submissionDate: new Date().toJSON(),
-          parentId: parentId,
+          parentId: parent_job_id,
           specType: spec.key,
         }),
       );
@@ -70,12 +75,20 @@ export const useSubmission = () => {
 };
 
 export const useJobData = (id: string) => {
+  const { session } = useSession();
+  const token = getAccessToken(session);
+
   // status options: initialized, running, failed, finished, invalid
   return useQuery({
     queryKey: ["jobdata", id],
     queryFn: (): Promise<ApiJobResult> =>
-      fetch(getBackendUrl() + "job/" + id).then((res) => {
-        // fetch("http://localhost:8000/" + id + ".json").then((res) => {  // TODO revert
+      fetch(getBackendUrl() + "job/" + id, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      }).then((res) => {
         if (!res.ok) {
           throw new Error(`${res.status}`);
         }
@@ -83,9 +96,11 @@ export const useJobData = (id: string) => {
       }),
     refetchInterval: (query) =>
       query.state.data?.status === "initialized" ||
+      query.state.data?.status === "pending" ||
       query.state.data?.status === "running"
         ? POLLING_INTERVAL
         : false,
     staleTime: Infinity,
+    // enabled: token !== null,
   });
 };
