@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  Container,
-  LoadingOverlay,
-  Loader,
-  Stack,
-  Text,
-} from "@mantine/core";
+import { Container, LoadingOverlay, Loader, Stack, Text } from "@mantine/core";
 import { useMmseqsMsa, useMmseqsSearch } from "../../api/mmseqs.ts";
 import { useFoldseekResult, useFoldseekSearch } from "../../api/foldseek.ts";
 import {
@@ -15,7 +9,7 @@ import {
 } from "./sequence.tsx";
 import { DesignSpecInput } from "./designspec.tsx";
 import { useSession } from "../../context/SessionContext.tsx";
-import {AuthenticationForm} from "../../features/auth";
+import { AuthenticationForm } from "../../features/auth";
 
 export const SubmissionPage = () => {
   // login session
@@ -93,7 +87,7 @@ export const SubmissionPage = () => {
       render = <MsaOrStructureError reset={() => setTargetSeq(null)} />;
     }
   } else {
-    render = <AuthenticationForm />
+    render = <AuthenticationForm title={"Please sign in to design!"} />;
   }
 
   return (
