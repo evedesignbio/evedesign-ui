@@ -10,8 +10,8 @@ import { getAccessToken, useSession } from "../context/SessionContext.tsx";
 
 export const getBackendUrl = () =>
   // "https://deboramarkslab--designserver-api-fastapi-app.modal.run/";
-  // "https://deboramarkslab--designserver-api-nextgen-api.modal.run/";
-  "http://127.0.0.1:8000/";
+  "https://deboramarkslab--designserver-api-nextgen-api.modal.run/";
+  // "http://127.0.0.1:8000/";
 
 export interface SubmissionParams {
   spec: PipelineSpec | SingleMutationScanSpec | ProteinToDnaSpec;
