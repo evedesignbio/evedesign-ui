@@ -1,5 +1,5 @@
 import {UseMutationResult} from "@tanstack/react-query";
-import {SubmissionParams} from "../../api/modal.ts";
+import {SubmissionParams} from "../../api/backend.ts";
 import {Button, Code, Group, Loader, Modal, Stack, Text, Title} from "@mantine/core";
 import {Link} from "wouter";
 

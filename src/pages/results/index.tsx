@@ -9,7 +9,7 @@ import {
   Stack,
   Text,
 } from "@mantine/core";
-import { useJobData } from "../../api/modal.ts";
+import { useJobData } from "../../api/backend.ts";
 import { useQueryClient } from "@tanstack/react-query";
 import { AnalysisViewer } from "./viewer.tsx";
 import {

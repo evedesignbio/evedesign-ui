@@ -25,7 +25,7 @@ import { SeqWithRegion } from "./sequence.tsx";
 import { SequenceViewer } from "../../components/sequenceviewer";
 import { range } from "../../utils/helpers.ts";
 import { useDisclosure, useViewportSize } from "@mantine/hooks";
-import { useSubmission } from "../../api/modal.ts";
+import { useSubmission } from "../../api/backend.ts";
 import { SubmissionModal } from "../../components/submission/modal.tsx";
 import { TaxoviewModal } from "./taxoview.tsx";
 

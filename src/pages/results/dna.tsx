@@ -17,7 +17,7 @@ import {
 } from "@mantine/core";
 import { RESTRICTION_SITES, validTranslation } from "../../utils/bio.ts";
 import { useDisclosure } from "@mantine/hooks";
-import { useSubmission } from "../../api/modal.ts";
+import { useSubmission } from "../../api/backend.ts";
 import {
   CodonOptimizationMethod,
   EntitySpec,
