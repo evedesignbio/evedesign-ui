@@ -25,6 +25,7 @@ import { useViewportProperties } from "../../utils/ui.ts";
 import { useInstances } from "./data.ts";
 import { useDisclosure } from "@mantine/hooks";
 import { InstanceDownloadMenu } from "./elements.tsx";
+import { InputSpecTypeKeys } from "../../models/design.ts";
 
 export interface FinishedResultsWrapperProps {
   id: string;
@@ -33,6 +34,9 @@ export interface FinishedResultsWrapperProps {
     | PipelineApiResult
     | SingleMutationScanApiResult
     | ProteinToDnaApiResult;
+  jobType: InputSpecTypeKeys;
+  projectId: string | null;
+  isPublic: boolean;
 }
 
 export interface DownloadViewerProps {
@@ -43,14 +47,23 @@ export interface DownloadViewerProps {
     | SingleMutationScanApiResult
     | ProteinToDnaApiResult;
   message?: string;
+  projectId: string | null;
+  isPublic: boolean;
 }
 
 interface InstanceDownloadProps {
   results: PipelineApiResult | SingleMutationScanApiResult;
   id: string;
+  projectId: string | null;
+  isPublic: boolean;
 }
 
-export const InstanceDownload = ({ id, results }: InstanceDownloadProps) => {
+export const InstanceDownload = ({
+  id,
+  results,
+  projectId = null,
+  isPublic = false,
+}: InstanceDownloadProps) => {
   const [dnaOpen, { toggle: toggleDnaOpen }] = useDisclosure(false);
   const enhancedInstances = useInstances(results);
 
@@ -67,9 +80,11 @@ export const InstanceDownload = ({ id, results }: InstanceDownloadProps) => {
     >
       <BoxedLayout title={"DNA library generation"}>
         <DNAGenerationDialog
-          id={id}
           system={results.spec.system}
           instances={enhancedInstances.instances}
+          parentJobId={id}
+          projectId={projectId}
+          isPublic={isPublic}
         />
       </BoxedLayout>
     </Modal>
@@ -120,6 +135,8 @@ export const DownloadOnlyViewer = ({
   id,
   name,
   message,
+  isPublic = false,
+  projectId = null,
 }: DownloadViewerProps) => {
   const isDesignJob =
     results.spec?.key === "pipeline" ||
@@ -159,7 +176,12 @@ export const DownloadOnlyViewer = ({
           ) : null}
           <Space />
           {isDesignJob ? (
-            <InstanceDownload id={id} results={results as DesignJobApiResult} />
+            <InstanceDownload
+              id={id}
+              results={results as DesignJobApiResult}
+              projectId={projectId}
+              isPublic={isPublic}
+            />
           ) : (
             <NucleotidesDownload
               id={id}
@@ -176,14 +198,15 @@ export const FinishedResultsPageWrapper = ({
   id,
   name,
   results,
+  jobType,
+  projectId = null,
+  isPublic = false,
 }: FinishedResultsWrapperProps) => {
-  // TODO: temporary lock on showing result viewer in productino
-
   // render result view depending on screen size; only display
   // full result viewer when minimal width is available, otherwise display download view only
   const viewportProps = useViewportProperties();
 
-  const jobType = results.spec.key;
+  // const jobType = results.spec.key;
 
   // design or codon job?
   const isDesignJob =
@@ -198,6 +221,8 @@ export const FinishedResultsPageWrapper = ({
         id={id}
         results={results! as DesignJobApiResult}
         name={name}
+        projectId={projectId}
+        isPublic={isPublic}
       />
     );
   } else {
@@ -211,6 +236,8 @@ export const FinishedResultsPageWrapper = ({
             ? "Use a device with a larger screen or resize your browser window to display full analysis viewer"
             : undefined
         }
+        projectId={projectId}
+        isPublic={isPublic}
       />
     );
   }
@@ -238,6 +265,9 @@ export const ResultsPageWrapper = ({ id }: ResultsWrapperProps) => {
           results={qJob.data.results!}
           id={id}
           name={qJob.data.name}
+          jobType={jobType}
+          projectId={qJob.data.project_id}
+          isPublic={qJob.data.public}
         />
       );
     } else {

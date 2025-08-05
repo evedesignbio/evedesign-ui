@@ -46,18 +46,26 @@ import {
   useTooltipStyle,
 } from "./elements.tsx";
 import { Tooltip as ReactTooltip } from "react-tooltip";
-import {ellipsis} from "../../utils/helpers.ts";
+import { ellipsis } from "../../utils/helpers.ts";
 
 export interface AnalysisViewerProps {
   id: string;
   name: string | null;
   results: PipelineApiResult | SingleMutationScanApiResult;
+  projectId: string | null;
+  isPublic: boolean;
 }
 
 const NA_COLOR = 0xaaaaaa;
 const MAX_NAME_LENGTH = 40;
 
-export const AnalysisViewer = ({ results, id, name }: AnalysisViewerProps) => {
+export const AnalysisViewer = ({
+  results,
+  id,
+  name,
+  projectId = null,
+  isPublic = false,
+}: AnalysisViewerProps) => {
   const [dnaOpen, { toggle: toggleDnaOpen }] = useDisclosure(false);
 
   const theme = useMantineTheme();
@@ -164,9 +172,11 @@ export const AnalysisViewer = ({ results, id, name }: AnalysisViewerProps) => {
     >
       <BoxedLayout title={"DNA library generation"}>
         <DNAGenerationDialog
-          id={id}
           system={spec.system}
           instances={basketInstances}
+          parentJobId={id}
+          isPublic={isPublic}
+          projectId={projectId}
         />
       </BoxedLayout>
     </Modal>
@@ -241,7 +251,9 @@ export const AnalysisViewer = ({ results, id, name }: AnalysisViewerProps) => {
   const menuPanel = (
     <>
       <Group>
-        {name ? <Title order={4}>{ellipsis(name, MAX_NAME_LENGTH)}</Title> : null}
+        {name ? (
+          <Title order={4}>{ellipsis(name, MAX_NAME_LENGTH)}</Title>
+        ) : null}
         <Badge variant={"outline"}>
           {spec.key.replace("_", " ").replace("_", " ")}
         </Badge>
