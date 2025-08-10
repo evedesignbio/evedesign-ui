@@ -4,32 +4,20 @@ import { data396 } from "./coords_cluster_396.ts"; // TODO: imports dummy data, 
 import { data392 } from "./coords_cluster_392.ts"; // TODO: imports dummy data, remove later
 
 // Dummy data structure - replace later
-type Point = { 
+export type Point = { 
+	id: string;
 	x: number; 
 	y: number;
- };
-type Cluster = {
-	name: string;
 	color: string;
-	shape: "circle" | "triangle";
-	data: Point[];
-};
+	shape: string;
+	size: number;
+	transparency: number;
+	outlineColor: string;
+ };
 
-// Dummy data
-const clusters: Cluster[] = [
-	{
-		name: "cluster1",
-		color: "red",
-		shape: "circle",
-		data: data396,
-	},
-	{
-		name: "cluster2",
-		color: "blue",
-		shape: "triangle",
-		data: data392,
-	},
-];
+type Props = {
+	points: Point[];
+};
 
 // Constants for point sizes
 const POINT_RADIUS = {
@@ -38,13 +26,7 @@ const POINT_RADIUS = {
 	DIMMED: 1,
 } as const;
 
-// Color palette
-const pallet = new Map([
-	["red", "#fa5252"],
-	["blue", "#339af0"],
-]);
-
-export default function ScatterPlot() {
+export default function ScatterPlot({ points }: Props) {
 	const svgRef = useRef<SVGSVGElement | null>(null);
 	const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -54,16 +36,6 @@ export default function ScatterPlot() {
 		const width = 600;
 		const height = 450;
 		const margin = { top: 20, right: 20, bottom: 40, left: 40 };
-
-		// build flat points array with cluster info
-		const points = clusters.flatMap((c, ci) =>
-			c.data.map((d, di) => ({
-				...d,
-				key: `${ci}-${di}`,
-				cluster: c.name,
-				color: pallet.get(c.color) ?? c.color,
-			}))
-		);
 
 		// scales
 		const xScale = d3
@@ -95,7 +67,7 @@ export default function ScatterPlot() {
 		const pointsGroup = svg.append("g").attr("class", "points-group");
 
 		// ------------------------------------------------------------------
-		// CLUSTER HIGHLIGHTING                                               
+		// CLUSTER HIGHLIGHTING
 		// ------------------------------------------------------------------
 		const highlight = (hoveredCluster: string) => {
 			dots
@@ -108,26 +80,23 @@ export default function ScatterPlot() {
 		};
 
 		const removeHighlight = () => {
-			dots
-				.transition()
-				.duration(100)
-				.attr("r", POINT_RADIUS.DEFAULT);
+			dots.transition().duration(100).attr("r", POINT_RADIUS.DEFAULT);
 		};
 
 		const dots = pointsGroup
 			.selectAll("circle")
-			.data(points)
+			.data(points, (d) => d.id)
 			.enter()
 			.append("circle")
-			.attr("r", POINT_RADIUS.DEFAULT)
+			.attr("r", (d) => d.size)
 			.attr("cx", (d) => xScale(d.x))
 			.attr("cy", (d) => yScale(d.y))
 			.attr("fill", (d) => d.color)
 			.on("mouseover", (event: MouseEvent, d: any) => highlight(d.cluster))
 			.on("mouseleave", removeHighlight);
 
-		// ------------------------------------------------------------------ 
-		// BRUSH HANDLER                              
+		// ------------------------------------------------------------------
+		// BRUSH HANDLER
 		// ------------------------------------------------------------------
 		let brushing = false;
 		let brushStart: [number, number] | null = null;
@@ -207,8 +176,8 @@ export default function ScatterPlot() {
 		// -------------------------------------------------------------
 		// when you click anywhere (and you're not brushing), clear highlights
 		svg.on("click.reset", (event: MouseEvent) => {
-		// don't reset while shift-dragging
-		if (event.shiftKey || brushing) return;
+			// don't reset while shift-dragging
+			if (event.shiftKey || brushing) return;
 			// reset all dots to their original fill
 			dots.style("fill", (d: any) => d.color);
 			setSelected(new Set());
@@ -221,7 +190,7 @@ export default function ScatterPlot() {
 		svg.on("mouseleave.brush", handleBrushEnd);
 
 		// ------------------------------------------------------------------
-		// ZOOM HANDLER                                                      
+		// ZOOM HANDLER
 		// ------------------------------------------------------------------
 		const zoomed = (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
 			const transform = event.transform;
@@ -253,9 +222,7 @@ export default function ScatterPlot() {
 	// Render
 	return (
 		<div>
-			<div style={{ marginBottom: 8, fontSize: "14px" }}>
-				Hold Shift + drag to select points, scroll/drag to zoom/pan
-			</div>
+			<div style={{ marginBottom: 8, fontSize: "14px" }}>Hold Shift + drag to select points, scroll/drag to zoom/pan</div>
 			<div style={{ marginBottom: 8, fontSize: "14px" }}>
 				<strong>Selected:</strong> {selected.size ? `${selected.size} points` : "none"}
 			</div>
