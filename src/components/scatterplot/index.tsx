@@ -1,7 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
-import { data396 } from "./coords_cluster_396.ts"; // TODO: imports dummy data, remove later
-import { data392 } from "./coords_cluster_392.ts"; // TODO: imports dummy data, remove later
 
 // Dummy data structure - replace later
 export type Point = { 
@@ -12,7 +10,7 @@ export type Point = {
 	shape: string;
 	size: number;
 	transparency: number;
-	outlineColor: string;
+	outlineColor?: string;
  };
 
 type Props = {
@@ -69,31 +67,58 @@ export default function ScatterPlot({ points }: Props) {
 		// ------------------------------------------------------------------
 		// CLUSTER HIGHLIGHTING
 		// ------------------------------------------------------------------
-		const highlight = (hoveredCluster: string) => {
-			dots
-				.transition()
-				.duration(200)
-				.attr("r", (d: any) => (d.cluster === hoveredCluster ? POINT_RADIUS.HIGHLIGHTED : POINT_RADIUS.DIMMED));
+		// const highlight = (hoveredCluster: string) => {
+		// 	dots
+		// 		.transition()
+		// 		.duration(200)
+		// 		.attr("r", (d: any) => (d.cluster === hoveredCluster ? POINT_RADIUS.HIGHLIGHTED : POINT_RADIUS.DIMMED));
 
-			// Bring highlighted cluster points to front
-			dots.filter((d: any) => d.cluster === hoveredCluster).raise();
-		};
+		// 	// Bring highlighted cluster points to front
+		// 	dots.filter((d: any) => d.cluster === hoveredCluster).raise();
+		// };
 
-		const removeHighlight = () => {
-			dots.transition().duration(100).attr("r", POINT_RADIUS.DEFAULT);
-		};
+		// const removeHighlight = () => {
+		// 	dots.transition().duration(100).attr("r", POINT_RADIUS.DEFAULT);
+		// };
+
+		function getSymbolType(shape: string) {
+			switch (shape) {
+				case "circle":
+					return d3.symbolCircle;
+				case "triangle":
+					return d3.symbolTriangle;
+				case "square":
+					return d3.symbolSquare;
+				case "star":
+					return d3.symbolStar;
+				case "diamond":
+					return d3.symbolDiamond;
+				case "cross":
+					return d3.symbolCross;
+				default:
+					return d3.symbolCircle;
+			}
+		}
 
 		const dots = pointsGroup
 			.selectAll("circle")
 			.data(points, (d) => d.id)
 			.enter()
-			.append("circle")
-			.attr("r", (d) => d.size)
-			.attr("cx", (d) => xScale(d.x))
-			.attr("cy", (d) => yScale(d.y))
+			.append("path")
+			.attr("d", (d) => {
+				const symbolType = getSymbolType(d.shape);
+				return d3
+					.symbol()
+					.type(symbolType)
+					.size(d.size * 20)(); // TODO: adjust size factor
+			})
+			.attr("transform", (d) => `translate(${xScale(d.x)}, ${yScale(d.y)})`)
 			.attr("fill", (d) => d.color)
-			.on("mouseover", (event: MouseEvent, d: any) => highlight(d.cluster))
-			.on("mouseleave", removeHighlight);
+			.attr("fill-opacity", (d) => d.transparency)
+			.attr("stroke", (d) => d.outlineColor ?? "none")
+			.attr("stroke-width", (d) => (d.outlineColor ? 0.4 : 0));
+			// .on("mouseover", (event: MouseEvent, d: any) => highlight(d.cluster))
+			// .on("mouseleave", removeHighlight);
 
 		// ------------------------------------------------------------------
 		// BRUSH HANDLER
@@ -153,7 +178,7 @@ export default function ScatterPlot({ points }: Props) {
 					const screenX = currentTransform.applyX(xScale(d.x));
 					const screenY = currentTransform.applyY(yScale(d.y));
 					const hit = x0 <= screenX && screenX <= x1 && y0 <= screenY && screenY <= y1;
-					if (hit) picked.add(d.key);
+					if (hit) picked.add(d.id);
 					return hit;
 				})
 				.style("fill", (d: any) => d.color);
