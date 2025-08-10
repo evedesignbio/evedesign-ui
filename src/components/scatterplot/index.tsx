@@ -2,16 +2,17 @@ import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 
 // Dummy data structure - replace later
-export type Point = { 
+export type Point = {
 	id: string;
-	x: number; 
+	x: number;
 	y: number;
 	color: string;
 	shape: string;
 	size: number;
 	transparency: number;
 	outlineColor?: string;
- };
+	tooltipData?: Record<string, any>;
+};
 
 type Props = {
 	points: Point[];
@@ -27,6 +28,12 @@ const POINT_RADIUS = {
 export default function ScatterPlot({ points }: Props) {
 	const svgRef = useRef<SVGSVGElement | null>(null);
 	const [selected, setSelected] = useState<Set<string>>(new Set());
+	const [tooltip, setTooltip] = useState<{
+		show: boolean;
+		x: number;
+		y: number;
+		content: string | React.ReactNode;
+	}>({ show: false, x: 0, y: 0, content: "" });
 
 	useEffect(() => {
 		if (!svgRef.current) return;
@@ -65,21 +72,41 @@ export default function ScatterPlot({ points }: Props) {
 		const pointsGroup = svg.append("g").attr("class", "points-group");
 
 		// ------------------------------------------------------------------
-		// CLUSTER HIGHLIGHTING
+		// TOOLTIP FUNCTIONS
 		// ------------------------------------------------------------------
-		// const highlight = (hoveredCluster: string) => {
-		// 	dots
-		// 		.transition()
-		// 		.duration(200)
-		// 		.attr("r", (d: any) => (d.cluster === hoveredCluster ? POINT_RADIUS.HIGHLIGHTED : POINT_RADIUS.DIMMED));
+		const showTooltip = (event: MouseEvent, d: Point, index: number) => {
+			const mouseX = event.clientX;
+			const mouseY = event.clientY;
 
-		// 	// Bring highlighted cluster points to front
-		// 	dots.filter((d: any) => d.cluster === hoveredCluster).raise();
-		// };
+			let content: string | React.ReactNode;
 
-		// const removeHighlight = () => {
-		// 	dots.transition().duration(100).attr("r", POINT_RADIUS.DEFAULT);
-		// };
+			if (d.tooltipData) {
+				content = Object.entries(d.tooltipData)
+					.map(([key, value]) => `${key}: ${value}`)
+					.join("\n");
+			}
+
+			setTooltip({
+				show: true,
+				x: mouseX + 10,
+				y: mouseY - 10,
+				content,
+			});
+		};
+
+		const hideTooltip = () => {
+			setTooltip((prev) => ({ ...prev, show: false }));
+		};
+
+		const updateTooltipPosition = (event: MouseEvent) => {
+			const mouseX = event.clientX;
+			const mouseY = event.clientY;
+			setTooltip((prev) => ({
+				...prev,
+				x: mouseX + 10,
+				y: mouseY - 10,
+			}));
+		};
 
 		function getSymbolType(shape: string) {
 			switch (shape) {
@@ -116,9 +143,15 @@ export default function ScatterPlot({ points }: Props) {
 			.attr("fill", (d) => d.color)
 			.attr("fill-opacity", (d) => d.transparency)
 			.attr("stroke", (d) => d.outlineColor ?? "none")
-			.attr("stroke-width", (d) => (d.outlineColor ? 0.4 : 0));
-			// .on("mouseover", (event: MouseEvent, d: any) => highlight(d.cluster))
-			// .on("mouseleave", removeHighlight);
+			.attr("stroke-width", (d) => (d.outlineColor ? 0.3 : 0))
+			.on("mouseover", (event: MouseEvent, d: Point) => {
+				const index = points.findIndex((p) => p.id === d.id);
+				showTooltip(event, d, index);
+			})
+			.on("mousemove", (event: MouseEvent) => {
+				updateTooltipPosition(event);
+			})
+			.on("mouseleave", hideTooltip);
 
 		// ------------------------------------------------------------------
 		// BRUSH HANDLER
@@ -252,6 +285,29 @@ export default function ScatterPlot({ points }: Props) {
 				<strong>Selected:</strong> {selected.size ? `${selected.size} points` : "none"}
 			</div>
 			<svg ref={svgRef} width="100%" height="100%" />
+
+			{/* Tooltip */}
+			{tooltip.show && (
+				<div
+					style={{
+						position: "fixed",
+						left: tooltip.x,
+						top: tooltip.y,
+						backgroundColor: "rgba(0, 0, 0, 0.8)",
+						color: "white",
+						padding: "8px 12px",
+						borderRadius: "4px",
+						fontSize: "12px",
+						pointerEvents: "none",
+						zIndex: 1000,
+						maxWidth: "300px",
+						whiteSpace: "pre-line",
+						boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+					}}
+				>
+					{tooltip.content}
+				</div>
+			)}
 		</div>
 	);
 }
