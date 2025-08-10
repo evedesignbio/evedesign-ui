@@ -12,7 +12,7 @@ import {
 } from "../../models/api.ts";
 import { DEFAULT_STYLE, StructurePanel } from "../../features/structurepanel";
 import { AutowrapHeatmap } from "../../components/autowrapheatmap";
-import SequenceSpaceView from "../../components/sequencespaceview"
+import ScatterPlot from "../../components/scatterplot";
 import "./viewer.css";
 import { useInstances, useMatrix } from "./data.ts";
 import { InstanceTable, renderSequenceLabel } from "./table.tsx";

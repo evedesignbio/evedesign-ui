@@ -4,7 +4,10 @@ import { data396 } from "./coords_cluster_396.ts"; // TODO: imports dummy data, 
 import { data392 } from "./coords_cluster_392.ts"; // TODO: imports dummy data, remove later
 
 // Dummy data structure - replace later
-type Point = { x: number; y: number };
+type Point = { 
+	x: number; 
+	y: number;
+ };
 type Cluster = {
 	name: string;
 	color: string;
@@ -41,7 +44,7 @@ const pallet = new Map([
 	["blue", "#339af0"],
 ]);
 
-export default function SequenceSpaceView() {
+export default function ScatterPlot() {
 	const svgRef = useRef<SVGSVGElement | null>(null);
 	const [selected, setSelected] = useState<Set<string>>(new Set());
 
