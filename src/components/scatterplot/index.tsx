@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 
-// Dummy data structure - replace later
 export type Point = {
 	id: string;
 	x: number;
@@ -16,16 +15,16 @@ export type Point = {
 
 type Props = {
 	points: Point[];
+	showHistogram?: boolean;
 };
 
-// Constants for point sizes
-const POINT_RADIUS = {
-	DEFAULT: 1.5,
-	HIGHLIGHTED: 2.5,
-	DIMMED: 1,
-} as const;
+// histogram config
+const TOP_HIST_HEIGHT = 90;
+const RIGHT_HIST_WIDTH = 90;
+const X_THRESHOLDS = 30;
+const Y_THRESHOLDS = 30;
 
-export default function ScatterPlot({ points }: Props) {
+export default function ScatterPlot({ points, showHistogram = false }: Props) {
 	const svgRef = useRef<SVGSVGElement | null>(null);
 	const [selected, setSelected] = useState<Set<string>>(new Set());
 	const [tooltip, setTooltip] = useState<{
@@ -40,7 +39,12 @@ export default function ScatterPlot({ points }: Props) {
 
 		const width = 600;
 		const height = 450;
-		const margin = { top: 20, right: 20, bottom: 40, left: 40 };
+		const margin = {
+			top: showHistogram ? 20 + TOP_HIST_HEIGHT : 20,
+			right: showHistogram ? 20 + RIGHT_HIST_WIDTH : 20,
+			bottom: 40,
+			left: 40,
+		};
 
 		// scales
 		const xScale = d3
@@ -153,6 +157,68 @@ export default function ScatterPlot({ points }: Props) {
 			})
 			.on("mouseleave", hideTooltip);
 
+		// ---------- marginal histograms ----------
+		let xHistRects: d3.Selection<SVGRectElement, d3.Bin<number, number>, SVGGElement, unknown> | null = null;
+		let yHistRects: d3.Selection<SVGRectElement, d3.Bin<number, number>, SVGGElement, unknown> | null = null;
+
+		if (showHistogram && points.length) {
+			// top histogram (X)
+			const xValues = points.map((p) => p.x);
+			const xBins = d3
+				.bin()
+				.domain(xScale.domain() as [number, number])
+				.thresholds(X_THRESHOLDS)(xValues);
+			const xMax = d3.max(xBins, (b) => b.length) ?? 1;
+			const xCountToY = d3.scaleLinear().domain([0, xMax]).range([TOP_HIST_HEIGHT, 0]);
+
+			const xHistG = svg.append("g").attr("class", "x-hist");
+			xHistRects = xHistG
+				.selectAll("rect")
+				.data(xBins)
+				.enter()
+				.append("rect")
+				.attr("stroke", "#333")
+				.attr("stroke-width", 1)
+				.attr("fill", "none")
+				.attr("x", (b) => (b.x0 == null ? 0 : xScale(b.x0)) + 1)
+				.attr("y", (b) => margin.top - TOP_HIST_HEIGHT + xCountToY(b.length))
+				.attr("width", (b) => {
+					const x0 = b.x0 == null ? 0 : xScale(b.x0);
+					const x1 = b.x1 == null ? 0 : xScale(b.x1);
+					return Math.max(0, x1 - x0 - 2);
+				})
+				.attr("height", (b) => TOP_HIST_HEIGHT - xCountToY(b.length));
+
+			// right histogram (Y)
+			const yValues = points.map((p) => p.y);
+			const yBins = d3
+				.bin()
+				.domain(yScale.domain() as [number, number])
+				.thresholds(Y_THRESHOLDS)(yValues);
+			const yMax = d3.max(yBins, (b) => b.length) ?? 1;
+			const yCountToX = d3.scaleLinear().domain([0, yMax]).range([0, RIGHT_HIST_WIDTH]);
+
+			const yHistG = svg.append("g").attr("class", "y-hist");
+			yHistRects = yHistG
+				.selectAll("rect")
+				.data(yBins)
+				.enter()
+				.append("rect")
+				.attr("stroke", "#333")
+				.attr("fill", "none")
+				.attr("x", width - margin.right)
+				.attr("y", (b) => {
+					const y1 = b.x1 == null ? 0 : yScale(b.x1);
+					return y1;
+				})
+				.attr("width", (b) => yCountToX(b.length))
+				.attr("height", (b) => {
+					const y0 = b.x0 == null ? 0 : yScale(b.x0);
+					const y1 = b.x1 == null ? 0 : yScale(b.x1);
+					return Math.max(0, y0 - y1 - 1);
+				});
+		}
+
 		// ------------------------------------------------------------------
 		// BRUSH HANDLER
 		// ------------------------------------------------------------------
@@ -263,6 +329,26 @@ export default function ScatterPlot({ points }: Props) {
 			// Update axis ticks and labels
 			xAxis.call(d3.axisBottom(newXScale));
 			yAxis.call(d3.axisLeft(newYScale));
+
+			// keep histograms aligned with axes (recompute positions using rescaled axes)
+				if (showHistogram) {
+					xHistRects?.attr("x", (b) => (b.x0 == null ? 0 : newXScale(b.x0)) + 1).attr("width", (b) => {
+						const x0 = b.x0 == null ? 0 : newXScale(b.x0);
+						const x1 = b.x1 == null ? 0 : newXScale(b.x1);
+						return Math.max(0, x1 - x0 - 2);
+					});
+	
+					yHistRects
+						?.attr("y", (b) => {
+							const y1 = b.x1 == null ? 0 : newYScale(b.x1);
+							return y1;
+						})
+						.attr("height", (b) => {
+							const y0 = b.x0 == null ? 0 : newYScale(b.x0);
+							const y1 = b.x1 == null ? 0 : newYScale(b.x1);
+							return Math.max(0, y0 - y1 - 1);
+						});
+				}
 		};
 
 		const zoom = d3
@@ -275,13 +361,13 @@ export default function ScatterPlot({ points }: Props) {
 			});
 
 		svg.call(zoom);
-	}, []);
+	}, [points]);
 
 	// Render
 	return (
 		<div>
-			<div style={{ marginBottom: 8, fontSize: "14px" }}>Hold Shift + drag to select points, scroll/drag to zoom/pan</div>
-			<div style={{ marginBottom: 8, fontSize: "14px" }}>
+			<div style={{ marginBottom: 8, fontSize: "12px" }}>Hold Shift + drag to select points, scroll/drag to zoom/pan</div>
+			<div style={{ marginBottom: 8, fontSize: "12px" }}>
 				<strong>Selected:</strong> {selected.size ? `${selected.size} points` : "none"}
 			</div>
 			<svg ref={svgRef} width="100%" height="100%" />
