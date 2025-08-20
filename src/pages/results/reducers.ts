@@ -501,3 +501,18 @@ export const mutationsToPosMap = (mutations: Set<string>) => {
   });
   return posMap;
 };
+
+export const useScatterPlotSelectionHandler = (
+	dispatchDataSelection: DataInteractionReducerDispatchFunc,
+) =>
+  useMemo(() => {
+	return (selectedPointIds: string[], modifiers: any) => {
+		// TODO: implement selection handling logic
+    dispatchDataSelection({
+			type: "SELECT_INSTANCES",
+			payload: selectedPointIds,
+			source: "SEQSPACE",
+			modifiers: modifiers,
+		});
+	};
+}, [dispatchDataSelection]);

@@ -26,7 +26,8 @@ import {
   useBasketInstances,
   useHeatmapClickHandler,
   useReset,
-  useStructureClickHandler,
+  useScatterPlotSelectionHandler,
+  useStructureClickHandler
 } from "./reducers.ts";
 import { useReducer, useState } from "react";
 import {
@@ -168,6 +169,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
       </BoxedLayout>
     </Modal>
   );
+  const scatterplotClickHandler = useScatterPlotSelectionHandler(dispatchDataSelection);
 
   // table only shows active instances if selecting from outside panel, otherwise full filteredSet
   const tablePanel = (
@@ -234,9 +236,8 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
     />
   );
 
-  const scatterplotPanel = (
-    <SequenceSpaceView />
-  )
+	// TODO: link data and reducer for sequence space 2D projection scatterplot
+	// const scatterplotPanel = <ScatterPlot points={[]} showHistogram={false} handleEvent={scatterplotClickHandler} />;
 
   // TODO: factor this out into own component
   const menuPanel = (
@@ -319,7 +320,7 @@ export const AnalysisViewer = ({ results, id }: AnalysisViewerProps) => {
 						<div className="heatmap-wrapper">{heatmapPanel}</div>
 					</div>
 					<div className="resizable-viewer-box">{structurePanel}</div>
-					<div className="resizable-viewer-box">{scatterplotPanel}</div>
+					{/* <div className="resizable-viewer-box">{scatterplotPanel}</div> */}
 				</div>
 			</div>
 			<ReactTooltip id="tableViewer" render={renderSequenceLabel} style={heatmapTooltipStyle} />

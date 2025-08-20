@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
+import { extractModifiers } from "../../utils/events.tsx";
 
 export type Point = {
 	id: string;
@@ -13,9 +14,10 @@ export type Point = {
 	tooltipData?: Record<string, any>;
 };
 
-type Props = {
+type ScatterPlotProps = {
 	points: Point[];
 	showHistogram?: boolean;
+	handleEvent?: (selectedPointIds: string[], modifiers: any) => void;
 };
 
 // histogram config
@@ -24,7 +26,11 @@ const RIGHT_HIST_WIDTH = 90;
 const X_THRESHOLDS = 30;
 const Y_THRESHOLDS = 30;
 
-export default function ScatterPlot({ points, showHistogram = false }: Props) {
+export default function ScatterPlot({ 
+	points, 
+	showHistogram = false, 
+	handleEvent = undefined 
+}: ScatterPlotProps) {
 	const svgRef = useRef<SVGSVGElement | null>(null);
 	const [selected, setSelected] = useState<Set<string>>(new Set());
 	const [tooltip, setTooltip] = useState<{
@@ -225,6 +231,7 @@ export default function ScatterPlot({ points, showHistogram = false }: Props) {
 		let brushing = false;
 		let brushStart: [number, number] | null = null;
 		let brushRect: d3.Selection<SVGRectElement, unknown, null, undefined> | null = null;
+		let selectedPointIds = new Set<string>();
 
 		const handleBrushStart = (event: MouseEvent) => {
 			if (!event.shiftKey) return;
@@ -235,6 +242,7 @@ export default function ScatterPlot({ points, showHistogram = false }: Props) {
 			brushing = true;
 			const [x, y] = d3.pointer(event, svg.node());
 			brushStart = [x, y];
+			selectedPointIds.clear(); // Clear previous selection when starting new drag-select
 
 			// Create brush rectangle
 			brushRect = svg
@@ -268,7 +276,7 @@ export default function ScatterPlot({ points, showHistogram = false }: Props) {
 			brushRect.attr("x", x0).attr("y", y0).attr("width", width).attr("height", height);
 
 			// Find selected points
-			const picked = new Set<string>();
+			selectedPointIds.clear(); // Clear previous selection and rebuild selection each move
 			const currentTransform = d3.zoomTransform(pointsGroup.node()!);
 
 			dots
@@ -277,16 +285,23 @@ export default function ScatterPlot({ points, showHistogram = false }: Props) {
 					const screenX = currentTransform.applyX(xScale(d.x));
 					const screenY = currentTransform.applyY(yScale(d.y));
 					const hit = x0 <= screenX && screenX <= x1 && y0 <= screenY && screenY <= y1;
-					if (hit) picked.add(d.id);
+					if (hit) selectedPointIds.add(d.id);
 					return hit;
 				})
 				.style("fill", (d: any) => d.color);
 
-			setSelected(picked);
+			setSelected(selectedPointIds);
 		};
 
 		const handleBrushEnd = (event: MouseEvent) => {
 			if (!brushing || !brushStart || !brushRect) return;
+
+			// TODO: Set up handler for selection event
+			if (handleEvent) {
+				const modifiers = extractModifiers(event);
+				const selectedPoints = Array.from(selectedPointIds);
+				handleEvent(selectedPoints, modifiers);
+			}
 
 			// Clean up
 			brushRect.remove();
@@ -305,6 +320,12 @@ export default function ScatterPlot({ points, showHistogram = false }: Props) {
 			// reset all dots to their original fill
 			dots.style("fill", (d: any) => d.color);
 			setSelected(new Set());
+
+			// TODO: Set up handler for selection event (clear points selected)
+			if (handleEvent) {
+				const modifiers = extractModifiers(event);
+				handleEvent([], modifiers);
+			}
 		});
 
 		// Attach brush event listeners
@@ -331,24 +352,26 @@ export default function ScatterPlot({ points, showHistogram = false }: Props) {
 			yAxis.call(d3.axisLeft(newYScale));
 
 			// keep histograms aligned with axes (recompute positions using rescaled axes)
-				if (showHistogram) {
-					xHistRects?.attr("x", (b) => (b.x0 == null ? 0 : newXScale(b.x0)) + 1).attr("width", (b) => {
+			if (showHistogram) {
+				xHistRects
+					?.attr("x", (b) => (b.x0 == null ? 0 : newXScale(b.x0)) + 1)
+					.attr("width", (b) => {
 						const x0 = b.x0 == null ? 0 : newXScale(b.x0);
 						const x1 = b.x1 == null ? 0 : newXScale(b.x1);
 						return Math.max(0, x1 - x0 - 2);
 					});
-	
-					yHistRects
-						?.attr("y", (b) => {
-							const y1 = b.x1 == null ? 0 : newYScale(b.x1);
-							return y1;
-						})
-						.attr("height", (b) => {
-							const y0 = b.x0 == null ? 0 : newYScale(b.x0);
-							const y1 = b.x1 == null ? 0 : newYScale(b.x1);
-							return Math.max(0, y0 - y1 - 1);
-						});
-				}
+
+				yHistRects
+					?.attr("y", (b) => {
+						const y1 = b.x1 == null ? 0 : newYScale(b.x1);
+						return y1;
+					})
+					.attr("height", (b) => {
+						const y0 = b.x0 == null ? 0 : newYScale(b.x0);
+						const y1 = b.x1 == null ? 0 : newYScale(b.x1);
+						return Math.max(0, y0 - y1 - 1);
+					});
+			}
 		};
 
 		const zoom = d3
