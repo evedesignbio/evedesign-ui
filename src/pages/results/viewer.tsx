@@ -13,6 +13,7 @@ import {
 } from "../../models/api.ts";
 import { DEFAULT_STYLE, StructurePanel } from "../../features/structurepanel";
 import { AutowrapHeatmap } from "../../components/autowrapheatmap";
+import ScatterPlot from "../../components/scatterplot";
 import "./viewer.css";
 import { useInstances, useMatrix } from "./data.ts";
 import { InstanceTable, renderSequenceLabel } from "./table.tsx";
@@ -26,7 +27,8 @@ import {
   useBasketInstances,
   useHeatmapClickHandler,
   useReset,
-  useStructureClickHandler,
+  useScatterPlotSelectionHandler,
+  useStructureClickHandler
 } from "./reducers.ts";
 import { useReducer, useState } from "react";
 import {
@@ -181,6 +183,7 @@ export const AnalysisViewer = ({
       </BoxedLayout>
     </Modal>
   );
+  const scatterplotClickHandler = useScatterPlotSelectionHandler(dispatchDataSelection);
 
   // table only shows active instances if selecting from outside panel, otherwise full filteredSet
   const tablePanel = (
@@ -246,6 +249,9 @@ export const AnalysisViewer = ({
       scrollToElement={heatmapCellSelections.slice(-1)[0]?.column}
     />
   );
+
+	// TODO: link data and reducer for sequence space 2D projection scatterplot
+	// const scatterplotPanel = <ScatterPlot points={[]} showHistogram={false} handleEvent={scatterplotClickHandler} />;
 
   // TODO: factor this out into own component
   const menuPanel = (
@@ -323,23 +329,20 @@ export const AnalysisViewer = ({
 
   // note: tooltip rendered here to be on top of other components
   return (
-    <>
-      {dnaModal}
-      <div className="outer-wrapper">
-        <div className="menubar-wrapper">{menuPanel}</div>
-        <div className="resizable-viewer-wrapper">
-          <div className="resizable-viewer-box">{tablePanel}</div>
-          <div className="resizable-viewer-box">
-            <div className="heatmap-wrapper">{heatmapPanel}</div>
-          </div>
-          <div className="resizable-viewer-box">{structurePanel}</div>
-        </div>
-      </div>
-      <ReactTooltip
-        id="tableViewer"
-        render={renderSequenceLabel}
-        style={heatmapTooltipStyle}
-      />
-    </>
-  );
+		<>
+			{dnaModal}
+			<div className="outer-wrapper">
+				<div className="menubar-wrapper">{menuPanel}</div>
+				<div className="resizable-viewer-wrapper">
+					<div className="resizable-viewer-box">{tablePanel}</div>
+					<div className="resizable-viewer-box">
+						<div className="heatmap-wrapper">{heatmapPanel}</div>
+					</div>
+					<div className="resizable-viewer-box">{structurePanel}</div>
+					{/* <div className="resizable-viewer-box">{scatterplotPanel}</div> */}
+				</div>
+			</div>
+			<ReactTooltip id="tableViewer" render={renderSequenceLabel} style={heatmapTooltipStyle} />
+		</>
+	);
 };
