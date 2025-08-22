@@ -84,6 +84,7 @@ export default function ScatterPlot({
 		// ------------------------------------------------------------------
 		// TOOLTIP FUNCTIONS
 		// ------------------------------------------------------------------
+		// @ts-ignore
 		const showTooltip = (event: MouseEvent, d: Point, index: number) => {
 			const mouseX = event.clientX;
 			const mouseY = event.clientY;
@@ -139,6 +140,7 @@ export default function ScatterPlot({
 
 		const dots = pointsGroup
 			.selectAll("circle")
+				// @ts-ignore
 			.data(points, (d) => d.id)
 			.enter()
 			.append("path")

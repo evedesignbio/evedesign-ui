@@ -28,9 +28,9 @@ import {
   useHeatmapClickHandler,
   useReset,
   useScatterPlotSelectionHandler,
-  useStructureClickHandler
+  useStructureClickHandler,
 } from "./reducers.ts";
-import { useReducer, useState } from "react";
+import { useMemo, useReducer, useState } from "react";
 import {
   InstanceDownloadMenu,
   renderStructureSelectionMenu,
@@ -183,7 +183,6 @@ export const AnalysisViewer = ({
       </BoxedLayout>
     </Modal>
   );
-  const scatterplotClickHandler = useScatterPlotSelectionHandler(dispatchDataSelection);
 
   // table only shows active instances if selecting from outside panel, otherwise full filteredSet
   const tablePanel = (
@@ -250,8 +249,44 @@ export const AnalysisViewer = ({
     />
   );
 
-	// TODO: link data and reducer for sequence space 2D projection scatterplot
-	// const scatterplotPanel = <ScatterPlot points={[]} showHistogram={false} handleEvent={scatterplotClickHandler} />;
+  const scatterplotClickHandler = useScatterPlotSelectionHandler(
+      dispatchDataSelection,
+  );
+
+  console.log("ACTIVE INSTANCES", activeInstances.length);  // TODO: remove
+
+  // TODO: move this to its own hook eventually
+  const seqSpacePoints = useMemo(() => {
+    // nothing interesting to show for single mutation scans as all mutants have same distance
+    if (isMutationScan) {
+      return null;
+    }
+
+    // TODO: active instance handling
+    // TODO: selection handling
+    // TODO: show natural sequences, but they can't be selected
+    return enhancedInstances.instances.map((instance) => ({
+      id: instance.id,
+      x: instance.metadata?.seqspace_projection![0]!, // TODO proper defined checking here
+      y: instance.metadata?.seqspace_projection![1]!, // TODO proper defined checking here
+      color: activeIds.has(instance.id) ? "#ffff00" : "#ffffff",
+      shape: "circle",
+      size: 1,
+      transparency: 0.5,
+      // outlineColor: "#ff0000",
+      tooltipData: { ID: instance.id },
+    }));
+  }, [isMutationScan, enhancedInstances]);
+
+  // TODO: only render when we have projection, need to handle div below properly
+  const scatterplotPanel =
+    seqSpacePoints !== null ? (
+      <ScatterPlot
+        points={seqSpacePoints}
+        showHistogram={false}
+        handleEvent={scatterplotClickHandler}
+      />
+    ) : null;
 
   // TODO: factor this out into own component
   const menuPanel = (
@@ -329,20 +364,26 @@ export const AnalysisViewer = ({
 
   // note: tooltip rendered here to be on top of other components
   return (
-		<>
-			{dnaModal}
-			<div className="outer-wrapper">
-				<div className="menubar-wrapper">{menuPanel}</div>
-				<div className="resizable-viewer-wrapper">
-					<div className="resizable-viewer-box">{tablePanel}</div>
-					<div className="resizable-viewer-box">
-						<div className="heatmap-wrapper">{heatmapPanel}</div>
-					</div>
-					<div className="resizable-viewer-box">{structurePanel}</div>
-					{/* <div className="resizable-viewer-box">{scatterplotPanel}</div> */}
-				</div>
-			</div>
-			<ReactTooltip id="tableViewer" render={renderSequenceLabel} style={heatmapTooltipStyle} />
-		</>
-	);
+    <>
+      {dnaModal}
+      <div className="outer-wrapper">
+        <div className="menubar-wrapper">{menuPanel}</div>
+        <div className="resizable-viewer-wrapper">
+          <div className="resizable-viewer-box">{tablePanel}</div>
+          <div className="resizable-viewer-box">
+            <div className="heatmap-wrapper">{heatmapPanel}</div>
+          </div>
+          <div className="resizable-viewer-box">{structurePanel}</div>
+          {scatterplotPanel ? (
+            <div className="resizable-viewer-box">{scatterplotPanel}</div>
+          ) : null}
+        </div>
+      </div>
+      <ReactTooltip
+        id="tableViewer"
+        render={renderSequenceLabel}
+        style={heatmapTooltipStyle}
+      />
+    </>
+  );
 };
