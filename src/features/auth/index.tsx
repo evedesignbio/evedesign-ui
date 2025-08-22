@@ -1,15 +1,19 @@
 import {
   Alert,
+  Blockquote,
   Button,
   Container,
   Paper,
-  PasswordInput,
+  PasswordInput, Stack,
   TextInput,
   Title,
 } from "@mantine/core";
 import React, { useState } from "react";
 import { signIn } from "../../context/SessionContext.tsx";
-import { IconExclamationCircle, IconInfoCircle } from "@tabler/icons-react";
+import { IconExclamationCircle } from "@tabler/icons-react";
+
+const PUBLIC_ACCOUNT_EMAIL = "evcouplingsnotifications@gmail.com";
+const PUBLIC_ACCOUNT_PW = "rQYlsSeMx67eNSDXUpXYUnQxGFBmpPbKVlUqHmS5xIlssqrGkL";
 
 interface AuthenticationFormProps {
   title?: string;
@@ -23,10 +27,9 @@ export const AuthenticationForm = ({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const executeLogin = async (user: string, pw: string) => {
     setLoading(true);
-    const { error } = await signIn(userName, password);
+    const { error } = await signIn(user, pw);
     setLoading(false);
     if (error) {
       setError(error.message);
@@ -35,25 +38,31 @@ export const AuthenticationForm = ({
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    await executeLogin(userName, password);
+  };
+
   return (
     <Container size={"sm"}>
+      <Stack gap={0}>
       {title ? <Title ta="left">{title}</Title> : null}
+      <Blockquote color="blue" icon={<IconExclamationCircle />} mt="xl">
+        By logging in you agree to only use the server for academic or non-commercial research.
+        Please use the public access account in a responsible way and do not submit jobs in bulk so
+        all users get a fair share.
+      </Blockquote>
 
-      {/*<Text>*/}
-      {/*  Do not have an account yet? <Anchor>Create account</Anchor>*/}
-      {/*</Text>*/}
-
-      <Alert
-        variant="light"
-        color="blue"
-        title="Demo account"
-        mt={20}
-        icon={<IconInfoCircle />}
+      <Button
+        fullWidth
+        mt="xl"
+        radius="md"
+        type={"submit"}
+        onClick={() => executeLogin(PUBLIC_ACCOUNT_EMAIL, PUBLIC_ACCOUNT_PW)}
+        disabled={loading}
       >
-        Please use the previously provided submission token as password
-        <br />
-        and username "demo@demo.com".
-      </Alert>
+        Use public access (no registration needed)
+      </Button>
 
       <Paper withBorder shadow="sm" p={22} mt={20} radius="md">
         <form onSubmit={handleSubmit}>
@@ -104,6 +113,7 @@ export const AuthenticationForm = ({
           </Button>
         </form>
       </Paper>
+      </Stack>
     </Container>
   );
 };
