@@ -250,10 +250,10 @@ export const AnalysisViewer = ({
   );
 
   const scatterplotClickHandler = useScatterPlotSelectionHandler(
-      dispatchDataSelection,
+    dispatchDataSelection,
   );
 
-  console.log("ACTIVE INSTANCES", activeInstances.length);  // TODO: remove
+  console.log("ACTIVE INSTANCES", activeInstances.length); // TODO: remove
 
   // TODO: move this to its own hook eventually
   const seqSpacePoints = useMemo(() => {
@@ -265,7 +265,7 @@ export const AnalysisViewer = ({
     // TODO: active instance handling
     // TODO: selection handling
     // TODO: show natural sequences, but they can't be selected
-    return enhancedInstances.instances.map((instance) => ({
+    const instPoints = enhancedInstances.instances.map((instance) => ({
       id: instance.id,
       x: instance.metadata?.seqspace_projection![0]!, // TODO proper defined checking here
       y: instance.metadata?.seqspace_projection![1]!, // TODO proper defined checking here
@@ -276,6 +276,21 @@ export const AnalysisViewer = ({
       // outlineColor: "#ff0000",
       tooltipData: { ID: instance.id },
     }));
+
+    // TODO: needs to have much better checking of whether things are defined
+    const naturalPoints = spec.system[0].sequences.seqs.map((seq) => ({
+      id: seq.id,
+      x: seq.metadata!.seqspace_projection![0]!,
+      y: seq.metadata!.seqspace_projection![1]!,
+      color: "#555",
+      shape: "circle",
+      size: 1,
+      transparency: 0.5,
+      // outlineColor: "#ff0000",
+      tooltipData: { ID: seq.id },
+    }));
+
+    return [...naturalPoints, ...instPoints];
   }, [isMutationScan, enhancedInstances]);
 
   // TODO: only render when we have projection, need to handle div below properly
