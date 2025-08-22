@@ -748,7 +748,7 @@ export const DesignSpecInput = ({
             name: jobName !== "" ? jobName : null,
             project_id: null,
             parent_job_id: null,
-            public: true,
+            public: false,
             spec: spec,
           });
           openSubmitting();
