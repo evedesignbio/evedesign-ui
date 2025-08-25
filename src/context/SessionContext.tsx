@@ -67,7 +67,7 @@ export const SessionProvider = ({ children }: Props) => {
   );
 };
 
-export const signOut = () => supabase.auth.signOut();
+export const signOut = () => supabase.auth.signOut({ scope: "local" });
 
 export const signIn = async (
   userName: string,

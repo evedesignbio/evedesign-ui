@@ -16,8 +16,8 @@ import { useMantineColorScheme } from "@mantine/core";
 import { useBalance } from "../../api/backend.ts";
 
 const links = [
-  { link: "/", label: "Start" },
-  { link: "/results", label: "Previous jobs" },
+  { link: "/", label: "Start", requiresLogin: false },
+  { link: "/results", label: "Results", requiresLogin: true },
 ];
 
 // TODO: fix mobile nav
@@ -34,22 +34,24 @@ export function NavBar() {
 
   const balance = useBalance();
 
-  const items = links.map((link) => (
-    <Link
-      key={link.label}
-      href={link.link}
-      className={"link"}
-      // className={(active) => (active ? "link" : "link")}
-      // data-active={true}  // TODO
-      // data-active={active === link.link || undefined}
-      // onClick={(event) => {
-      //   event.preventDefault();
-      //   setActive(link.link);
-      // }}
-    >
-      {link.label}
-    </Link>
-  ));
+  const items = links
+    .filter((link) => !link.requiresLogin || session)
+    .map((link) => (
+      <Link
+        key={link.label}
+        href={link.link}
+        className={"link"}
+        // className={(active) => (active ? "link" : "link")}
+        // data-active={true}  // TODO
+        // data-active={active === link.link || undefined}
+        // onClick={(event) => {
+        //   event.preventDefault();
+        //   setActive(link.link);
+        // }}
+      >
+        {link.label}
+      </Link>
+    ));
 
   const balanceBadge = balance.finished ? (
     <Badge
