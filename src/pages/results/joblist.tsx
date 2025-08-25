@@ -1,4 +1,4 @@
-import { Anchor, Badge, Table, Text } from "@mantine/core";
+import { Anchor, Badge, Stack, Table, Text } from "@mantine/core";
 import { Link } from "wouter";
 import { useJobList } from "../../api/backend.ts";
 import {
@@ -36,7 +36,14 @@ export const JobListPage = () => {
             <Table.Tr key={index}>
               <Table.Td>
                 <Anchor component={Link} href={"/results/" + job.id}>
-                  {job.name ? `${job.name} (${job.id})` : job.id}
+                  {job.name ? (
+                    <Stack gap={0}>
+                      <Text>{job.name}</Text>
+                      <Text size={"xs"}>{job.id}</Text>
+                    </Stack>
+                  ) : (
+                    job.id
+                  )}
                 </Anchor>
               </Table.Td>
               <Table.Td>
