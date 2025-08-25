@@ -31,7 +31,11 @@ const App = () => {
                 <ChangePasswordPage />
               </AuthProtectedRoute>
             </Route>
-            <Route path="/results/" component={JobListPage} />
+            <Route path="/results/">
+              <AuthProtectedRoute>
+                <JobListPage />
+              </AuthProtectedRoute>
+            </Route>
             <Route path="/results/:id">
               {(params) => (
                 <AuthProtectedRoute>
