@@ -15,7 +15,7 @@ import { DEFAULT_STYLE, StructurePanel } from "../../features/structurepanel";
 import { AutowrapHeatmap } from "../../components/autowrapheatmap";
 import ScatterPlot from "../../components/scatterplot";
 import "./viewer.css";
-import { useInstances, useMatrix } from "./data.ts";
+import { useInstances, useMatrix, useSeqSpaceProjection } from "./data.ts";
 import { InstanceTable, renderSequenceLabel } from "./table.tsx";
 import { useDisclosure } from "@mantine/hooks";
 import { DNAGenerationDialog } from "./dna.tsx";
@@ -23,7 +23,6 @@ import { BoxedLayout } from "./helpers.tsx";
 import {
   dataInteractionReducer,
   emptyDataInteractionState,
-  NATURAL_SEQ_PREFIX,
   useActiveInstances,
   useBasketInstances,
   useHeatmapClickHandler,
@@ -31,7 +30,7 @@ import {
   useScatterPlotSelectionHandler,
   useStructureClickHandler,
 } from "./reducers.ts";
-import { useMemo, useReducer, useState } from "react";
+import { useReducer, useState } from "react";
 import {
   InstanceDownloadMenu,
   renderStructureSelectionMenu,
@@ -164,6 +163,17 @@ export const AnalysisViewer = ({
     activeInstances,
   );
 
+  const scatterplotClickHandler = useScatterPlotSelectionHandler(
+    dispatchDataSelection,
+  );
+
+  const seqSpaceProjectionPoints = useSeqSpaceProjection(
+    spec,
+    isMutationScan,
+    enhancedInstances.instances,
+    activeIds,
+  );
+
   const dnaModal = (
     <Modal
       opened={dnaOpen}
@@ -250,58 +260,15 @@ export const AnalysisViewer = ({
     />
   );
 
-  const scatterplotClickHandler = useScatterPlotSelectionHandler(
-    dispatchDataSelection,
-  );
-
-  // TODO: move this to its own hook eventually
-  const seqSpacePoints = useMemo(() => {
-    // nothing interesting to show for single mutation scans as all mutants have same distance
-    if (isMutationScan) {
-      return null;
-    }
-
-    // TODO: active instance handling
-    // TODO: selection handling
-    // TODO: show natural sequences, but they can't be selected
-    const instPoints = enhancedInstances.instances.map((instance) => ({
-      id: instance.id,
-      x: instance.metadata?.seqspace_projection![0]!, // TODO proper defined checking here
-      y: instance.metadata?.seqspace_projection![1]!, // TODO proper defined checking here
-      color: activeIds.has(instance.id) ? "#ffff00" : "#ffffff",
-      shape: "circle",
-      size: 1,
-      transparency: 0.5,
-      // outlineColor: "#ff0000",
-      tooltipData: { ID: instance.id },
-    }));
-
-    // TODO: needs to have much better checking of whether things are defined
-    const naturalPoints = spec.system[0].sequences.seqs.map(
-      (seq, idx: number) => ({
-        id: `${NATURAL_SEQ_PREFIX}_${idx}`,
-        x: seq.metadata!.seqspace_projection![0]!,
-        y: seq.metadata!.seqspace_projection![1]!,
-        color: "#555",
-        shape: "circle",
-        size: 1,
-        transparency: 0.5,
-        // outlineColor: "#ff0000",
-        tooltipData: { ID: seq.id },
-      }),
-    );
-
-    return [...naturalPoints, ...instPoints];
-  }, [isMutationScan, enhancedInstances]);
-
-  // TODO: only render when we have projection, need to handle div below properly
   const scatterplotPanel =
-    seqSpacePoints !== null ? (
-      <ScatterPlot
-        points={seqSpacePoints}
-        showHistogram={false}
-        handleEvent={scatterplotClickHandler}
-      />
+    seqSpaceProjectionPoints !== null ? (
+      <div className="resizable-viewer-box">
+        <ScatterPlot
+          points={seqSpaceProjectionPoints}
+          showHistogram={false}
+          handleEvent={scatterplotClickHandler}
+        />
+      </div>
     ) : null;
 
   // TODO: factor this out into own component
@@ -390,9 +357,7 @@ export const AnalysisViewer = ({
             <div className="heatmap-wrapper">{heatmapPanel}</div>
           </div>
           <div className="resizable-viewer-box">{structurePanel}</div>
-          {scatterplotPanel ? (
-            <div className="resizable-viewer-box">{scatterplotPanel}</div>
-          ) : null}
+          {scatterplotPanel}
         </div>
       </div>
       <ReactTooltip

@@ -23,6 +23,8 @@ import {
 
 export type AggregationFunc = "sum" | "avg" | "min" | "max" | "entropy";
 
+export const NATURAL_SEQ_PREFIX = "natural";
+
 export const encodePosition = (pos: Position) => {
   return `${pos.entity}_${pos.pos}`;
 };
@@ -546,3 +548,68 @@ export const getDataRange = (
 
   return { minValue: minValue, maxValue };
 };
+
+export const useSeqSpaceProjection = (
+  spec: PipelineSpec | SingleMutationScanSpec,
+  isMutationScan: boolean,
+  instances: SystemInstanceSpecEnhanced[],
+  activeIds: Set<string>,
+) =>
+  useMemo(() => {
+    // nothing interesting to show for single mutation scans as all mutants have same distance
+    if (isMutationScan) {
+      return null;
+    }
+
+    // instance points (actual designs, can be selected)
+    const instanceProjections = instances
+      .filter(
+        (instance) =>
+          instance.metadata &&
+          instance.metadata?.seqspace_projection &&
+          instance.metadata?.seqspace_projection.length === 2,
+      )
+      .map((instance) => ({
+        id: instance.id,
+        x: instance.metadata!.seqspace_projection![0],
+        y: instance.metadata!.seqspace_projection![1],
+        // TODO: proper styling of points
+        color: activeIds.has(instance.id) ? "#ffff00" : "#ffffff",
+        shape: "circle",
+        size: 1,
+        transparency: 0.5,
+        // outlineColor: "#ff0000",
+        tooltipData: { ID: instance.id },
+      }));
+
+    // natural sequences (cannot be selected, marked with NATURAL_SEQ_PREFIX which is used by reducer to filter
+    // selections to instances only)
+    const naturalProjections = spec.system[0].sequences.seqs
+      ? spec.system[0].sequences.seqs
+          .filter(
+            (seq) =>
+              seq.metadata &&
+              seq.metadata.seqspace_projection &&
+              seq.metadata.seqspace_projection.length === 2,
+          )
+          .map((seq, idx: number) => ({
+            id: `${NATURAL_SEQ_PREFIX}_${idx}`,
+            x: seq.metadata!.seqspace_projection![0],
+            y: seq.metadata!.seqspace_projection![1],
+            // TODO: point styling; TODO: highlight WT sequence
+            color: "#444",
+            shape: "circle",
+            size: 1,
+            transparency: 0.5,
+            // outlineColor: "#ff0000",
+            tooltipData: { ID: seq.id },
+          }))
+      : [];
+
+    const allProjections = [...naturalProjections, ...instanceProjections];
+    if (allProjections.length > 0) {
+      return allProjections;
+    } else {
+      return null;
+    }
+  }, [isMutationScan, instances]);

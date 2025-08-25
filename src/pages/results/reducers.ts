@@ -12,13 +12,11 @@ import {
   decodePosition,
   encodeMutation,
   encodePosition,
-  MutationMatrix,
+  MutationMatrix, NATURAL_SEQ_PREFIX,
 } from "./data.ts";
 import { Modifiers } from "../../utils/events.tsx";
 import { ClickEvent } from "../../components/autowrapheatmap";
 import { setEqual, symmetricDifference } from "../../utils/helpers.ts";
-
-export const NATURAL_SEQ_PREFIX = "natural";
 
 export type EventSource =
   | "STRUCTURE"
