@@ -3,6 +3,7 @@ import { Button, Group, Space, Text, Textarea, Title } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SequenceViewer } from "../../components/sequenceviewer";
+import {useHashLocation} from "wouter/use-hash-location";
 
 const UNIPROT_AC_REGEXP = RegExp(
   "^[OPQ][0-9][A-Z0-9]{3}[0-9]$|^[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}$",
@@ -78,6 +79,7 @@ interface SequenceInputProps {
 }
 
 export const SequenceInput = ({ setTargetSeq }: SequenceInputProps) => {
+  const [_hashLocation, hashNavigate] = useHashLocation();
   const [seqInput, setSeqInput] = useState("");
   const [debouncedSeqInput] = useDebouncedValue(seqInput, DEBOUNCE_TIME);
 
@@ -212,9 +214,10 @@ export const SequenceInput = ({ setTargetSeq }: SequenceInputProps) => {
             variant="filled"
             size="md"
             disabled={regionError !== null}
-            onClick={() =>
-              setTargetSeq({ seq: seq, start: regionStart!, end: regionEnd! })
-            }
+            onClick={() => {
+              setTargetSeq({ seq: seq, start: regionStart!, end: regionEnd! });
+              hashNavigate("/designspec");  // allow to navigate back to first part of submission form
+            }}
           >
             {regionError === null ? "Continue to next step" : regionError}
           </Button>
