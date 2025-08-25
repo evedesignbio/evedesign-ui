@@ -30,7 +30,10 @@
   /* width: calc(33vw - 2em);*/
   min-height: 500px;
   height: calc(100vh - 120px);
-  width: calc((100vw - 1.5em) / 4);
+  min-width: 200px;
+  flex-basis: 0;
+  flex-grow: 1;
+  /* width: calc((100vw - 1.5em) / 4); */
   margin-right: 0.5em;
 
   /* disable scroll bars in Safari */
