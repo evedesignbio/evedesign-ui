@@ -1,55 +1,68 @@
-import { useJobList } from "../../api/local.ts";
-import {
-  Anchor,
-  Badge,
-  Container,
-  Stack,
-  Table,
-  Text,
-  Title,
-} from "@mantine/core";
+import { Anchor, Badge, Stack, Table, Text } from "@mantine/core";
 import { Link } from "wouter";
+import { useJobList } from "../../api/backend.ts";
+import {
+  BoxedLayout,
+  ErrorView,
+  JobStatusBadge,
+  LoadingView,
+} from "./helpers.tsx";
+import { JobSummary } from "../../models/api.ts";
 
 export const JobListPage = () => {
-  const [jobList] = useJobList();
+  const qJobList = useJobList();
+
+  if (qJobList.isPending) {
+    return <LoadingView />;
+  }
+
+  if (qJobList.isError) {
+    return <ErrorView />;
+  }
+
   return (
-    <Container size="sm" pt="xl">
-      <Stack>
-        <Title order={1}>Previously submitted jobs</Title>
-        <Text c="dimmed">
-          Only jobs submitted in the same browser will be listed here
-        </Text>
-        <Table>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Job ID</Table.Th>
-              <Table.Th>Job type</Table.Th>
-              <Table.Th>Submission date</Table.Th>
+    <BoxedLayout title={"Job results"} size={"md"}>
+      <Table>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Job Name/ID</Table.Th>
+            <Table.Th>Type</Table.Th>
+            <Table.Th>Status</Table.Th>
+            <Table.Th>Submission date</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {qJobList.data.jobs.map((job: JobSummary, index: number) => (
+            <Table.Tr key={index}>
+              <Table.Td>
+                <Anchor component={Link} href={"/results/" + job.id}>
+                  {job.name ? (
+                    <Stack gap={0}>
+                      <Text>{job.name}</Text>
+                      <Text size={"xs"}>{job.id}</Text>
+                    </Stack>
+                  ) : (
+                    job.id
+                  )}
+                </Anchor>
+              </Table.Td>
+              <Table.Td>
+                <Badge variant={"outline"}>
+                  {job.type?.replace("_", " ").replace("_", " ")}
+                </Badge>
+              </Table.Td>
+              <Table.Td>
+                <JobStatusBadge label={job.status} hideText={true} />
+              </Table.Td>
+              <Table.Td>
+                <Text size={"sm"} c={"dimmed"}>
+                  {`${job.created_at}`.replace("T", " (").split(".")[0] + ")"}
+                </Text>
+              </Table.Td>
             </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {[...jobList].reverse().map((job, index) => (
-              <Table.Tr key={index}>
-                <Table.Td>
-                  <Anchor component={Link} href={"/results/" + job.jobId}>
-                    {job.jobId}
-                  </Anchor>
-                </Table.Td>
-                <Table.Td>
-                  <Badge variant={"outline"}>
-                    {job.specType?.replace("_", " ").replace("_", " ")}
-                  </Badge>
-                </Table.Td>
-                <Table.Td>
-                  <Text size={"sm"} c={"dimmed"}>
-                    {job.submissionDate.replace("T", " (").split(".")[0] + ")"}
-                  </Text>
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      </Stack>
-    </Container>
+          ))}
+        </Table.Tbody>
+      </Table>
+    </BoxedLayout>
   );
 };

@@ -3,6 +3,7 @@ import {
   Button,
   Container,
   Group,
+  Loader,
   Stack,
   Text,
   Title,
@@ -16,6 +17,7 @@ import {
 import { validTranslation } from "../../utils/bio.ts";
 import { SystemInstanceSpecEnhanced } from "../../models/design.ts";
 import { download } from "../../utils/download.ts";
+import { useQueryClient } from "@tanstack/react-query";
 
 const SCORE_NUM_DIGITS = 3;
 
@@ -24,6 +26,7 @@ interface BoxedLayoutProps {
   title?: string;
   id?: string;
   name?: string | null;
+  size?: string;
 }
 
 // simple layout wrapper for result/status panels except main result viewer
@@ -32,10 +35,11 @@ export const BoxedLayout = ({
   title,
   id,
   name,
+  size = "sm",
 }: BoxedLayoutProps) => {
   // {isDnaView ? "DNA library generation" : "Job result"}
   return (
-    <Container size="sm" pt="xl">
+    <Container size={size} pt="xl">
       <Stack>
         {title ? <Title order={1}>{title}</Title> : null}
         {id ? (
@@ -44,9 +48,9 @@ export const BoxedLayout = ({
           </Title>
         ) : null}
         {name ? (
-            <Title order={4} c="blue">
-              {name}
-            </Title>
+          <Title order={4} c="blue">
+            {name}
+          </Title>
         ) : null}
         {children}
       </Stack>
@@ -54,19 +58,72 @@ export const BoxedLayout = ({
   );
 };
 
+export const LoadingView = () => (
+  <BoxedLayout>
+    <Group justify="center">
+      <Loader type={"dots"} size={"xl"} />
+    </Group>
+  </BoxedLayout>
+);
+
+interface ErrorViewProps {
+  id?: string;
+}
+
+export const ErrorView = ({ id }: ErrorViewProps) => {
+  const queryClient = useQueryClient();
+  return (
+    <BoxedLayout title={"Error"} id={id}>
+      <Text>
+        Something went wrong while trying to retrieve your job results.
+      </Text>
+      <Button onClick={() => queryClient.invalidateQueries()}>Retry</Button>
+    </BoxedLayout>
+  );
+};
+
 interface JobStatusBadgeProps {
   label: string;
   jobType?: string;
-  color: string;
   hideText?: boolean;
 }
 
 export const JobStatusBadge = ({
   label,
   jobType,
-  color,
   hideText,
 }: JobStatusBadgeProps) => {
+  let color;
+  switch (label) {
+    case "running":
+      color = "orange";
+      break;
+    case "failed":
+      color = "red";
+      break;
+    case "terminated":
+      color = "red";
+      break;
+    case "paused":
+      color = "red";
+      break;
+    case "initialized":
+      color = "orange";
+      break;
+    case "pending":
+      color = "orange";
+      break;
+    case "finished":
+      color = "green";
+      break;
+    case "invalid":
+      color = "red";
+      label = "Invalid job ID";
+      break;
+    default:
+      color = "gray";
+  }
+
   return (
     <Group>
       {!hideText ? <Text>Status:</Text> : null}
