@@ -11,10 +11,12 @@
  */
 import { createContext, useContext, useEffect, useState } from "react";
 import {
+  AuthChangeEvent,
   AuthTokenResponsePassword,
   createClient,
   Session,
 } from "@supabase/supabase-js";
+import { useLocation } from "wouter";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "../config.ts";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -37,11 +39,17 @@ type Props = { children: React.ReactNode };
 export const SessionProvider = ({ children }: Props) => {
   const [session, setSession] = useState<Session | null>(null);
   // const [isLoading, setIsLoading] = useState(true);
+  const [_location, navigate] = useLocation();
 
   useEffect(() => {
     const authStateListener = supabase.auth.onAuthStateChange(
-      async (_: any, session: Session | null) => {
+      async (event: AuthChangeEvent, session: Session | null) => {
         setSession(session);
+
+        // if password recovery event, emit redirect to reset page
+        if (event === "PASSWORD_RECOVERY") {
+          navigate("/auth/change-password");
+        }
         // setIsLoading(false);
       },
     );
@@ -66,6 +74,23 @@ export const signIn = async (
   password: string,
 ): Promise<AuthTokenResponsePassword> => {
   return supabase.auth.signInWithPassword({
+    email: userName,
+    password: password,
+  });
+};
+
+export const resetPassword = async (userName: string) => {
+  return supabase.auth.resetPasswordForEmail(userName, {
+    // redirectTo: 'https://designserver.netlify.app',
+  });
+};
+
+export const updatePassword = async (newPassword: string) => {
+  return supabase.auth.updateUser({ password: newPassword });
+};
+
+export const signUp = async (userName: string, password: string) => {
+  return supabase.auth.signUp({
     email: userName,
     password: password,
   });

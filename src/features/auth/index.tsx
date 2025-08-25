@@ -1,8 +1,10 @@
 import {
   Alert,
+  Anchor,
   Button,
   Container,
   Divider,
+  Group,
   Paper,
   PasswordInput,
   Stack,
@@ -12,6 +14,7 @@ import {
 import React, { useState } from "react";
 import { signIn } from "../../context/SessionContext.tsx";
 import { IconExclamationCircle } from "@tabler/icons-react";
+import { Link } from "wouter";
 
 const PUBLIC_ACCOUNT_EMAIL = "evcouplingsnotifications@gmail.com";
 const PUBLIC_ACCOUNT_PW = "rQYlsSeMx67eNSDXUpXYUnQxGFBmpPbKVlUqHmS5xIlssqrGkL";
@@ -45,15 +48,9 @@ export const AuthenticationForm = ({
   };
 
   return (
-    <Container size={"sm"}>
+    <Container size={"xs"} mt={"xl"}>
       <Stack gap={0}>
         {title ? <Title ta="left">{title}</Title> : null}
-        {/*<Blockquote color="blue" mt="md">*/}
-        {/*  By logging in you agree to only use the server for academic or*/}
-        {/*  non-commercial research purposes. Please use the public access account*/}
-        {/*  in a responsible way and do not submit jobs in bulk so all users get*/}
-        {/*  their fair share.*/}
-        {/*</Blockquote>*/}
 
         <Button
           fullWidth
@@ -76,11 +73,12 @@ export const AuthenticationForm = ({
           <form onSubmit={handleSubmit}>
             <TextInput
               label="Email"
-              placeholder="you@mantine.dev"
+              placeholder="Your email address"
               required
               radius="md"
               value={userName}
               onChange={(event) => setUserName(event.currentTarget.value)}
+              disabled={loading}
             />
             <PasswordInput
               label="Password"
@@ -90,6 +88,7 @@ export const AuthenticationForm = ({
               radius="md"
               value={password}
               onChange={(event) => setPassword(event.currentTarget.value)}
+              disabled={loading}
             />
             {error != "" ? (
               <Alert
@@ -104,26 +103,24 @@ export const AuthenticationForm = ({
               </Alert>
             ) : null}
 
-            {/*<Group justify="space-between" mt="lg">*/}
-            {/*  <Anchor component="button" size="sm">*/}
-            {/*    Create account*/}
-            {/*  </Anchor>*/}
-            {/*  <Anchor component="button" size="sm">*/}
-            {/*    Forgot password?*/}
-            {/*  </Anchor>*/}
-            {/*</Group>*/}
-
             <Button
               fullWidth
               mt="lg"
               radius="md"
               type={"submit"}
-              // loading={loading}
               disabled={loading}
             >
               Sign in
             </Button>
           </form>
+          <Group justify="space-between" mt="lg">
+            <Anchor to="/auth/sign-up" component={Link}>
+              Create account
+            </Anchor>
+            <Anchor to="/auth/reset-password" component={Link}>
+              Forgot password?
+            </Anchor>
+          </Group>
         </Paper>
       </Stack>
     </Container>
