@@ -33,7 +33,6 @@ export default function ScatterPlot({
 	handleEvent = undefined 
 }: ScatterPlotProps) {
 	const svgRef = useRef<SVGSVGElement | null>(null);
-	const [selected, setSelected] = useState<Set<string>>(new Set());
 	const [tooltip, setTooltip] = useState<{
 		show: boolean;
 		x: number;
@@ -140,6 +139,7 @@ export default function ScatterPlot({
 
 		const symbolSize = (r: number) => r * 20;
 
+		// ---------- draw points ----------
 		const dots = pointsGroup
 			.selectAll<SVGPathElement, Point>("path.dot")
 			// @ts-ignore
@@ -298,16 +298,12 @@ export default function ScatterPlot({
 			const currentTransform = d3.zoomTransform(pointsGroup.node()!);
 
 			dots
-				.filter((d: any) => {
+				.each((d: Point) => {
 					const screenX = currentTransform.applyX(xScale(d.x));
 					const screenY = currentTransform.applyY(yScale(d.y));
 					const hit = x0 <= screenX && screenX <= x1 && y0 <= screenY && screenY <= y1;
-					if (hit) selectedPointIds.add(d.id);
-					return hit;
-				})
-				.style("fill", (d: any) => d.color);
-
-			setSelected(selectedPointIds);
+					if (hit && !d.id.startsWith(NATURAL_SEQ_PREFIX)) selectedPointIds.add(d.id);
+				});
 		};
 
 		const handleBrushEnd = (event: MouseEvent) => {
@@ -315,6 +311,7 @@ export default function ScatterPlot({
 
 			// TODO: Set up handler for selection event
 			if (handleEvent) {
+				console.log(selectedPointIds); // DEBUG
 				const modifiers = extractModifiers(event);
 				const selectedPoints = Array.from(selectedPointIds);
 				handleEvent(selectedPoints, modifiers);
@@ -334,15 +331,9 @@ export default function ScatterPlot({
 		svg.on("click.reset", (event: MouseEvent) => {
 			// don't reset while shift-dragging
 			if (event.shiftKey || brushing) return;
-			// reset all dots to their original fill
-			dots.style("fill", (d: any) => d.color);
-			setSelected(new Set());
 
-			// TODO: Set up handler for selection event (clear points selected)
-			if (handleEvent) {
-				const modifiers = extractModifiers(event);
-				handleEvent([], modifiers);
-			}
+			// TODO: Set up handler for selection event (currently ignores event in data.ts when empty array is passed)
+			handleEvent?.([], extractModifiers(event));
 		});
 
 		// Attach brush event listeners
@@ -407,9 +398,9 @@ export default function ScatterPlot({
 	return (
 		<div>
 			<div style={{ marginBottom: 8, fontSize: "12px" }}>Hold Shift + drag to select points, scroll/drag to zoom/pan</div>
-			<div style={{ marginBottom: 8, fontSize: "12px" }}>
+			{/* <div style={{ marginBottom: 8, fontSize: "12px" }}>
 				<strong>Selected:</strong> {selected.size ? `${selected.size} points` : "none"}
-			</div>
+			</div> */}
 			<svg ref={svgRef} width="100%" height="100%" />
 
 			{/* Tooltip */}
