@@ -23,6 +23,7 @@ import { BoxedLayout } from "./helpers.tsx";
 import {
   dataInteractionReducer,
   emptyDataInteractionState,
+  NATURAL_SEQ_PREFIX,
   useActiveInstances,
   useBasketInstances,
   useHeatmapClickHandler,
@@ -253,8 +254,6 @@ export const AnalysisViewer = ({
     dispatchDataSelection,
   );
 
-  console.log("ACTIVE INSTANCES", activeInstances.length); // TODO: remove
-
   // TODO: move this to its own hook eventually
   const seqSpacePoints = useMemo(() => {
     // nothing interesting to show for single mutation scans as all mutants have same distance
@@ -278,17 +277,19 @@ export const AnalysisViewer = ({
     }));
 
     // TODO: needs to have much better checking of whether things are defined
-    const naturalPoints = spec.system[0].sequences.seqs.map((seq) => ({
-      id: seq.id,
-      x: seq.metadata!.seqspace_projection![0]!,
-      y: seq.metadata!.seqspace_projection![1]!,
-      color: "#555",
-      shape: "circle",
-      size: 1,
-      transparency: 0.5,
-      // outlineColor: "#ff0000",
-      tooltipData: { ID: seq.id },
-    }));
+    const naturalPoints = spec.system[0].sequences.seqs.map(
+      (seq, idx: number) => ({
+        id: `${NATURAL_SEQ_PREFIX}_${idx}`,
+        x: seq.metadata!.seqspace_projection![0]!,
+        y: seq.metadata!.seqspace_projection![1]!,
+        color: "#555",
+        shape: "circle",
+        size: 1,
+        transparency: 0.5,
+        // outlineColor: "#ff0000",
+        tooltipData: { ID: seq.id },
+      }),
+    );
 
     return [...naturalPoints, ...instPoints];
   }, [isMutationScan, enhancedInstances]);

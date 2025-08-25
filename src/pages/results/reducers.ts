@@ -18,6 +18,8 @@ import { Modifiers } from "../../utils/events.tsx";
 import { ClickEvent } from "../../components/autowrapheatmap";
 import { setEqual, symmetricDifference } from "../../utils/helpers.ts";
 
+export const NATURAL_SEQ_PREFIX = "natural";
+
 export type EventSource =
   | "STRUCTURE"
   | "MATRIX"
@@ -376,35 +378,32 @@ export const useStructureClickHandler = (
   dispatchDataSelection: DataInteractionReducerDispatchFunc,
   isMutationScan: boolean,
 ) =>
-  useMemo(
-    () => {
-      return (
-        pos: number | null,
-        modifiers: ModifiersKeys,
-        _button: number,
-        _buttons: number,
-        _ai: AtomInfo[],
-      ) => {
-        if (pos !== null) {
-          // positions in structure may not be included in matrix, so need to check first if covered
-          const posEnc = encodePosition({ entity: 0, pos: pos });
-          if (!matrix.positions.has(posEnc)) {
-            return;
-          }
-          const payload = positionSelectionPayload(
-            matrix,
-            posEnc,
-            isMutationScan,
-            modifiers,
-            "STRUCTURE",
-          );
-
-          dispatchDataSelection(payload);
+  useMemo(() => {
+    return (
+      pos: number | null,
+      modifiers: ModifiersKeys,
+      _button: number,
+      _buttons: number,
+      _ai: AtomInfo[],
+    ) => {
+      if (pos !== null) {
+        // positions in structure may not be included in matrix, so need to check first if covered
+        const posEnc = encodePosition({ entity: 0, pos: pos });
+        if (!matrix.positions.has(posEnc)) {
+          return;
         }
-      };
-    },
-    [matrix, dispatchDataSelection, isMutationScan],
-  );
+        const payload = positionSelectionPayload(
+          matrix,
+          posEnc,
+          isMutationScan,
+          modifiers,
+          "STRUCTURE",
+        );
+
+        dispatchDataSelection(payload);
+      }
+    };
+  }, [matrix, dispatchDataSelection, isMutationScan]);
 
 export const useHeatmapClickHandler = (
   matrix: MutationMatrix,
@@ -503,16 +502,25 @@ export const mutationsToPosMap = (mutations: Set<string>) => {
 };
 
 export const useScatterPlotSelectionHandler = (
-	dispatchDataSelection: DataInteractionReducerDispatchFunc,
+  dispatchDataSelection: DataInteractionReducerDispatchFunc,
 ) =>
   useMemo(() => {
-	return (selectedPointIds: string[], modifiers: any) => {
-		// TODO: implement selection handling logic
-    dispatchDataSelection({
-			type: "SELECT_INSTANCES",
-			payload: selectedPointIds,
-			source: "SEQSPACE",
-			modifiers: modifiers,
-		});
-	};
-}, [dispatchDataSelection]);
+    return (selectedPointIds: string[], modifiers: any) => {
+      // filter selected points down to instances (natural sequences, if present, cannot be selected)
+      const selectedPointsInstOnly = selectedPointIds.filter(
+        (id) => !id.startsWith(NATURAL_SEQ_PREFIX),
+      );
+
+      // do nothing if no instances are part of selection event
+      if (selectedPointsInstOnly.length === 0) {
+        return;
+      }
+
+      dispatchDataSelection({
+        type: "SELECT_INSTANCES",
+        payload: selectedPointIds,
+        source: "SEQSPACE",
+        modifiers: modifiers,
+      });
+    };
+  }, [dispatchDataSelection]);
