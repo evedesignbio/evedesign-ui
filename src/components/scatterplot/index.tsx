@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { extractModifiers } from "../../utils/events.tsx";
+import { NATURAL_SEQ_PREFIX } from "../../pages/results/data.ts";
 
 export type Point = {
 	id: string;
@@ -52,6 +53,8 @@ export default function ScatterPlot({
 			left: 40,
 		};
 
+		// TODO: makes scales robust to empty
+
 		// scales
 		const xScale = d3
 			.scaleLinear()
@@ -89,14 +92,11 @@ export default function ScatterPlot({
 			const mouseX = event.clientX;
 			const mouseY = event.clientY;
 
-			let content: string | React.ReactNode;
-
-			if (d.tooltipData) {
-				content = Object.entries(d.tooltipData)
-					.map(([key, value]) => `${key}: ${value}`)
-					.join("\n");
-			}
-
+			const content = d.tooltipData
+				? Object.entries(d.tooltipData)
+						.map(([k, v]) => `${k}: ${v}`)
+						.join("\n")
+				: "";
 			setTooltip({
 				show: true,
 				x: mouseX + 10,
@@ -119,7 +119,7 @@ export default function ScatterPlot({
 			}));
 		};
 
-		function getSymbolType(shape: string) {
+		function symbolType(shape: string) {
 			switch (shape) {
 				case "circle":
 					return d3.symbolCircle;
@@ -138,32 +138,48 @@ export default function ScatterPlot({
 			}
 		}
 
+		const symbolSize = (r: number) => r * 20;
+
 		const dots = pointsGroup
-			.selectAll("circle")
-				// @ts-ignore
-			.data(points, (d) => d.id)
-			.enter()
-			.append("path")
-			.attr("d", (d) => {
-				const symbolType = getSymbolType(d.shape);
-				return d3
-					.symbol()
-					.type(symbolType)
-					.size(d.size * 20)(); // TODO: adjust size factor
-			})
-			.attr("transform", (d) => `translate(${xScale(d.x)}, ${yScale(d.y)})`)
-			.attr("fill", (d) => d.color)
-			.attr("fill-opacity", (d) => d.transparency)
-			.attr("stroke", (d) => d.outlineColor ?? "none")
-			.attr("stroke-width", (d) => (d.outlineColor ? 0.3 : 0))
-			.on("mouseover", (event: MouseEvent, d: Point) => {
-				const index = points.findIndex((p) => p.id === d.id);
-				showTooltip(event, d, index);
-			})
-			.on("mousemove", (event: MouseEvent) => {
-				updateTooltipPosition(event);
-			})
-			.on("mouseleave", hideTooltip);
+			.selectAll<SVGPathElement, Point>("path.dot")
+			// @ts-ignore
+			.data(points, (d: Point) => d.id)
+			.join(
+				(enter: d3.Selection<d3.EnterElement, Point, SVGGElement, unknown>) =>
+					enter
+						.append("path")
+						.attr("class", "dot")
+						.attr("d", (d: Point) => d3.symbol().type(symbolType(d.shape)).size(symbolSize(d.size))())
+						.attr("transform", (d: Point) => `translate(${xScale(d.x)}, ${yScale(d.y)})`)
+						.attr("fill", (d: Point) => d.color)
+						.attr("fill-opacity", (d: Point) => d.transparency)
+						.attr("stroke", (d: Point) => d.outlineColor ?? "none")
+						.attr("stroke-width", (d: Point) => (d.outlineColor ? 0.6 : 0))
+						// .attr("data-oob", (d) => (isOob(d) ? "1" : "0"))
+						.on("mouseover", (event: MouseEvent, d: Point) => {
+							const index = points.findIndex((p) => p.id === d.id);
+							showTooltip(event, d, index);
+						})
+						.on("mousemove", (event: MouseEvent) => updateTooltipPosition(event))
+						.on("mouseleave", hideTooltip)
+						.on("click", function (event: MouseEvent, d: Point) {
+							// prevent background reset
+							event.stopPropagation();
+							// natural sequences are not selectable
+							if (d.id.startsWith(NATURAL_SEQ_PREFIX)) return;
+							handleEvent?.([d.id], extractModifiers(event));
+						}),
+				(update: d3.Selection<SVGPathElement, Point, SVGGElement, unknown>) =>
+					update
+						.attr("d", (d: Point) => d3.symbol().type(symbolType(d.shape)).size(symbolSize(d.size))())
+						.attr("transform", (d: Point) => `translate(${xScale(d.x)}, ${yScale(d.y)})`)
+						.attr("fill", (d: Point) => d.color)
+						.attr("fill-opacity", (d: Point) => d.transparency)
+						.attr("stroke", (d: Point) => d.outlineColor ?? "none")
+						.attr("stroke-width", (d: Point) => (d.outlineColor ? 0.6 : 0)),
+				// .attr("data-oob", (d) => (isOob(d) ? "1" : "0"))
+				(exit: d3.Selection<SVGPathElement, Point, SVGGElement, unknown>) => exit.remove()
+			);
 
 		// ---------- marginal histograms ----------
 		let xHistRects: d3.Selection<SVGRectElement, d3.Bin<number, number>, SVGGElement, unknown> | null = null;
@@ -282,7 +298,6 @@ export default function ScatterPlot({
 			const currentTransform = d3.zoomTransform(pointsGroup.node()!);
 
 			dots
-				.style("fill", "lightgrey")
 				.filter((d: any) => {
 					const screenX = currentTransform.applyX(xScale(d.x));
 					const screenY = currentTransform.applyY(yScale(d.y));
