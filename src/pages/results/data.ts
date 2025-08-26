@@ -612,4 +612,4 @@ export const useSeqSpaceProjection = (
     } else {
       return null;
     }
-  }, [isMutationScan, instances]);
+  }, [isMutationScan, instances, activeIds, spec]);
