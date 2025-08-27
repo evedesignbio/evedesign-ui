@@ -14,6 +14,7 @@ import {
   Stack,
   Text,
   Title,
+  useComputedColorScheme,
 } from "@mantine/core";
 import {
   PipelineSpec,
@@ -343,6 +344,9 @@ export const DesignSpecInput = ({
   const balance = useBalance();
 
   const { width: viewportWidth } = useViewportSize();
+  const computedColorScheme = useComputedColorScheme("light", {
+    getInitialValueInEffect: true,
+  });
 
   const selectAllPos = () =>
     setPosSelection(range(targetSeq.start, targetSeq.end, 1));
@@ -625,6 +629,7 @@ export const DesignSpecInput = ({
             // TODO: TH will need to connect filtered MSA to downstream processing in this component
             console.log("filtered Taxon Ids from TaxoView", filteredTaxonIds)
           }
+          colorScheme={computedColorScheme}
         />
       ) : null}
       <SubmissionModal

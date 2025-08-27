@@ -41,6 +41,7 @@ const parseTar = async (blob: Blob) => {
   for (let i = 0; i < reader.length; i++) {
     const fileName = reader[i].name;
     if (fileName.endsWith(".a3m")) {
+      let curAlignmentSeqs = 0;
       const text = await tar.getTextFile(fileName);
       // end of file appears to always have null terminator which we must remove
       const lines = text.replaceAll("\x00", "").trim().split("\n");
@@ -64,9 +65,11 @@ const parseTar = async (blob: Blob) => {
             type: "protein",
             metadata: {}, // init metadata here so we can easily add taxonomy info below
           });
+          curAlignmentSeqs++;
           curId = null;
         }
       }
+      // console.log("SEQ COUNT:", fileName, curAlignmentSeqs);
     } else if (fileName.endsWith("_tax.tsv")) {
       const text = await tar.getTextFile(fileName);
       text
