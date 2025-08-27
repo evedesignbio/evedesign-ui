@@ -616,15 +616,17 @@ export const DesignSpecInput = ({
 
   return (
     <>
-      <TaxoviewModal
-        opened={showFilterModal}
-        close={toggleFilterModal}
-        msa={msa}
-        submit={(filteredTaxonIds: number[]) =>
-          // TODO: TH will need to connect filtered MSA to downstream processing in this component
-          console.log("filtered Taxon Ids from TaxoView", filteredTaxonIds)
-        }
-      />
+      {msa.taxonomyReport !== null ? (
+        <TaxoviewModal
+          opened={showFilterModal}
+          close={toggleFilterModal}
+          msa={msa}
+          submit={(filteredTaxonIds: number[]) =>
+            // TODO: TH will need to connect filtered MSA to downstream processing in this component
+            console.log("filtered Taxon Ids from TaxoView", filteredTaxonIds)
+          }
+        />
+      ) : null}
       <SubmissionModal
         isSubmitting={isSubmitting}
         close={closeSubmitting}
@@ -638,7 +640,11 @@ export const DesignSpecInput = ({
         <Group justify="space-between" pb={"xs"}>
           <Text>{numSeqs} homologous sequences found</Text>
           <Group>
-            <Button variant="default" onClick={toggleFilterModal}>
+            <Button
+              variant="default"
+              onClick={toggleFilterModal}
+              disabled={msa.taxonomyReport === null}
+            >
               Filter
             </Button>
             {downloadButton}

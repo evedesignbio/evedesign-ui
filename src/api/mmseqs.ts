@@ -88,11 +88,16 @@ const parseTar = async (blob: Blob) => {
     }
   }
 
+  // track sequences without taxonomy classification for potential update of taxonomy report
+  let unclassifiedSeqs = 0;
+
   // add taxonomy to sequences (modify in-place)
   sequences.forEach((seq) => {
     if (seq.id !== null) {
       const seqId = seq.id.split(/(\s+)/)[0];
       const seqTax = idToTaxonomy.get(seqId);
+      if (!seqTax) unclassifiedSeqs++;
+
       seq.metadata!.taxonomy_id = seqTax
         ? seqTax.taxonomyId
         : UNCLASSIFIED_TAXONOMY_ID;
@@ -101,6 +106,14 @@ const parseTar = async (blob: Blob) => {
         : UNCLASSIFIED_TAXONOMY_LINEAGE;
     }
   });
+
+  if (taxonomyReport !== null && unclassifiedSeqs > 0) {
+    // TODO: update taxonomy report to include unclassified sequences
+    // TODO: check if UNCLASSIFIED_TAXONOMY_ID and UNCLASSIFIED_TAXONOMY_LINEAGE should be changed to something else
+    console.log(
+      `PLACEHOLDER: update taxonomy report with ${unclassifiedSeqs} metagenomic sequences`,
+    ); // TODO: remove
+  }
 
   const msaResult: MsaResult = {
     seqs: sequences,
