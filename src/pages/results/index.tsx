@@ -2,15 +2,12 @@ import {
   Alert,
   Button,
   Group,
-  Loader,
   Modal,
   Select,
   Space,
   Stack,
-  Text,
 } from "@mantine/core";
-import { useJobData } from "../../api/modal.ts";
-import { useQueryClient } from "@tanstack/react-query";
+import { useJobData } from "../../api/backend.ts";
 import { AnalysisViewer } from "./viewer.tsx";
 import {
   DesignJobApiResult,
@@ -20,35 +17,56 @@ import {
 } from "../../models/api.ts";
 import { DNAGenerationDialog } from "./dna.tsx";
 import { useState } from "react";
-import { BoxedLayout, JobStatusBadge, useDownloadButton } from "./helpers.tsx";
+import {
+  BoxedLayout,
+  ErrorView,
+  JobStatusBadge,
+  LoadingView,
+  useDownloadButton,
+} from "./helpers.tsx";
 import { useViewportProperties } from "../../utils/ui.ts";
 import { useInstances } from "./data.ts";
 import { useDisclosure } from "@mantine/hooks";
 import { InstanceDownloadMenu } from "./elements.tsx";
+import { InputSpecTypeKeys } from "../../models/design.ts";
 
 export interface FinishedResultsWrapperProps {
   id: string;
+  name: string | null;
   results:
     | PipelineApiResult
     | SingleMutationScanApiResult
     | ProteinToDnaApiResult;
+  jobType: InputSpecTypeKeys;
+  projectId: string | null;
+  isPublic: boolean;
 }
 
 export interface DownloadViewerProps {
   id: string;
+  name: string | null;
   results:
     | PipelineApiResult
     | SingleMutationScanApiResult
     | ProteinToDnaApiResult;
   message?: string;
+  projectId: string | null;
+  isPublic: boolean;
 }
 
 interface InstanceDownloadProps {
   results: PipelineApiResult | SingleMutationScanApiResult;
   id: string;
+  projectId: string | null;
+  isPublic: boolean;
 }
 
-export const InstanceDownload = ({ id, results }: InstanceDownloadProps) => {
+export const InstanceDownload = ({
+  id,
+  results,
+  projectId = null,
+  isPublic = false,
+}: InstanceDownloadProps) => {
   const [dnaOpen, { toggle: toggleDnaOpen }] = useDisclosure(false);
   const enhancedInstances = useInstances(results);
 
@@ -65,9 +83,11 @@ export const InstanceDownload = ({ id, results }: InstanceDownloadProps) => {
     >
       <BoxedLayout title={"DNA library generation"}>
         <DNAGenerationDialog
-          id={id}
           system={results.spec.system}
           instances={enhancedInstances.instances}
+          parentJobId={id}
+          projectId={projectId}
+          isPublic={isPublic}
         />
       </BoxedLayout>
     </Modal>
@@ -116,7 +136,10 @@ export const NucleotidesDownload = ({
 export const DownloadOnlyViewer = ({
   results,
   id,
+  name,
   message,
+  isPublic = false,
+  projectId = null,
 }: DownloadViewerProps) => {
   const isDesignJob =
     results.spec?.key === "pipeline" ||
@@ -141,10 +164,9 @@ export const DownloadOnlyViewer = ({
 
   return (
     <>
-      <BoxedLayout id={id} title={"Job result"}>
+      <BoxedLayout id={id} name={name} title={"Job result"}>
         <JobStatusBadge
           label={"finished"}
-          color={"green"}
           jobType={results.spec.key}
         />
         <Stack>
@@ -156,7 +178,12 @@ export const DownloadOnlyViewer = ({
           ) : null}
           <Space />
           {isDesignJob ? (
-            <InstanceDownload id={id} results={results as DesignJobApiResult} />
+            <InstanceDownload
+              id={id}
+              results={results as DesignJobApiResult}
+              projectId={projectId}
+              isPublic={isPublic}
+            />
           ) : (
             <NucleotidesDownload
               id={id}
@@ -171,15 +198,17 @@ export const DownloadOnlyViewer = ({
 
 export const FinishedResultsPageWrapper = ({
   id,
+  name,
   results,
+  jobType,
+  projectId = null,
+  isPublic = false,
 }: FinishedResultsWrapperProps) => {
-  // TODO: temporary lock on showing result viewer in productino
-
   // render result view depending on screen size; only display
   // full result viewer when minimal width is available, otherwise display download view only
   const viewportProps = useViewportProperties();
 
-  const jobType = results.spec.key;
+  // const jobType = results.spec.key;
 
   // design or codon job?
   const isDesignJob =
@@ -189,17 +218,28 @@ export const FinishedResultsPageWrapper = ({
   if (viewportProps.screenSize.width === 0) return <></>;
 
   if (isDesignJob && viewportProps.isDesktop) {
-    return <AnalysisViewer id={id} results={results! as DesignJobApiResult} />;
+    return (
+      <AnalysisViewer
+        id={id}
+        results={results! as DesignJobApiResult}
+        name={name}
+        projectId={projectId}
+        isPublic={isPublic}
+      />
+    );
   } else {
     return (
       <DownloadOnlyViewer
         results={results!}
         id={id}
+        name={name}
         message={
           isDesignJob
             ? "Use a device with a larger screen or resize your browser window to display full analysis viewer"
             : undefined
         }
+        projectId={projectId}
+        isPublic={isPublic}
       />
     );
   }
@@ -212,61 +252,37 @@ interface ResultsWrapperProps {
 export const ResultsPageWrapper = ({ id }: ResultsWrapperProps) => {
   // status options: initialized, running, failed, finished, invalid
   const qJob = useJobData(id);
-  const queryClient = useQueryClient();
 
   if (qJob.isSuccess) {
-    const jobType = qJob.data.results?.spec.key!;
+    const jobType = qJob.data.type;
     const status = qJob.data.status;
+    const name = qJob.data.name;
 
     // finished jobs have different rendering requirements (full page width etc.)
     // so defer full rendering to finished result page in this case
     if (status === "finished") {
       return (
-        <FinishedResultsPageWrapper results={qJob.data.results!} id={id} />
+        <FinishedResultsPageWrapper
+          results={qJob.data.results!}
+          id={id}
+          name={qJob.data.name}
+          jobType={jobType}
+          projectId={qJob.data.project_id}
+          isPublic={qJob.data.public}
+        />
       );
     } else {
       // otherwise render different flavors of standard view
-      let color;
       let label = qJob.data.status as string;
-      switch (status) {
-        case "running":
-          color = "orange";
-          break;
-        case "failed":
-          color = "red";
-          break;
-        case "initialized":
-          color = "orange";
-          break;
-        case "invalid":
-          color = "red";
-          label = "Invalid job ID";
-          break;
-        default:
-          color = "gray";
-      }
       return (
-        <BoxedLayout title={"Job result"} id={id}>
-          <JobStatusBadge label={label} color={color} jobType={jobType} />
+        <BoxedLayout title={"Job result"} id={id} name={name}>
+          <JobStatusBadge label={label} jobType={jobType} />
         </BoxedLayout>
       );
     }
   } else if (qJob.isPending) {
-    return (
-      <BoxedLayout>
-        <Group justify="center">
-          <Loader type={"dots"} size={"xl"} />
-        </Group>
-      </BoxedLayout>
-    );
+    return <LoadingView />;
   } else if (qJob.isError) {
-    return (
-      <BoxedLayout title={"Error"} id={id}>
-        <Text>
-          Something went wrong while trying to retrieve your job results.
-        </Text>
-        <Button onClick={() => queryClient.invalidateQueries()}>Retry</Button>
-      </BoxedLayout>
-    );
+    return <ErrorView id={id} />;
   }
 };

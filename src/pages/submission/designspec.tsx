@@ -6,8 +6,8 @@ import {
   CloseButton,
   Collapse,
   Group,
+  TextInput,
   NumberInput,
-  PasswordInput,
   SegmentedControl,
   Select,
   Space,
@@ -25,13 +25,15 @@ import { SeqWithRegion } from "./sequence.tsx";
 import { SequenceViewer } from "../../components/sequenceviewer";
 import { range } from "../../utils/helpers.ts";
 import { useDisclosure, useViewportSize } from "@mantine/hooks";
-import { useSubmission } from "../../api/modal.ts";
+import { useBalance, useSubmission } from "../../api/backend.ts";
 import { SubmissionModal } from "../../components/submission/modal.tsx";
 import { TaxoviewModal } from "./taxoview.tsx";
+import { MsaResult } from "../../models/api.ts";
 
 const MIN_NUM_DESIGNS = 1;
 const MAX_NUM_DESIGNS = 20000;
 const DEFAULT_NUM_DESIGNS = 32; // TODO: increase again
+const MINIMUM_CREDIT = 0;
 
 // maximum FoldSeek structure hits forwarded to API
 const MAX_NUM_STRUCTURE_HITS = 100;
@@ -46,7 +48,7 @@ const MAX_TEMPERATURE_FACTOR = 1000;
 
 export interface DesignSpecProps {
   targetSeq: SeqWithRegion;
-  msa: Sequence[];
+  msa: MsaResult;
   structures: object;
   seqSearchId: string;
   structSearchId: string;
@@ -285,6 +287,19 @@ const buildSpec = (
             deletions: false,
           },
         },
+        {
+          key: "analyze",
+          analyzer: {
+            key: "seqspace_umap_aligned",
+            variant: "default",
+            args: {
+              num_components: 2,
+              include_system_sequences: true,
+            },
+            data: null,
+          },
+          entity: 0,
+        },
       ],
     } as PipelineSpec;
   }
@@ -320,10 +335,12 @@ export const DesignSpecInput = ({
   );
 
   // submission-related
-  const [token, setToken] = useState("");
+  const [jobName, setJobName] = useState("");
   const submission = useSubmission();
   const [isSubmitting, { open: openSubmitting, close: closeSubmitting }] =
     useDisclosure(false);
+
+  const balance = useBalance();
 
   const { width: viewportWidth } = useViewportSize();
 
@@ -349,12 +366,12 @@ export const DesignSpecInput = ({
   //   if (sampler === "gibbs") setTemperature("1.0");
   // }, [sampler]);
 
-  const numSeqs = msa.length;
+  const numSeqs = msa.seqs.length;
   const evoModelOk = numSeqs / targetSeqCut.length > 1;
 
   const downloadButton = useMemo(() => {
     if (msa) {
-      const msaOut = msa.map((seq) => `>${seq.id}\n${seq.seq}\n`).join("");
+      const msaOut = msa.seqs.map((seq) => `>${seq.id}\n${seq.seq}\n`).join("");
       const blob = new Blob([msaOut], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
 
@@ -617,7 +634,7 @@ export const DesignSpecInput = ({
       <Title order={4} c="blue">
         Your sequence
       </Title>
-      <Card padding="lg" radius="md">
+      <Card padding="lg" radius="md" withBorder>
         <Group justify="space-between" pb={"xs"}>
           <Text>{numSeqs} homologous sequences found</Text>
           <Group>
@@ -691,24 +708,28 @@ export const DesignSpecInput = ({
       {samplingSettings}
 
       <Space />
-      <PasswordInput
-        label="Submission token"
-        description="Valid token is required for submission to prevent unauthorized access"
-        placeholder="Enter token"
-        value={token}
-        onChange={(event) => setToken(event.currentTarget.value)}
+      <TextInput
+        label="Job name"
+        description="Descriptive name that helps you to find your job at a later time"
+        placeholder="Enter job name (optional)"
+        value={jobName}
+        onChange={(event) => setJobName(event.currentTarget.value)}
       />
       <Space />
       <Button
         variant="filled"
         size="md"
-        disabled={posSelection.length === 0 || token.length === 0}
+        disabled={
+          posSelection.length === 0 ||
+          (balance.finished &&
+            (balance.balance === null || balance.balance <= MINIMUM_CREDIT))
+        }
         onClick={() => {
           const spec = buildSpec(
             targetSeqCut,
             targetSeq.start,
             targetSeq.end,
-            msa,
+            msa.seqs,
             numDesigns,
             temperature,
             model,
@@ -725,17 +746,21 @@ export const DesignSpecInput = ({
 
           // perform submission
           submission.mutate({
+            name: jobName !== "" ? jobName : null,
+            project_id: null,
+            parent_job_id: null,
+            public: false,
             spec: spec,
-            token: token,
-            parentId: null,
           });
           openSubmitting();
         }}
       >
         {posSelection.length > 0
-          ? token.length > 0
+          ? balance.finished &&
+            balance.balance !== null &&
+            balance.balance > MINIMUM_CREDIT
             ? "Generate designs"
-            : "Submission token required"
+            : "Insufficient compute credits"
           : "Must select at least one position to design"}
       </Button>
       <Space />
