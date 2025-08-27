@@ -1,20 +1,14 @@
-import {
-  Badge,
-  Breadcrumbs,
-  Button,
-  Group,
-  Modal,
-  Stack,
-} from "@mantine/core";
+import { Badge, Breadcrumbs, Button, Group, Modal, Stack } from "@mantine/core";
 import "taxoview/dist/taxoview.ce.js";
 import { useCallback, useMemo, useState } from "react";
 import { MsaResult } from "../../models/api.ts";
+import { Sequence } from "../../models/design.ts";
 
 export interface TaxoviewModalProps {
   opened: boolean;
   close: () => void;
   msa: MsaResult;
-  submit: (filteredTaxonIds: number[]) => void;
+  submit: (filteredSequences: Sequence[]) => void;
   colorScheme: "light" | "dark";
 }
 
@@ -70,8 +64,6 @@ export const TaxoviewModal = ({
 
       const onNodeClicked = (e: Event) => {
         const [node] = (e as CustomEvent).detail as [any];
-        // console.log("clicked node:", node.taxon_id, node);
-        // console.log("lineage:", lineageToTaxonomyString(node.lineage));
 
         // Add selected node's taxon_id to list
         const id: number = node.taxon_id ?? node.taxID;
@@ -135,6 +127,7 @@ export const TaxoviewModal = ({
         blur: 3,
       }}
       size="70%"
+      keepMounted={false}
     >
       <Stack>
         <taxo-view
@@ -170,8 +163,7 @@ export const TaxoviewModal = ({
           </Button>
           <Button
             onClick={() => {
-              // TODO: this is just a dummy for actual taxonomic filtering based on selection in TaxoView component
-              // submit(selectedIds);
+              submit(filteredSeqs);
               close();
             }}
           >

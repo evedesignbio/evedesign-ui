@@ -319,6 +319,7 @@ export const DesignSpecInput = ({
   );
 
   const [showFilterModal, { toggle: toggleFilterModal }] = useDisclosure(false);
+  const [filteredSeqs, setFilteredSeqs] = useState<Sequence[]>(msa.seqs);
 
   const [model, setModel] = useState<string>("evmutation2_ensembled");
   const [sampler, setSampler] = useState("single_mutation_scan");
@@ -370,12 +371,14 @@ export const DesignSpecInput = ({
   //   if (sampler === "gibbs") setTemperature("1.0");
   // }, [sampler]);
 
-  const numSeqs = msa.seqs.length;
+  const numSeqs = filteredSeqs.length;
   const evoModelOk = numSeqs / targetSeqCut.length > 1;
 
   const downloadButton = useMemo(() => {
     if (msa) {
-      const msaOut = msa.seqs.map((seq) => `>${seq.id}\n${seq.seq}\n`).join("");
+      const msaOut = filteredSeqs
+        .map((seq) => `>${seq.id}\n${seq.seq}\n`)
+        .join("");
       const blob = new Blob([msaOut], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
 
@@ -392,7 +395,7 @@ export const DesignSpecInput = ({
     } else {
       return null;
     }
-  }, [msa]);
+  }, [filteredSeqs]);
 
   let samplerOptions = [
     {
@@ -625,10 +628,7 @@ export const DesignSpecInput = ({
           opened={showFilterModal}
           close={toggleFilterModal}
           msa={msa}
-          submit={(filteredTaxonIds: number[]) =>
-            // TODO: TH will need to connect filtered MSA to downstream processing in this component
-            console.log("filtered Taxon Ids from TaxoView", filteredTaxonIds)
-          }
+          submit={setFilteredSeqs}
           colorScheme={computedColorScheme}
         />
       ) : null}
@@ -740,7 +740,7 @@ export const DesignSpecInput = ({
             targetSeqCut,
             targetSeq.start,
             targetSeq.end,
-            msa.seqs,
+            filteredSeqs,
             numDesigns,
             temperature,
             model,
