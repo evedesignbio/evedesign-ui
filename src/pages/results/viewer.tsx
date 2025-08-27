@@ -2,6 +2,7 @@ import {
   Badge,
   Button,
   Group,
+  Menu,
   Modal,
   Title,
   useComputedColorScheme,
@@ -47,6 +48,7 @@ import {
 } from "./elements.tsx";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import { ellipsis } from "../../utils/helpers.ts";
+import { IconCheck, IconMinus, IconPlus } from "@tabler/icons-react";
 
 export interface AnalysisViewerProps {
   id: string;
@@ -67,6 +69,9 @@ export const AnalysisViewer = ({
   isPublic = false,
 }: AnalysisViewerProps) => {
   const [dnaOpen, { toggle: toggleDnaOpen }] = useDisclosure(false);
+  const [showTable, { toggle: toggleShowTable }] = useDisclosure(true);
+  const [showHeatmap, { toggle: toggleShowHeatmap }] = useDisclosure(true);
+  const [showStructure, { toggle: toggleShowStructure }] = useDisclosure(true);
 
   const theme = useMantineTheme();
   const computedColorScheme = useComputedColorScheme("light", {
@@ -183,69 +188,79 @@ export const AnalysisViewer = ({
   );
 
   // table only shows active instances if selecting from outside panel, otherwise full filteredSet
-  const tablePanel = (
-    <InstanceTable
-      instances={
-        !dataSelection.lastEventSource ||
-        dataSelection.lastEventSource === "TABLE" ||
-        dataSelection.instances.size === 1
-          ? dataSelection.filteredInstances
-          : activeInstances
-      }
-      dataSelection={dataSelection}
-      basket={basket}
-      isMutationScan={isMutationScan}
-      dispatchDataSelection={dispatchDataSelection}
-      colorMap={colorMap}
-      spec={spec}
-    />
-  );
+  const tablePanel = showTable ? (
+    <div className="resizable-viewer-box">
+      <InstanceTable
+        instances={
+          !dataSelection.lastEventSource ||
+          dataSelection.lastEventSource === "TABLE" ||
+          dataSelection.instances.size === 1
+            ? dataSelection.filteredInstances
+            : activeInstances
+        }
+        dataSelection={dataSelection}
+        basket={basket}
+        isMutationScan={isMutationScan}
+        dispatchDataSelection={dispatchDataSelection}
+        colorMap={colorMap}
+        spec={spec}
+      />
+    </div>
+  ) : null;
 
-  const structurePanel = (
-    <StructurePanel
-      structureStyle={DEFAULT_STYLE}
-      structureHits={spec.metadata ? spec.metadata.structure_search_result : []}
-      firstIndex={spec.system[0].first_index}
-      backgroundColor={
-        computedColorScheme === "dark"
-          ? theme.colors.dark[7] // cf. https://mantine.dev/styles/css-variables-list/
-          : "#ffffff" // cf. https://mantine.dev/styles/css-variables-list/
-      }
-      useFullStructureModel={true}
-      useStructureAssembly={true}
-      handleClick={structureClickHandler}
-      colorCallback={structureColorMap}
-      siteHighlights={siteHighlights}
-      hoverOverlayRenderer={structureHoverLabelRenderer}
-      loadingOverlay={<StructureLoadingOverlay />}
-      errorOverlay={<StructureErrorOverlay />}
-      selectionMenuRenderer={renderStructureSelectionMenu}
-    />
-  );
+  const structurePanel = showStructure ? (
+    <div className="resizable-viewer-box">
+      <StructurePanel
+        structureStyle={DEFAULT_STYLE}
+        structureHits={
+          spec.metadata ? spec.metadata.structure_search_result : []
+        }
+        firstIndex={spec.system[0].first_index}
+        backgroundColor={
+          computedColorScheme === "dark"
+            ? theme.colors.dark[7] // cf. https://mantine.dev/styles/css-variables-list/
+            : "#ffffff" // cf. https://mantine.dev/styles/css-variables-list/
+        }
+        useFullStructureModel={true}
+        useStructureAssembly={true}
+        handleClick={structureClickHandler}
+        colorCallback={structureColorMap}
+        siteHighlights={siteHighlights}
+        hoverOverlayRenderer={structureHoverLabelRenderer}
+        loadingOverlay={<StructureLoadingOverlay />}
+        errorOverlay={<StructureErrorOverlay />}
+        selectionMenuRenderer={renderStructureSelectionMenu}
+      />
+    </div>
+  ) : null;
 
-  const heatmapPanel = (
-    <AutowrapHeatmap
-      data={
-        matrix.data[
-          isMutationScan
-            ? matrix.names.get("scores")!
-            : matrix.names.get("freqs")!
-        ]
-      }
-      colorMap={heatmapColorMap}
-      yLabels={heatmapYLabels}
-      cellWidth="8pt"
-      cellHeight="8pt"
-      yLabelSpacing="5pt"
-      annotationTracks={heatmapAnnotationTracks}
-      handleEvent={heatmapClickHandler}
-      labelRenderer={heatmapLabelRenderer}
-      tooltipStyle={heatmapTooltipStyle}
-      selectedCells={heatmapCellSelections}
-      markedCells={heatmapCellMarks}
-      scrollToElement={heatmapCellSelections.slice(-1)[0]?.column}
-    />
-  );
+  const heatmapPanel = showHeatmap ? (
+    <div className="resizable-viewer-box">
+      <div className="heatmap-wrapper">
+        <AutowrapHeatmap
+          data={
+            matrix.data[
+              isMutationScan
+                ? matrix.names.get("scores")!
+                : matrix.names.get("freqs")!
+            ]
+          }
+          colorMap={heatmapColorMap}
+          yLabels={heatmapYLabels}
+          cellWidth="8pt"
+          cellHeight="8pt"
+          yLabelSpacing="5pt"
+          annotationTracks={heatmapAnnotationTracks}
+          handleEvent={heatmapClickHandler}
+          labelRenderer={heatmapLabelRenderer}
+          tooltipStyle={heatmapTooltipStyle}
+          selectedCells={heatmapCellSelections}
+          markedCells={heatmapCellMarks}
+          scrollToElement={heatmapCellSelections.slice(-1)[0]?.column}
+        />
+      </div>
+    </div>
+  ) : null;
 
   // TODO: factor this out into own component
   const menuPanel = (
@@ -258,7 +273,44 @@ export const AnalysisViewer = ({
           {spec.key.replace("_", " ").replace("_", " ")}
         </Badge>
       </Group>
+      {/*<Group>*/}
+      {/*  <Button.Group>*/}
+      {/*    <Button*/}
+      {/*      variant={showTable ? "white" : "default"}*/}
+      {/*      onClick={toggleShowTable}*/}
+      {/*    >*/}
+      {/*      <IconListNumbers />*/}
+      {/*    </Button>*/}
+      {/*    <Button onClick={toggleShowHeatmap}>H</Button>*/}
+      {/*    <Button onClick={toggleShowStructure}>S</Button>*/}
+      {/*  </Button.Group>*/}
+      {/*</Group>*/}
       <Group>
+        <Menu shadow="md" width={200} position="bottom-start">
+          <Menu.Target>
+            <Button variant={"default"}>Panels</Button>
+          </Menu.Target>
+          <Menu.Dropdown>
+            <Menu.Item
+              onClick={toggleShowTable}
+              leftSection={showTable ? <IconCheck size={16} /> : undefined}
+            >
+              Table
+            </Menu.Item>
+            <Menu.Item
+              onClick={toggleShowHeatmap}
+              leftSection={showHeatmap ? <IconCheck size={16} /> : undefined}
+            >
+              Heatmap
+            </Menu.Item>
+            <Menu.Item
+              onClick={toggleShowStructure}
+              leftSection={showStructure ? <IconCheck size={16} /> : undefined}
+            >
+              Structure
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
         <Button
           onClick={resetSelection}
           variant={"default"}
@@ -295,7 +347,7 @@ export const AnalysisViewer = ({
               setBasket(new Set([...basket, ...activeIds]));
             }}
           >
-            Add
+            <IconPlus size={16} />
           </Button>
           <Button
             variant={"default"}
@@ -306,7 +358,7 @@ export const AnalysisViewer = ({
               );
             }}
           >
-            Remove
+            <IconMinus size={16} />
           </Button>
         </Button.Group>
         <InstanceDownloadMenu
@@ -328,11 +380,9 @@ export const AnalysisViewer = ({
       <div className="outer-wrapper">
         <div className="menubar-wrapper">{menuPanel}</div>
         <div className="resizable-viewer-wrapper">
-          <div className="resizable-viewer-box">{tablePanel}</div>
-          <div className="resizable-viewer-box">
-            <div className="heatmap-wrapper">{heatmapPanel}</div>
-          </div>
-          <div className="resizable-viewer-box">{structurePanel}</div>
+          {tablePanel}
+          {heatmapPanel}
+          {structurePanel}
         </div>
       </div>
       <ReactTooltip
