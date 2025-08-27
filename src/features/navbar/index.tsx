@@ -8,12 +8,13 @@ import {
   useComputedColorScheme,
 } from "@mantine/core";
 // import { useDisclosure } from "@mantine/hooks";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import "./index.css";
 import { signOut, useSession } from "../../context/SessionContext.tsx";
 import { IconLogout, IconSun, IconMoon } from "@tabler/icons-react";
 import { useMantineColorScheme } from "@mantine/core";
 import { useBalance } from "../../api/backend.ts";
+import { useHashLocation } from "wouter/use-hash-location";
 
 const links = [
   { link: "/", label: "Start", requiresLogin: false },
@@ -34,6 +35,11 @@ export function NavBar() {
 
   const balance = useBalance();
 
+  // little hack to work around hash route update not working when link is clicked
+  // (rather than using forward/backward buttons)
+  const [hashLocation, hashNavigate] = useHashLocation();
+  const [location, _] = useLocation();
+
   const items = links
     .filter((link) => !link.requiresLogin || session)
     .map((link) => (
@@ -48,6 +54,15 @@ export function NavBar() {
         //   event.preventDefault();
         //   setActive(link.link);
         // }}
+
+        // trigger hash navigation event in case we are on same page but coming
+        // from a different hash, or otherwise clicking the link does not have an effect
+        onClick={(e) => {
+          if (location === link.link && hashLocation !== "/") {
+            hashNavigate("/");
+            e.preventDefault();
+          }
+        }}
       >
         {link.label}
       </Link>

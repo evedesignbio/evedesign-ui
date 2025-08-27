@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 import { Container, LoadingOverlay, Loader, Stack, Text } from "@mantine/core";
 import { useMmseqsMsa, useMmseqsSearch } from "../../api/mmseqs.ts";
 import { useFoldseekResult, useFoldseekSearch } from "../../api/foldseek.ts";
@@ -10,7 +10,7 @@ import {
 import { DesignSpecInput } from "./designspec.tsx";
 import { useSession } from "../../context/SessionContext.tsx";
 import { AuthenticationForm } from "../../features/auth";
-import {useHashLocation} from "wouter/use-hash-location";
+import { useHashLocation } from "wouter/use-hash-location";
 
 export const SubmissionPage = () => {
   // login session
@@ -20,10 +20,12 @@ export const SubmissionPage = () => {
   const [targetSeq, setTargetSeq] = useState<SeqWithRegion | null>(null);
 
   // rudimentary navigation back to first submission page
-  const [hashLocation, _hashNavigate] = useHashLocation();
+  const [hashLocation, hashNavigate] = useHashLocation();
   useEffect(() => {
-    if(targetSeq !== null && hashLocation === "/") {
+    if (targetSeq !== null && hashLocation === "/") {
       setTargetSeq(null);
+    } else if (targetSeq === null && hashLocation === "/designspec") {
+      hashNavigate("/");
     }
   }, [hashLocation]);
 
