@@ -1,6 +1,6 @@
 import {
   InputSpecTypeKeys,
-  PipelineSpec, ProteinToDnaResult, ProteinToDnaSpec,
+  PipelineSpec, ProteinToDnaResult, ProteinToDnaSpec, Sequence,
   SingleMutationScanResult,
   SingleMutationScanSpec,
   SystemInstanceSpec,
@@ -61,4 +61,9 @@ export interface JobListResponse {
 
 export interface ApiBalanceResult {
   balance: number | null;
+}
+
+export interface MsaResult {
+  seqs: Sequence[];
+  taxonomyReport: string | null;
 }

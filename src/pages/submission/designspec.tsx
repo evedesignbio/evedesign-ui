@@ -28,6 +28,7 @@ import { useDisclosure, useViewportSize } from "@mantine/hooks";
 import { useBalance, useSubmission } from "../../api/backend.ts";
 import { SubmissionModal } from "../../components/submission/modal.tsx";
 import { TaxoviewModal } from "./taxoview.tsx";
+import { MsaResult } from "../../models/api.ts";
 
 const MIN_NUM_DESIGNS = 1;
 const MAX_NUM_DESIGNS = 20000;
@@ -47,7 +48,7 @@ const MAX_TEMPERATURE_FACTOR = 1000;
 
 export interface DesignSpecProps {
   targetSeq: SeqWithRegion;
-  msa: Sequence[];
+  msa: MsaResult;
   structures: object;
   seqSearchId: string;
   structSearchId: string;
@@ -365,12 +366,12 @@ export const DesignSpecInput = ({
   //   if (sampler === "gibbs") setTemperature("1.0");
   // }, [sampler]);
 
-  const numSeqs = msa.length;
+  const numSeqs = msa.seqs.length;
   const evoModelOk = numSeqs / targetSeqCut.length > 1;
 
   const downloadButton = useMemo(() => {
     if (msa) {
-      const msaOut = msa.map((seq) => `>${seq.id}\n${seq.seq}\n`).join("");
+      const msaOut = msa.seqs.map((seq) => `>${seq.id}\n${seq.seq}\n`).join("");
       const blob = new Blob([msaOut], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
 
@@ -618,7 +619,7 @@ export const DesignSpecInput = ({
       <TaxoviewModal
         opened={showFilterModal}
         close={toggleFilterModal}
-        msa={msa}
+        msa={msa.seqs}
         submit={(msaFiltered: Sequence[]) =>
           // TODO: TH will need to connect filtered MSA to downstream processing in this component
           console.log("filtered MSA", msaFiltered)
@@ -728,7 +729,7 @@ export const DesignSpecInput = ({
             targetSeqCut,
             targetSeq.start,
             targetSeq.end,
-            msa,
+            msa.seqs,
             numDesigns,
             temperature,
             model,

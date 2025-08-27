@@ -7,8 +7,9 @@ import {
   UNCLASSIFIED_TAXONOMY_ID,
   UNCLASSIFIED_TAXONOMY_LINEAGE,
 } from "../utils/bio.ts";
+import { MsaResult } from "../models/api.ts";
 
-const mmseqsBaseUrl = (): string => "https://api.colabfold.com/";
+const mmseqsBaseUrl = (): string => "https://api-dev.colabfold.com/";
 
 export const useMmseqsSearch = (seq: string | null) => {
   return usePolling(
@@ -18,7 +19,7 @@ export const useMmseqsSearch = (seq: string | null) => {
     mmseqsBaseUrl() + "ticket/",
     {
       q: `>1\n${seq}`,
-      mode: "env-taxonomy",
+      mode: "env-taxonomy-taxonomyreport",
     },
   );
 };
@@ -35,6 +36,7 @@ const parseTar = async (blob: Blob) => {
 
   let sequences: Sequence[] = [];
   const idToTaxonomy = new Map<string, TaxonomyInfo>();
+  let taxonomyReport: string | null = null;
 
   for (let i = 0; i < reader.length; i++) {
     const fileName = reader[i].name;
@@ -78,6 +80,11 @@ const parseTar = async (blob: Blob) => {
             taxonomyLineage: taxLineage,
           });
         });
+    } else if (fileName.endsWith("_taxreport.tsv")) {
+      if (taxonomyReport != null) {
+        throw new Error("Currently can only load one taxonomy report per MSA");
+      }
+      taxonomyReport = await tar.getTextFile(fileName);
     }
   }
 
@@ -95,8 +102,13 @@ const parseTar = async (blob: Blob) => {
     }
   });
 
-  return new Promise<Sequence[]>((resolve, _) => {
-    resolve(sequences);
+  const msaResult: MsaResult = {
+    seqs: sequences,
+    taxonomyReport: taxonomyReport,
+  };
+
+  return new Promise<MsaResult>((resolve, _) => {
+    resolve(msaResult);
   });
 };
 
