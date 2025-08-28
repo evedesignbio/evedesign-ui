@@ -20,12 +20,14 @@ import {
   filterByMutationSelection,
   mutationsToMutatedPositions,
 } from "./reducers.ts";
+import { InstaneColorMapCallback } from "../../utils/colormap.ts";
+import { Color } from "molstar/lib/mol-util/color";
+import toHexStyle = Color.toHexStyle;
 
 export type AggregationFunc = "sum" | "avg" | "min" | "max" | "entropy";
 
 export const NATURAL_SEQ_PREFIX = "natural";
-const TARGET_SEQUENCE_COLOR = "gold";
-const NATURAL_SEQUENCE_COLOR = "#444";
+const TARGET_SEQUENCE_COLOR = "red";
 const SELECTED_SEQUENCE_COLOR = "red";
 export type ColorMapVariable = "score" | "mutation_distance" | "none";
 
@@ -556,6 +558,8 @@ export const useSeqSpaceProjection = (
   isMutationScan: boolean,
   dataSelection: DataInteractionReducerState,
   activeIds: Set<string>,
+  colorMap: InstaneColorMapCallback,
+  naturalSeqColor: string,
 ) =>
   useMemo(() => {
     // nothing interesting to show for single mutation scans as all mutants have same distance
@@ -579,13 +583,15 @@ export const useSeqSpaceProjection = (
         id: instance.id,
         x: instance.metadata!.seqspace_projection![0],
         y: instance.metadata!.seqspace_projection![1],
-        color: "lightblue", // TODO: dynamic based on style
+        color: toHexStyle(colorMap(instance)),
         shape: "circle",
         size: dataSelection.instances?.has(instance.id) ? 1.5 : 1.5,
         transparency: 0.8,
-        outlineColor: dataSelection.instances?.has(instance.id)
-          ? SELECTED_SEQUENCE_COLOR
-          : undefined,
+        outlineColor:
+          activeIds.size < dataSelection.filteredInstances.length &&
+          activeIds?.has(instance.id)
+            ? SELECTED_SEQUENCE_COLOR
+            : undefined,
         tooltipData: {
           "Design ID": instance.id,
           Score: instance.score?.toFixed(2),
@@ -607,7 +613,7 @@ export const useSeqSpaceProjection = (
             id: `${NATURAL_SEQ_PREFIX}_${idx}`,
             x: seq.metadata!.seqspace_projection![0],
             y: seq.metadata!.seqspace_projection![1],
-            color: idx !== 0 ? NATURAL_SEQUENCE_COLOR : TARGET_SEQUENCE_COLOR,
+            color: idx !== 0 ? naturalSeqColor : TARGET_SEQUENCE_COLOR,
             shape: "circle",
             size: 1,
             transparency: idx !== 0 ? 0.2 : 1,
@@ -635,4 +641,6 @@ export const useSeqSpaceProjection = (
     dataSelection.instances,
     activeIds,
     spec,
+    colorMap,
+    naturalSeqColor,
   ]);

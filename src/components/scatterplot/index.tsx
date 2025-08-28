@@ -397,7 +397,7 @@ export default function ScatterPlot({
 	// Render
 	return (
 		<div>
-			<div style={{ marginBottom: 8, fontSize: "12px" }}>Hold Shift + drag to select points, scroll/drag to zoom/pan</div>
+			{/*<div style={{ marginBottom: 8, fontSize: "12px" }}>Hold Shift + drag to select points, scroll/drag to zoom/pan</div>*/}
 			{/* <div style={{ marginBottom: 8, fontSize: "12px" }}>
 				<strong>Selected:</strong> {selected.size ? `${selected.size} points` : "none"}
 			</div> */}

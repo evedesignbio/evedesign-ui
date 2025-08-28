@@ -1,6 +1,7 @@
 import {
   aggregateMutationMatrix,
   AggregationFunc,
+  ColorMapVariable,
   decodeMutation,
   decodePosition,
   effectPercentile,
@@ -452,36 +453,45 @@ export const useColorMapForMatrix = (
   }, [matrix, isMutationScan]);
 };
 
-// export const useInstanceColorMap = (
-//   instances: SystemInstanceSpecEnhanced[],
-//   isMutationScan: boolean,
-//   colorVariable: ColorMapVariable,
-//   naColor: number,
-// ) => {
-//   console.log(instances, colorVariable);
-//
-//   return useMemo(() => {
-//     const { colorMap, colorBarSpec } = deriveColorMap(
-//       matrix,
-//       isMutationScan ? "scores" : "freqs",
-//       isMutationScan ? COLOR_MAP_SETTINGS_SCAN : COLOR_MAP_SETTINGS_PIPELINE,
-//       false,
-//       undefined, // specify this parameter to dynamically derive color map params from object
-//     );
-//
-//     return {
-//       // wrap for null/NA value handling
-//       colorMap: ((value: number | null): Color => {
-//         if (value === null) {
-//           return Color(naColor);
-//         } else {
-//           return colorMap(value);
-//         }
-//       }) as ColorMapCallbackWithNull,
-//       colorBarSpec: colorBarSpec,
-//     };
-//   }, [instances, isMutationScan, colorVariable, naColor]);
-// };
+export const useColorMapForInstances = (
+  instances: SystemInstanceSpecEnhanced[],
+  colorVariable: ColorMapVariable,
+  naColor: number,
+  noVariableColor: number
+) => {
+  return useMemo(() => {
+    let extractFunc = null;
+    switch (colorVariable) {
+      case "score":
+        extractFunc = (instance: SystemInstanceSpecEnhanced) => instance.score;
+        break;
+      case "mutation_distance":
+        extractFunc = (instance: SystemInstanceSpecEnhanced) =>
+          instance.mutant.length;
+        break;
+      default:
+        break;
+    }
+
+    if (extractFunc === null) {
+      return {
+        colorMap: (_instance: SystemInstanceSpecEnhanced) => Color(noVariableColor),
+      };
+    } else {
+      const values = instances.map(extractFunc);
+      const cMapBase = useColorMapBase(
+        values,
+        COLOR_MAP_SETTINGS_SCAN,
+        naColor,
+      );
+
+      return {
+        colorMap: (instance: SystemInstanceSpecEnhanced) =>
+          cMapBase.colorMap(extractFunc(instance)),
+      };
+    }
+  }, [instances, colorVariable, naColor, noVariableColor]);
+};
 
 export const useHeatmapColorMap = (
   matrix: MutationMatrix,

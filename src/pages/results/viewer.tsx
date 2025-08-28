@@ -43,6 +43,7 @@ import {
   StructureErrorOverlay,
   StructureLoadingOverlay,
   useAnnotationTracks,
+  useColorMapForInstances,
   useColorMapForMatrix,
   useHeatmapCellMarks,
   useHeatmapCellSelections,
@@ -65,6 +66,7 @@ export interface AnalysisViewerProps {
 }
 
 const NA_COLOR = 0xaaaaaa;
+const NO_COLORMAP_COLOR = 0x008080;
 const MAX_NAME_LENGTH = 40;
 
 export const AnalysisViewer = ({
@@ -176,18 +178,20 @@ export const AnalysisViewer = ({
   const [seqSpaceColorVariable, setSeqSpaceColorVariable] =
     useState<ColorMapVariable>("score");
 
-  // const { colorMap: seqSpaceColorMap } = useInstanceColorMap(
-  //   enhancedInstances.instances,
-  //   isMutationScan,
-  //     seqSpaceColorVariable,
-  //   NA_COLOR,
-  // );
-  // console.log(seqSpaceColorMap); // TODO: remove
+  const { colorMap: seqSpaceColorMap } = useColorMapForInstances(
+    enhancedInstances.instances,
+    seqSpaceColorVariable,
+    NA_COLOR,
+    NO_COLORMAP_COLOR,
+  );
+
   const seqSpaceProjectionPoints = useSeqSpaceProjection(
     spec,
     isMutationScan,
     dataSelection,
     activeIds,
+    seqSpaceColorMap,
+    computedColorScheme === "dark" ? "#444" : "#CCC",
   );
 
   const dnaModal = (
@@ -276,6 +280,7 @@ export const AnalysisViewer = ({
     />
   );
 
+  // TODO: move to own component
   const scatterplotPanel =
     seqSpaceProjectionPoints !== null ? (
       <div className="resizable-viewer-box" style={{ display: "flex" }}>
@@ -287,7 +292,7 @@ export const AnalysisViewer = ({
             data={[
               { value: "score", label: "Score" },
               { value: "mutation_distance", label: "Mutation distance" },
-              { value: "none", label: "No coloring" },
+              { value: "none", label: "No colormap" },
             ]}
             value={seqSpaceColorVariable}
             onChange={(value) => {
