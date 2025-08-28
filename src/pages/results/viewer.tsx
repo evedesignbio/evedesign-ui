@@ -3,7 +3,6 @@ import {
   Button,
   Group,
   Modal,
-  Select,
   Title,
   useComputedColorScheme,
   useMantineTheme,
@@ -38,6 +37,7 @@ import {
 } from "./reducers.ts";
 import { useReducer, useState } from "react";
 import {
+  ColorVariableSelector,
   InstanceDownloadMenu,
   renderStructureSelectionMenu,
   StructureErrorOverlay,
@@ -280,29 +280,13 @@ export const AnalysisViewer = ({
     />
   );
 
-  // TODO: move to own component
   const scatterplotPanel =
     seqSpaceProjectionPoints !== null ? (
       <div className="resizable-viewer-box" style={{ display: "flex" }}>
-        <div style={{ position: "absolute", top: "20px", right: "20px" }}>
-          <Select
-            className="select-in-panel"
-            width={300}
-            allowDeselect={false}
-            data={[
-              { value: "score", label: "Score" },
-              { value: "mutation_distance", label: "Mutation distance" },
-              { value: "none", label: "No colormap" },
-            ]}
-            value={seqSpaceColorVariable}
-            onChange={(value) => {
-              if (value === null) {
-                return;
-              }
-              setSeqSpaceColorVariable(value as ColorMapVariable);
-            }}
-          />
-        </div>
+        <ColorVariableSelector
+          colorVariable={seqSpaceColorVariable}
+          setColorVariable={setSeqSpaceColorVariable}
+        />
         <ScatterPlot
           points={seqSpaceProjectionPoints}
           showHistogram={false}

@@ -457,7 +457,7 @@ export const useColorMapForInstances = (
   instances: SystemInstanceSpecEnhanced[],
   colorVariable: ColorMapVariable,
   naColor: number,
-  noVariableColor: number
+  noVariableColor: number,
 ) => {
   return useMemo(() => {
     let extractFunc = null;
@@ -475,7 +475,8 @@ export const useColorMapForInstances = (
 
     if (extractFunc === null) {
       return {
-        colorMap: (_instance: SystemInstanceSpecEnhanced) => Color(noVariableColor),
+        colorMap: (_instance: SystemInstanceSpecEnhanced) =>
+          Color(noVariableColor),
       };
     } else {
       const values = instances.map(extractFunc);
@@ -887,6 +888,38 @@ export const renderStructureSelectionMenu = (
           }
 
           dispatch(idToPayload.get(value)!);
+        }}
+      />
+    </div>
+  );
+};
+
+interface ColorVariableSelectorProps {
+  colorVariable: ColorMapVariable;
+  setColorVariable: (value: ColorMapVariable) => void;
+}
+
+export const ColorVariableSelector = ({
+  colorVariable,
+  setColorVariable,
+}: ColorVariableSelectorProps) => {
+  return (
+    <div style={{ position: "absolute", top: "20px", right: "20px" }}>
+      <Select
+        className="select-in-panel"
+        width={300}
+        allowDeselect={false}
+        data={[
+          { value: "score", label: "Score" },
+          { value: "mutation_distance", label: "Mutation distance" },
+          { value: "none", label: "No colormap" },
+        ]}
+        value={colorVariable}
+        onChange={(value) => {
+          if (value === null) {
+            return;
+          }
+          setColorVariable(value as ColorMapVariable);
         }}
       />
     </div>
