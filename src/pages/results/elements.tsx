@@ -1,5 +1,4 @@
 import {
-  aggregateMutationMatrix,
   AggregationFunc,
   ColorMapVariable,
   decodeMutation,
@@ -25,7 +24,6 @@ import {
   mutationsToPosMap,
 } from "./reducers.ts";
 import {
-  ColorBarParams,
   ColorBarSpec,
   ColorMapBoundaryType,
   ColorMapCallback,
@@ -51,25 +49,25 @@ import {
 import { StructureAlignment } from "../../models/structure.ts";
 
 // Per-effect score visualization properties
-export interface ScoreParameters {
-  // name of score in data file
-  key: string;
-  // priority of score in automatic score selection (lower number is higher priority)
-  priority: number;
-  // display name of score
-  displayName: string;
-  // display group of score (used in score selection dialog)
-  group: string;
-  // colormap to use for visualization of score
-  colorMap?: ColorMapParams;
-  // if true, allow to override score-specific colormap with
-  // global default based on UI setting
-  allowDefaultColorMap: boolean;
-  // parameters for corresponding colobar
-  colorBar?: ColorBarParams;
-  // only show in expert mode?
-  expertModeOnly: boolean;
-}
+// export interface ScoreParameters {
+//   // name of score in data file
+//   key: string;
+//   // priority of score in automatic score selection (lower number is higher priority)
+//   priority: number;
+//   // display name of score
+//   displayName: string;
+//   // display group of score (used in score selection dialog)
+//   group: string;
+//   // colormap to use for visualization of score
+//   colorMap?: ColorMapParams;
+//   // if true, allow to override score-specific colormap with
+//   // global default based on UI setting
+//   allowDefaultColorMap: boolean;
+//   // parameters for corresponding colobar
+//   colorBar?: ColorBarParams;
+//   // only show in expert mode?
+//   expertModeOnly: boolean;
+// }
 
 export const useAnnotationTracks = (matrix: MutationMatrix) => {
   return useMemo(
@@ -256,38 +254,35 @@ export const useHeatmapCellSelections = (
     });
   }, [matrix, dataSelection.mutations, dataSelection.instances]);
 
-/**
- * Select one representative effect per position in the mutation matrix, either
- * by aggregating values or selecting one global substitution
- * @param mutations Full mutation matrix
- * @param mutationPredictionType Selected submatrix
- * @param aggFunc Aggregation function to apply
- * @param substitution Selected global substitution, will override aggregation function if defined
- * @returns Position-wise effect (aggregated or fixed substitution)
- */
-export const computePositionEffect = (
-  mutations: MutationMatrix,
-  mutationPredictionType: string,
-  aggFunc: AggregationFunc,
-  substitution: string | undefined,
-) => {
-  // selected substitution overrides aggregation function
-  if (substitution) {
-    return mutations.data[mutations.names.get(mutationPredictionType)!]!.map(
-      (posVector) => posVector[mutations.substitutions.get(substitution)!],
-    );
-  } else {
-    return aggregateMutationMatrix(mutations, mutationPredictionType, aggFunc);
-  }
-};
+// /**
+//  * Select one representative effect per position in the mutation matrix, either
+//  * by aggregating values or selecting one global substitution
+//  * @param mutations Full mutation matrix
+//  * @param mutationPredictionType Selected submatrix
+//  * @param aggFunc Aggregation function to apply
+//  * @param substitution Selected global substitution, will override aggregation function if defined
+//  * @returns Position-wise effect (aggregated or fixed substitution)
+//  */
+// export const computePositionEffect = (
+//   mutations: MutationMatrix,
+//   mutationPredictionType: string,
+//   aggFunc: AggregationFunc,
+//   substitution: string | undefined,
+// ) => {
+//   // selected substitution overrides aggregation function
+//   if (substitution) {
+//     return mutations.data[mutations.names.get(mutationPredictionType)!]!.map(
+//       (posVector) => posVector[mutations.substitutions.get(substitution)!],
+//     );
+//   } else {
+//     return aggregateMutationMatrix(mutations, mutationPredictionType, aggFunc);
+//   }
+// };
 
 /**
  * Derive colormap based on score specification
  * @param values Flat array of values
- * @param verifiedMutationPredictionType Currently selected prediction score
  * @param colorMapParams Default color map
- * @param overrideWithDefault If true, override score-specific colormap with colorMapParams
- * @param scoreParams Prediction-score specific settings (used to extract score-specific colormap)
  * @returns Mapping function from value to color
  */
 export const deriveColorMap = (
