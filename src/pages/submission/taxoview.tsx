@@ -109,9 +109,12 @@ export const TaxoviewModal = ({
   }, [msa.taxonomyReport]);
 
   const filteredSeqs = useMemo(() => {
+    // keep all sequences if no filter specified, always keep target sequence, for anything else
+    // taxonomy filter is a prefix (already accommodating multiple selection)
     return msa.seqs.filter(
-      (seq) =>
+      (seq, index) =>
         selectedTaxons.size === 0 ||
+        index === 0 ||
         [...selectedTaxons.values()].some((taxon) =>
           seq.metadata?.taxonomy_lineage?.startsWith(taxon.taxonomyString),
         ),
