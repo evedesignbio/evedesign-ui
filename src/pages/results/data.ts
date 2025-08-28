@@ -24,6 +24,10 @@ import {
 export type AggregationFunc = "sum" | "avg" | "min" | "max" | "entropy";
 
 export const NATURAL_SEQ_PREFIX = "natural";
+const TARGET_SEQUENCE_COLOR = "gold";
+const NATURAL_SEQUENCE_COLOR = "#444";
+const SELECTED_SEQUENCE_COLOR = "red";
+export type ColorMapVariable = "score" | "mutation_distance" | "none";
 
 export const encodePosition = (pos: Position) => {
   return `${pos.entity}_${pos.pos}`;
@@ -552,7 +556,7 @@ export const getDataRange = (
 export const useSeqSpaceProjection = (
   spec: PipelineSpec | SingleMutationScanSpec,
   isMutationScan: boolean,
-  instances: SystemInstanceSpecEnhanced[],
+  dataSelection: DataInteractionReducerState,
   activeIds: Set<string>,
 ) =>
   useMemo(() => {
@@ -562,24 +566,33 @@ export const useSeqSpaceProjection = (
     }
 
     // instance points (actual designs, can be selected)
-    const instanceProjections = instances
+    const instanceProjections = dataSelection.filteredInstances
       .filter(
         (instance) =>
           instance.metadata &&
           instance.metadata?.seqspace_projection &&
           instance.metadata?.seqspace_projection.length === 2,
       )
+      .sort(
+        // put active instances on top
+        (a, b) => (activeIds.has(a.id) ? 1 : 0) - (activeIds.has(b.id) ? 1 : 0),
+      )
       .map((instance) => ({
         id: instance.id,
         x: instance.metadata!.seqspace_projection![0],
         y: instance.metadata!.seqspace_projection![1],
-        // TODO: proper styling of points
-        color: activeIds.has(instance.id) ? "#ffff00" : "#ffffff",
+        color: "blue", // TODO: dynamic based on style
         shape: "circle",
-        size: 1,
-        transparency: 0.5,
-        // outlineColor: "#ff0000",
-        tooltipData: { ID: instance.id },
+        size: dataSelection.instances?.has(instance.id) ? 1.5 : 1.5,
+        transparency: 0.8,
+        outlineColor: dataSelection.instances?.has(instance.id)
+          ? SELECTED_SEQUENCE_COLOR
+          : undefined,
+        tooltipData: {
+          "Design ID": instance.id,
+          Score: instance.score?.toFixed(2),
+          "Mutation distance": instance.mutant.length,
+        },
       }));
 
     // natural sequences (cannot be selected, marked with NATURAL_SEQ_PREFIX which is used by reducer to filter
@@ -596,20 +609,32 @@ export const useSeqSpaceProjection = (
             id: `${NATURAL_SEQ_PREFIX}_${idx}`,
             x: seq.metadata!.seqspace_projection![0],
             y: seq.metadata!.seqspace_projection![1],
-            // TODO: point styling; TODO: highlight WT sequence
-            color: "#444",
+            color: idx !== 0 ? NATURAL_SEQUENCE_COLOR : TARGET_SEQUENCE_COLOR,
             shape: "circle",
             size: 1,
-            transparency: 0.5,
+            transparency: idx !== 0 ? 0.2 : 1,
             // outlineColor: "#ff0000",
-            tooltipData: { ID: seq.id },
+            tooltipData: {
+              "Natural sequence ID":
+                idx !== 0 ? seq.id?.split(/\s/)[0] : "Target sequence",
+            },
           }))
       : [];
 
-    const allProjections = [...naturalProjections, ...instanceProjections];
+    // reverse natural sequences so target is on top
+    const allProjections = [
+      ...naturalProjections.reverse(),
+      ...instanceProjections,
+    ];
     if (allProjections.length > 0) {
       return allProjections;
     } else {
       return null;
     }
-  }, [isMutationScan, instances, activeIds, spec]);
+  }, [
+    isMutationScan,
+    dataSelection.filteredInstances,
+    dataSelection.instances,
+    activeIds,
+    spec,
+  ]);

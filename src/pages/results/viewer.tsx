@@ -3,6 +3,7 @@ import {
   Button,
   Group,
   Modal,
+  Select,
   Title,
   useComputedColorScheme,
   useMantineTheme,
@@ -15,7 +16,12 @@ import { DEFAULT_STYLE, StructurePanel } from "../../features/structurepanel";
 import { AutowrapHeatmap } from "../../components/autowrapheatmap";
 import ScatterPlot from "../../components/scatterplot";
 import "./viewer.css";
-import { useInstances, useMatrix, useSeqSpaceProjection } from "./data.ts";
+import {
+  ColorMapVariable,
+  useInstances,
+  useMatrix,
+  useSeqSpaceProjection,
+} from "./data.ts";
 import { InstanceTable, renderSequenceLabel } from "./table.tsx";
 import { useDisclosure } from "@mantine/hooks";
 import { DNAGenerationDialog } from "./dna.tsx";
@@ -167,10 +173,12 @@ export const AnalysisViewer = ({
     dispatchDataSelection,
   );
 
+  const [seqSpaceColorVariable, setSeqSpaceColorVariable] =
+    useState<ColorMapVariable>("score");
   const seqSpaceProjectionPoints = useSeqSpaceProjection(
     spec,
     isMutationScan,
-    enhancedInstances.instances,
+    dataSelection,
     activeIds,
   );
 
@@ -263,6 +271,25 @@ export const AnalysisViewer = ({
   const scatterplotPanel =
     seqSpaceProjectionPoints !== null ? (
       <div className="resizable-viewer-box">
+        <div style={{ position: "absolute", top: "20px", right: "20px" }}>
+          <Select
+            className="select-in-panel"
+            width={300}
+            allowDeselect={false}
+            data={[
+              { value: "score", label: "Score" },
+              { value: "mutation_distance", label: "Mutation distance" },
+              { value: "none", label: "No coloring" },
+            ]}
+            value={seqSpaceColorVariable}
+            onChange={(value) => {
+              if (value === null) {
+                return;
+              }
+              setSeqSpaceColorVariable(value as ColorMapVariable);
+            }}
+          />
+        </div>
         <ScatterPlot
           points={seqSpaceProjectionPoints}
           showHistogram={false}
