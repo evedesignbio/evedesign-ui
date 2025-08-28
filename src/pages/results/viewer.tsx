@@ -43,7 +43,7 @@ import {
   StructureErrorOverlay,
   StructureLoadingOverlay,
   useAnnotationTracks,
-  useColorMap,
+  useColorMapForMatrix,
   useHeatmapCellMarks,
   useHeatmapCellSelections,
   useHeatmapColorMap,
@@ -116,7 +116,7 @@ export const AnalysisViewer = ({
 
   // derive global colormap for heatmap / 3D structure coloring (individual colors will
   // be derived from this intermediate object)
-  const { colorMap } = useColorMap(matrix, isMutationScan, NA_COLOR);
+  const { colorMap } = useColorMapForMatrix(matrix, isMutationScan, NA_COLOR);
 
   const heatmapAnnotationTracks = useAnnotationTracks(matrix);
   const heatmapTooltipStyle = useTooltipStyle(computedColorScheme);
@@ -175,6 +175,14 @@ export const AnalysisViewer = ({
 
   const [seqSpaceColorVariable, setSeqSpaceColorVariable] =
     useState<ColorMapVariable>("score");
+
+  // const { colorMap: seqSpaceColorMap } = useInstanceColorMap(
+  //   enhancedInstances.instances,
+  //   isMutationScan,
+  //     seqSpaceColorVariable,
+  //   NA_COLOR,
+  // );
+  // console.log(seqSpaceColorMap); // TODO: remove
   const seqSpaceProjectionPoints = useSeqSpaceProjection(
     spec,
     isMutationScan,
@@ -270,7 +278,7 @@ export const AnalysisViewer = ({
 
   const scatterplotPanel =
     seqSpaceProjectionPoints !== null ? (
-      <div className="resizable-viewer-box">
+      <div className="resizable-viewer-box" style={{ display: "flex" }}>
         <div style={{ position: "absolute", top: "20px", right: "20px" }}>
           <Select
             className="select-in-panel"

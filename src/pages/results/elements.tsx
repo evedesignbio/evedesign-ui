@@ -5,6 +5,7 @@ import {
   decodePosition,
   effectPercentile,
   encodePosition,
+  FlatValueArray,
   instancesToCountMatrix,
   MutationMatrix,
 } from "./data.ts";
@@ -281,35 +282,32 @@ export const computePositionEffect = (
 
 /**
  * Derive colormap based on score specification
- * @param mutations Full mutation matrix
+ * @param values Flat array of values
  * @param verifiedMutationPredictionType Currently selected prediction score
- * @param defaultColorMap Default color map
- * @param overrideWithDefault If true, override score-specific colormap with defaultColorMap
+ * @param colorMapParams Default color map
+ * @param overrideWithDefault If true, override score-specific colormap with colorMapParams
  * @param scoreParams Prediction-score specific settings (used to extract score-specific colormap)
  * @returns Mapping function from value to color
  */
 export const deriveColorMap = (
-  mutations: MutationMatrix,
-  verifiedMutationPredictionType: string,
-  defaultColorMap: ColorMapParams,
-  overrideWithDefault = false,
-  scoreParams?: ScoreParameters[],
+  values: FlatValueArray,
+  colorMapParams: ColorMapParams,
 ) => {
   // extract params for currently selected score (if available)
-  const selectedScoreParams = scoreParams
-    ?.filter((p) => p.key === verifiedMutationPredictionType)
-    .at(0);
+  // const selectedScoreParams = scoreParams
+  //   ?.filter((p) => p.key === verifiedMutationPredictionType)
+  //   .at(0);
 
-  const selectedColorMap =
-    selectedScoreParams && selectedScoreParams.colorMap && !overrideWithDefault
-      ? selectedScoreParams.colorMap
-      : defaultColorMap;
+  // const selectedColorMap =
+  //   selectedScoreParams && selectedScoreParams.colorMap && !overrideWithDefault
+  //     ? selectedScoreParams.colorMap
+  //     : colorMapParams;
+
+  const selectedColorMap = colorMapParams;
 
   // helper function to avoid code repetition
   const getBoundary = (boundaryType: ColorMapBoundaryType, boundary: number) =>
-    boundaryType === "fixed"
-      ? boundary
-      : effectPercentile(mutations, verifiedMutationPredictionType, boundary);
+    boundaryType === "fixed" ? boundary : effectPercentile(values, boundary);
 
   // derive colorbar information first, if settings for it are present
   let colorBarSpec = undefined;
@@ -418,33 +416,72 @@ const COLOR_MAP_SETTINGS_PIPELINE: ColorMapParams = {
   },
 };
 
-export const useColorMap = (
+export const useColorMapBase = (
+  values: FlatValueArray,
+  ColorMapParams: ColorMapParams,
+  naColor: number,
+) => {
+  const { colorMap, colorBarSpec } = deriveColorMap(values, ColorMapParams);
+
+  return {
+    // wrap for null/NA value handling
+    colorMap: ((value: number | null): Color => {
+      if (value === null) {
+        return Color(naColor);
+      } else {
+        return colorMap(value);
+      }
+    }) as ColorMapCallbackWithNull,
+    colorBarSpec: colorBarSpec,
+  };
+};
+
+export const useColorMapForMatrix = (
   matrix: MutationMatrix,
   isMutationScan: boolean,
   naColor: number,
 ) => {
   return useMemo(() => {
-    const { colorMap, colorBarSpec } = deriveColorMap(
-      matrix,
-      isMutationScan ? "scores" : "freqs",
+    return useColorMapBase(
+      matrix.data[
+        matrix.names.get(isMutationScan ? "scores" : "freqs")!
+      ]!.flat(),
       isMutationScan ? COLOR_MAP_SETTINGS_SCAN : COLOR_MAP_SETTINGS_PIPELINE,
-      false,
-      undefined, // specify this parameter to dynamically derive color map params from object
+      naColor,
     );
-
-    return {
-      // wrap for null/NA value handling
-      colorMap: ((value: number | null): Color => {
-        if (value === null) {
-          return Color(naColor);
-        } else {
-          return colorMap(value);
-        }
-      }) as ColorMapCallbackWithNull,
-      colorBarSpec: colorBarSpec,
-    };
   }, [matrix, isMutationScan]);
 };
+
+// export const useInstanceColorMap = (
+//   instances: SystemInstanceSpecEnhanced[],
+//   isMutationScan: boolean,
+//   colorVariable: ColorMapVariable,
+//   naColor: number,
+// ) => {
+//   console.log(instances, colorVariable);
+//
+//   return useMemo(() => {
+//     const { colorMap, colorBarSpec } = deriveColorMap(
+//       matrix,
+//       isMutationScan ? "scores" : "freqs",
+//       isMutationScan ? COLOR_MAP_SETTINGS_SCAN : COLOR_MAP_SETTINGS_PIPELINE,
+//       false,
+//       undefined, // specify this parameter to dynamically derive color map params from object
+//     );
+//
+//     return {
+//       // wrap for null/NA value handling
+//       colorMap: ((value: number | null): Color => {
+//         if (value === null) {
+//           return Color(naColor);
+//         } else {
+//           return colorMap(value);
+//         }
+//       }) as ColorMapCallbackWithNull,
+//       colorBarSpec: colorBarSpec,
+//     };
+//   }, [instances, isMutationScan, colorVariable, naColor]);
+// };
 
 export const useHeatmapColorMap = (
   matrix: MutationMatrix,

@@ -68,6 +68,8 @@ export type MutationMatrix = {
   data: NullableArray3D;
 };
 
+export type FlatValueArray = (number | null)[];
+
 export const singleMutationScanToInstances = (
   system: EntitySpec[],
   systemInstance: SystemInstanceSpec,
@@ -462,26 +464,22 @@ export const useMatrix = (
 
 /**
  * Select data point corresponding to given percentile from mutation effect matrix
- * @param mutations Mutation effect prediction matrices
- * @param mutationPredictionType Selected prediction type
+ * @param values Flat array of values for which percentile should be computed (may include null)
  * @param percentile Percentile to determine for given selected prediction type
  * @returns Data point corresponding to percentile
  */
 export const effectPercentile = (
-  mutations: MutationMatrix,
-  mutationPredictionType: string,
+  values: FlatValueArray,
   percentile: number,
 ): number => {
   // extract relevant prediction matrix into flattened array without null elements (e.g. WT substitutions)
-  const matFlat = mutations.data[
-    mutations.names.get(mutationPredictionType)!
-  ]!.flat()
+  const valuesFiltSorted = values
     .filter((e) => e !== null)
     .sort((a, b) => a! - b!);
 
   // compute index of element corresponding to requested percentile
-  const elemIndex = Math.round(percentile * (matFlat.length - 1));
-  return matFlat[elemIndex]!;
+  const elemIndex = Math.round(percentile * (valuesFiltSorted.length - 1));
+  return valuesFiltSorted[elemIndex]!;
 };
 
 /**
@@ -528,30 +526,30 @@ export const aggregateMutationMatrix = (
   return aggMat;
 };
 
-/**
- * Get minimum and maximum value in data matrix
- * @param mutations Full mutation matrix
- * @param verifiedMutationPredictionType Currently selected prediction score
- * @returns Object with min/max
- */
-export const getDataRange = (
-  mutations: MutationMatrix,
-  verifiedMutationPredictionType: string,
-) => {
-  const minValue = effectPercentile(
-    mutations,
-    verifiedMutationPredictionType,
-    0,
-  );
-
-  const maxValue = effectPercentile(
-    mutations,
-    verifiedMutationPredictionType,
-    1,
-  );
-
-  return { minValue: minValue, maxValue };
-};
+// /**
+//  * Get minimum and maximum value in data matrix
+//  * @param mutations Full mutation matrix
+//  * @param verifiedMutationPredictionType Currently selected prediction score
+//  * @returns Object with min/max
+//  */
+// export const getDataRange = (
+//   mutations: MutationMatrix,
+//   verifiedMutationPredictionType: string,
+// ) => {
+//   const minValue = effectPercentile(
+//     mutations,
+//     verifiedMutationPredictionType,
+//     0,
+//   );
+//
+//   const maxValue = effectPercentile(
+//     mutations,
+//     verifiedMutationPredictionType,
+//     1,
+//   );
+//
+//   return { minValue: minValue, maxValue };
+// };
 
 export const useSeqSpaceProjection = (
   spec: PipelineSpec | SingleMutationScanSpec,
@@ -581,7 +579,7 @@ export const useSeqSpaceProjection = (
         id: instance.id,
         x: instance.metadata!.seqspace_projection![0],
         y: instance.metadata!.seqspace_projection![1],
-        color: "blue", // TODO: dynamic based on style
+        color: "lightblue", // TODO: dynamic based on style
         shape: "circle",
         size: dataSelection.instances?.has(instance.id) ? 1.5 : 1.5,
         transparency: 0.8,
