@@ -7,6 +7,7 @@ import {
   UNCLASSIFIED_TAXONOMY_ID,
   UNCLASSIFIED_TAXONOMY_LINEAGE,
 } from "../utils/bio.ts";
+import { MsaResult } from "../models/api.ts";
 
 const mmseqsBaseUrl = (): string => "https://api.colabfold.com/";
 
@@ -18,7 +19,7 @@ export const useMmseqsSearch = (seq: string | null) => {
     mmseqsBaseUrl() + "ticket/",
     {
       q: `>1\n${seq}`,
-      mode: "env-taxonomy",
+      mode: "env-taxonomy-taxonomyreport",
     },
   );
 };
@@ -35,10 +36,12 @@ const parseTar = async (blob: Blob) => {
 
   let sequences: Sequence[] = [];
   const idToTaxonomy = new Map<string, TaxonomyInfo>();
+  let taxonomyReport: string | null = null;
 
   for (let i = 0; i < reader.length; i++) {
     const fileName = reader[i].name;
     if (fileName.endsWith(".a3m")) {
+      let curAlignmentSeqs = 0;
       const text = await tar.getTextFile(fileName);
       // end of file appears to always have null terminator which we must remove
       const lines = text.replaceAll("\x00", "").trim().split("\n");
@@ -62,9 +65,11 @@ const parseTar = async (blob: Blob) => {
             type: "protein",
             metadata: {}, // init metadata here so we can easily add taxonomy info below
           });
+          curAlignmentSeqs++;
           curId = null;
         }
       }
+      // console.log("SEQ COUNT:", fileName, curAlignmentSeqs);
     } else if (fileName.endsWith("_tax.tsv")) {
       const text = await tar.getTextFile(fileName);
       text
@@ -78,14 +83,24 @@ const parseTar = async (blob: Blob) => {
             taxonomyLineage: taxLineage,
           });
         });
+    } else if (fileName.endsWith("_taxreport.tsv")) {
+      if (taxonomyReport != null) {
+        throw new Error("Currently can only load one taxonomy report per MSA");
+      }
+      taxonomyReport = await tar.getTextFile(fileName);
     }
   }
+
+  // track sequences without taxonomy classification for potential update of taxonomy report
+  let unclassifiedSeqs = 0;
 
   // add taxonomy to sequences (modify in-place)
   sequences.forEach((seq) => {
     if (seq.id !== null) {
       const seqId = seq.id.split(/(\s+)/)[0];
       const seqTax = idToTaxonomy.get(seqId);
+      if (!seqTax) unclassifiedSeqs++;
+
       seq.metadata!.taxonomy_id = seqTax
         ? seqTax.taxonomyId
         : UNCLASSIFIED_TAXONOMY_ID;
@@ -95,8 +110,21 @@ const parseTar = async (blob: Blob) => {
     }
   });
 
-  return new Promise<Sequence[]>((resolve, _) => {
-    resolve(sequences);
+  if (taxonomyReport !== null && unclassifiedSeqs > 0) {
+    // TODO: update taxonomy report to include unclassified sequences
+    // TODO: check if UNCLASSIFIED_TAXONOMY_ID and UNCLASSIFIED_TAXONOMY_LINEAGE should be changed to something else
+    console.log(
+      `PLACEHOLDER: update taxonomy report with ${unclassifiedSeqs} metagenomic sequences`,
+    ); // TODO: remove
+  }
+
+  const msaResult: MsaResult = {
+    seqs: sequences,
+    taxonomyReport: taxonomyReport,
+  };
+
+  return new Promise<MsaResult>((resolve, _) => {
+    resolve(msaResult);
   });
 };
 
