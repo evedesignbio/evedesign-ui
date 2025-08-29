@@ -14,6 +14,7 @@ import {
   Stack,
   Text,
   Title,
+  useComputedColorScheme,
 } from "@mantine/core";
 import {
   PipelineSpec,
@@ -28,6 +29,7 @@ import { useDisclosure, useViewportSize } from "@mantine/hooks";
 import { useBalance, useSubmission } from "../../api/backend.ts";
 import { SubmissionModal } from "../../components/submission/modal.tsx";
 import { TaxoviewModal } from "./taxoview.tsx";
+import { MsaResult } from "../../models/api.ts";
 
 const MIN_NUM_DESIGNS = 1;
 const MAX_NUM_DESIGNS = 20000;
@@ -47,7 +49,7 @@ const MAX_TEMPERATURE_FACTOR = 1000;
 
 export interface DesignSpecProps {
   targetSeq: SeqWithRegion;
-  msa: Sequence[];
+  msa: MsaResult;
   structures: object;
   seqSearchId: string;
   structSearchId: string;
@@ -317,6 +319,7 @@ export const DesignSpecInput = ({
   );
 
   const [showFilterModal, { toggle: toggleFilterModal }] = useDisclosure(false);
+  const [filteredSeqs, setFilteredSeqs] = useState<Sequence[]>(msa.seqs);
 
   const [model, setModel] = useState<string>("evmutation2_ensembled");
   const [sampler, setSampler] = useState("single_mutation_scan");
@@ -342,6 +345,9 @@ export const DesignSpecInput = ({
   const balance = useBalance();
 
   const { width: viewportWidth } = useViewportSize();
+  const computedColorScheme = useComputedColorScheme("light", {
+    getInitialValueInEffect: true,
+  });
 
   const selectAllPos = () =>
     setPosSelection(range(targetSeq.start, targetSeq.end, 1));
@@ -365,12 +371,14 @@ export const DesignSpecInput = ({
   //   if (sampler === "gibbs") setTemperature("1.0");
   // }, [sampler]);
 
-  const numSeqs = msa.length;
+  const numSeqs = filteredSeqs.length;
   const evoModelOk = numSeqs / targetSeqCut.length > 1;
 
   const downloadButton = useMemo(() => {
     if (msa) {
-      const msaOut = msa.map((seq) => `>${seq.id}\n${seq.seq}\n`).join("");
+      const msaOut = filteredSeqs
+        .map((seq) => `>${seq.id}\n${seq.seq}\n`)
+        .join("");
       const blob = new Blob([msaOut], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
 
@@ -387,7 +395,7 @@ export const DesignSpecInput = ({
     } else {
       return null;
     }
-  }, [msa]);
+  }, [filteredSeqs]);
 
   let samplerOptions = [
     {
@@ -615,15 +623,15 @@ export const DesignSpecInput = ({
 
   return (
     <>
-      <TaxoviewModal
-        opened={showFilterModal}
-        close={toggleFilterModal}
-        msa={msa}
-        submit={(msaFiltered: Sequence[]) =>
-          // TODO: TH will need to connect filtered MSA to downstream processing in this component
-          console.log("filtered MSA", msaFiltered)
-        }
-      />
+      {msa.taxonomyReport !== null ? (
+        <TaxoviewModal
+          opened={showFilterModal}
+          close={toggleFilterModal}
+          msa={msa}
+          submit={setFilteredSeqs}
+          colorScheme={computedColorScheme}
+        />
+      ) : null}
       <SubmissionModal
         isSubmitting={isSubmitting}
         close={closeSubmitting}
@@ -637,7 +645,11 @@ export const DesignSpecInput = ({
         <Group justify="space-between" pb={"xs"}>
           <Text>{numSeqs} homologous sequences found</Text>
           <Group>
-            <Button variant="default" onClick={toggleFilterModal}>
+            <Button
+              variant="default"
+              onClick={toggleFilterModal}
+              disabled={msa.taxonomyReport === null}
+            >
               Filter
             </Button>
             {downloadButton}
@@ -728,7 +740,7 @@ export const DesignSpecInput = ({
             targetSeqCut,
             targetSeq.start,
             targetSeq.end,
-            msa,
+            filteredSeqs,
             numDesigns,
             temperature,
             model,
