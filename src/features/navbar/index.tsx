@@ -2,7 +2,6 @@
 import {
   ActionIcon,
   Badge,
-  Button,
   Container,
   Group,
   useComputedColorScheme,
@@ -15,6 +14,7 @@ import { IconLogout, IconSun, IconMoon } from "@tabler/icons-react";
 import { useMantineColorScheme } from "@mantine/core";
 import { useBalance } from "../../api/backend.ts";
 import { useHashLocation } from "wouter/use-hash-location";
+import { useViewportSize } from "@mantine/hooks";
 
 const links = [
   { link: "/", label: "Start", requiresLogin: false },
@@ -24,6 +24,7 @@ const links = [
 // TODO: fix mobile nav
 // TODO: fix centered
 export function NavBar() {
+  const { width: viewportWidth } = useViewportSize();
   // const [opened, { toggle }] = useDisclosure(false);
   // const [active, setActive] = useState(links[0].link);
 
@@ -74,7 +75,7 @@ export function NavBar() {
       variant={"dot"}
       color={balance.balance !== null && balance.balance > 0 ? "green" : "red"}
     >
-      Credit:{" "}
+      {viewportWidth > 500 ? "Credit: " : ""}
       {balance.balance !== null ? `$${balance.balance.toFixed(2)}` : "N/A"}
     </Badge>
   ) : null;
@@ -98,14 +99,14 @@ export function NavBar() {
             )}
           </ActionIcon>
           {session ? (
-            <Button
+            <ActionIcon
               variant="subtle"
               color={"gray"}
               onClick={signOut}
-              rightSection={<IconLogout size={16} />}
+              //rightSection={<IconLogout size={16} />}
             >
-              Sign out
-            </Button>
+              <IconLogout size={16} />
+            </ActionIcon>
           ) : null}
         </Group>
       </Container>
