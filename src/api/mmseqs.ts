@@ -111,11 +111,75 @@ const parseTar = async (blob: Blob) => {
   });
 
   if (taxonomyReport !== null && unclassifiedSeqs > 0) {
-    // TODO: update taxonomy report to include unclassified sequences
-    // TODO: check if UNCLASSIFIED_TAXONOMY_ID and UNCLASSIFIED_TAXONOMY_LINEAGE should be changed to something else
-    console.log(
-      `PLACEHOLDER: update taxonomy report with ${unclassifiedSeqs} metagenomic sequences`,
-    ); // TODO: remove
+    type Entry = {
+			_: string;
+			proportion: number;
+			cladeReads: number;
+			taxonReads: number;
+			rank: string; 
+			taxId: number;
+			name: string;
+		};
+
+		const entries: Entry[] = [];
+
+    // Parse taxonomy report
+    taxonomyReport
+			.trim()
+			.split("\n")
+			.forEach((line: string) => {
+				const cols = line.split("\t", 7);
+				if (cols.length < 7) return;
+
+				const [_, proportion, cladeReads, taxonReads, rank, taxId, name] = cols;
+				entries.push({
+					_,
+					proportion: parseFloat(proportion), // percent in [0,100] to be recomputed
+					cladeReads: parseInt(cladeReads),
+					taxonReads: parseInt(taxonReads),
+					rank,
+					taxId: parseInt(taxId),
+					name,
+				});
+			});
+
+      // old total is the cladeReads of the root row (first row)
+      const oldTotalCladeReads = entries[0].cladeReads;
+      const newTotalCladeReads = oldTotalCladeReads + unclassifiedSeqs;
+
+      // Recompute proportions for all existing rows
+      for (const e of entries) {
+        e.proportion = e.cladeReads / newTotalCladeReads;
+      }
+
+      // Prepend a row for unclassified sequences
+      const unclassified: Entry = {
+        _: entries[0]._,
+        proportion: unclassifiedSeqs / newTotalCladeReads,
+        cladeReads: unclassifiedSeqs,
+        taxonReads: unclassifiedSeqs,
+        rank: "no rank",
+        taxId: UNCLASSIFIED_TAXONOMY_ID,
+        name: "unclassified",
+      };
+
+      entries.unshift(unclassified); // Add unclassified row to front
+
+      // Rebuild taxonomyReport string
+      taxonomyReport =
+        entries
+          .map((e) =>
+            [
+              e._,
+              e.proportion.toFixed(4),
+              String(e.cladeReads),
+              String(e.taxonReads),
+              e.rank,
+              String(e.taxId),
+              e.name,
+            ].join("\t")
+          )
+          .join("\n");
   }
 
   const msaResult: MsaResult = {
