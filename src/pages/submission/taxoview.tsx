@@ -28,6 +28,17 @@ const MAP_RANK = new Map<string, string>([
 ]);
 
 export const lineageToTaxonomyString = (nodes: [any]) => {
+  // handle root/unclassified selections; these slightly break the logic for any regular nodes down the classified tree
+  if (nodes.length == 1) {
+    // root
+    if (nodes[0].name === "root") {
+      return "-_";
+    }
+    if (nodes[0].name === "unclassified") {
+      return "unclassified";
+    }
+  }
+
   // reverse order to top-down, remove root
   const nodesFwd = [...nodes].reverse().filter((n) => n.taxon_id !== "1");
 
@@ -144,11 +155,22 @@ export const TaxoviewModal = ({
             <>
               <Breadcrumbs separator="→" separatorMargin={"xs"}>
                 {[...selectedTaxons].map(([_taxonId, taxon]) =>
-                  taxon.taxonomyString
-                    .split(";")
-                    .map((level) => (
-                      <Badge variant={"default"}>{level.split("\_")[1]}</Badge>
-                    )),
+                  taxon.taxonomyString === "-_" ||
+                  taxon.taxonomyString == "unclassified" ? (
+                    <Badge variant={"default"}>
+                      {taxon.taxonomyString === "-_"
+                        ? "classified"
+                        : taxon.taxonomyString}
+                    </Badge>
+                  ) : (
+                    taxon.taxonomyString
+                      .split(";")
+                      .map((level) => (
+                        <Badge variant={"default"}>
+                          {level.split("\_")[1]}
+                        </Badge>
+                      ))
+                  ),
                 )}
               </Breadcrumbs>
             </>
