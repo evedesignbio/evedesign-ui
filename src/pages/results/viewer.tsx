@@ -17,7 +17,7 @@ import { AutowrapHeatmap } from "../../components/autowrapheatmap";
 import "./viewer.css";
 import { useInstances, useMatrix } from "./data.ts";
 import { InstanceTable, renderSequenceLabel } from "./table.tsx";
-import { useDisclosure } from "@mantine/hooks";
+import { useDisclosure, useViewportSize } from "@mantine/hooks";
 import { DNAGenerationDialog } from "./dna.tsx";
 import { BoxedLayout } from "./helpers.tsx";
 import {
@@ -48,7 +48,7 @@ import {
 } from "./elements.tsx";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import { ellipsis } from "../../utils/helpers.ts";
-import { IconCheck, IconMinus, IconPlus } from "@tabler/icons-react";
+import { IconCheck, IconDna2, IconMinus, IconPlus } from "@tabler/icons-react";
 
 export interface AnalysisViewerProps {
   id: string;
@@ -60,6 +60,7 @@ export interface AnalysisViewerProps {
 
 const NA_COLOR = 0xaaaaaa;
 const MAX_NAME_LENGTH = 40;
+const REDUCED_MENU_WIDTH = 1200;
 
 export const AnalysisViewer = ({
   results,
@@ -68,6 +69,7 @@ export const AnalysisViewer = ({
   projectId = null,
   isPublic = false,
 }: AnalysisViewerProps) => {
+  const { width: viewportWidth } = useViewportSize();
   const [dnaOpen, { toggle: toggleDnaOpen }] = useDisclosure(false);
   const [showTable, { toggle: toggleShowTable }] = useDisclosure(true);
   const [showHeatmap, { toggle: toggleShowHeatmap }] = useDisclosure(true);
@@ -269,9 +271,11 @@ export const AnalysisViewer = ({
         {name ? (
           <Title order={4}>{ellipsis(name, MAX_NAME_LENGTH)}</Title>
         ) : null}
-        <Badge variant={"outline"}>
-          {spec.key.replace("_", " ").replace("_", " ")}
-        </Badge>
+        {viewportWidth > REDUCED_MENU_WIDTH ? (
+          <Badge variant={"outline"}>
+            {spec.key.replace("_", " ").replace("_", " ")}
+          </Badge>
+        ) : null}
       </Group>
       {/*<Group>*/}
       {/*  <Button.Group>*/}
@@ -319,7 +323,7 @@ export const AnalysisViewer = ({
             dataSelection.allInstances.length
           }
         >
-          Reset filter
+          {viewportWidth > REDUCED_MENU_WIDTH ? "Reset filter" : "Reset"}
         </Button>
         <Button.Group>
           <Button
@@ -365,9 +369,14 @@ export const AnalysisViewer = ({
           id={id}
           instances={enhancedInstances.instances}
           basket={basket}
+          useIcon={true}
         />
         <Button onClick={toggleDnaOpen} disabled={basket.size === 0}>
-          Build DNA...
+          {viewportWidth > REDUCED_MENU_WIDTH ? (
+            "Build DNA..."
+          ) : (
+            <IconDna2 size={16} />
+          )}
         </Button>
       </Group>
     </>
