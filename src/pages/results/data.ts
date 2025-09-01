@@ -621,6 +621,14 @@ export const useSeqSpaceProjection = (
             tooltipData: {
               "Natural sequence ID":
                 idx !== 0 ? seq.id?.split(/\s/)[0] : "Target sequence",
+              Taxonomy:
+                seq.metadata!.taxonomy_lineage &&
+                seq.metadata!.taxonomy_lineage !== "unclassified entries"
+                  ? seq
+                      .metadata!.taxonomy_lineage.split(";")
+                      .map((taxon) => taxon.split("_")[1])
+                      .join(" → ")
+                  : "n/a",
             },
           }))
       : [];
