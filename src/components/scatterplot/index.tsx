@@ -19,6 +19,7 @@ export type Point = {
 type ScatterPlotProps = {
 	points: Point[];
 	showHistogram?: boolean;
+	showAxes?: boolean;
 	handleEvent?: (selectedPointIds: string[], modifiers: any) => void;
 };
 
@@ -31,6 +32,7 @@ const Y_THRESHOLDS = 30;
 export default function ScatterPlot({ 
 	points, 
 	showHistogram = false, 
+	showAxes = true,
 	handleEvent = undefined 
 }: ScatterPlotProps) {
 	const svgRef = useRef<SVGSVGElement | null>(null);
@@ -49,8 +51,8 @@ export default function ScatterPlot({
 		const margin = {
 			top: showHistogram ? 10 + TOP_HIST_HEIGHT : 10,
 			right: showHistogram ? 10 + RIGHT_HIST_WIDTH : 10,
-			bottom: 20,
-			left: 30,
+			bottom: showAxes ? 20 : 0,
+			left: showAxes ? 30 : 0,
 		};
 
 		// TODO: makes scales robust to empty
@@ -73,13 +75,13 @@ export default function ScatterPlot({
 		svg.attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%").attr("height", "100%");
 
 		// Static axes (not transformed by zoom)
-		const xAxis = svg
+		const xAxis = showAxes ? svg
 			.append("g")
 			.attr("class", "x-axis")
 			.attr("transform", `translate(0,${height - margin.bottom})`)
-			.call(d3.axisBottom(xScale));
+			.call(d3.axisBottom(xScale)) : null;
 
-		const yAxis = svg.append("g").attr("class", "y-axis").attr("transform", `translate(${margin.left},0)`).call(d3.axisLeft(yScale));
+		const yAxis = showAxes ? svg.append("g").attr("class", "y-axis").attr("transform", `translate(${margin.left},0)`).call(d3.axisLeft(yScale)) : null;
 
 		// Create group for points that will be transformed by zoom
 		const pointsGroup = svg.append("g").attr("class", "points-group");
@@ -356,9 +358,11 @@ export default function ScatterPlot({
 			const newYScale = transform.rescaleY(yScale);
 
 			// Update axis ticks and labels
-			xAxis.call(d3.axisBottom(newXScale));
-			yAxis.call(d3.axisLeft(newYScale));
-
+			if (showAxes) {
+				xAxis.call(d3.axisBottom(newXScale));
+				yAxis.call(d3.axisLeft(newYScale));
+			}
+				
 			// keep histograms aligned with axes (recompute positions using rescaled axes)
 			if (showHistogram) {
 				xHistRects
@@ -392,7 +396,7 @@ export default function ScatterPlot({
 			});
 
 		svg.call(zoom);
-	}, [points, rect.width, rect.height, showHistogram]);
+	}, [points, rect.width, rect.height, showHistogram, showAxes]);
 
 	// Render
 	return (
