@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { extractModifiers } from "../../utils/events.tsx";
 import { NATURAL_SEQ_PREFIX } from "../../pages/results/data.ts";
+import { useResizeObserver } from "@mantine/hooks";
 
 export type Point = {
 	id: string;
@@ -33,6 +34,7 @@ export default function ScatterPlot({
 	handleEvent = undefined 
 }: ScatterPlotProps) {
 	const svgRef = useRef<SVGSVGElement | null>(null);
+	const [containerRef, rect] = useResizeObserver();
 	const [tooltip, setTooltip] = useState<{
 		show: boolean;
 		x: number;
@@ -41,15 +43,14 @@ export default function ScatterPlot({
 	}>({ show: false, x: 0, y: 0, content: "" });
 
 	useEffect(() => {
-		if (!svgRef.current) return;
+		if (!svgRef.current || rect.width === 0 || rect.height === 0) return;
 
-		const width = 600;
-		const height = 450;
+		const { width, height } = rect;
 		const margin = {
-			top: showHistogram ? 20 + TOP_HIST_HEIGHT : 20,
-			right: showHistogram ? 20 + RIGHT_HIST_WIDTH : 20,
-			bottom: 40,
-			left: 40,
+			top: showHistogram ? 10 + TOP_HIST_HEIGHT : 10,
+			right: showHistogram ? 10 + RIGHT_HIST_WIDTH : 10,
+			bottom: 20,
+			left: 30,
 		};
 
 		// TODO: makes scales robust to empty
@@ -69,7 +70,7 @@ export default function ScatterPlot({
 		// clean slate
 		const svg = d3.select(svgRef.current);
 		svg.selectAll("*").remove();
-		svg.attr("viewBox", `0 0 ${width} ${height}`);
+		svg.attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%").attr("height", "100%");
 
 		// Static axes (not transformed by zoom)
 		const xAxis = svg
@@ -297,13 +298,12 @@ export default function ScatterPlot({
 			selectedPointIds.clear(); // Clear previous selection and rebuild selection each move
 			const currentTransform = d3.zoomTransform(pointsGroup.node()!);
 
-			dots
-				.each((d: Point) => {
-					const screenX = currentTransform.applyX(xScale(d.x));
-					const screenY = currentTransform.applyY(yScale(d.y));
-					const hit = x0 <= screenX && screenX <= x1 && y0 <= screenY && screenY <= y1;
-					if (hit && !d.id.startsWith(NATURAL_SEQ_PREFIX)) selectedPointIds.add(d.id);
-				});
+			dots.each((d: Point) => {
+				const screenX = currentTransform.applyX(xScale(d.x));
+				const screenY = currentTransform.applyY(yScale(d.y));
+				const hit = x0 <= screenX && screenX <= x1 && y0 <= screenY && screenY <= y1;
+				if (hit && !d.id.startsWith(NATURAL_SEQ_PREFIX)) selectedPointIds.add(d.id);
+			});
 		};
 
 		const handleBrushEnd = (event: MouseEvent) => {
@@ -392,15 +392,11 @@ export default function ScatterPlot({
 			});
 
 		svg.call(zoom);
-	}, [points]);
+	}, [points, rect.width, rect.height, showHistogram]);
 
 	// Render
 	return (
-		<div>
-			{/*<div style={{ marginBottom: 8, fontSize: "12px" }}>Hold Shift + drag to select points, scroll/drag to zoom/pan</div>*/}
-			{/* <div style={{ marginBottom: 8, fontSize: "12px" }}>
-				<strong>Selected:</strong> {selected.size ? `${selected.size} points` : "none"}
-			</div> */}
+		<div ref={containerRef} style={{ width: '100%', height: '100%' }}>
 			<svg ref={svgRef} width="100%" height="100%" />
 
 			{/* Tooltip */}
