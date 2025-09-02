@@ -37,6 +37,7 @@ export default function ScatterPlot({
 }: ScatterPlotProps) {
 	const svgRef = useRef<SVGSVGElement | null>(null);
 	const [containerRef, rect] = useResizeObserver();
+	const zoomTransformRef = useRef<d3.ZoomTransform | null>(null);
 	const [tooltip, setTooltip] = useState<{
 		show: boolean;
 		x: number;
@@ -75,11 +76,13 @@ export default function ScatterPlot({
 		svg.attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%").attr("height", "100%");
 
 		// Static axes (not transformed by zoom)
-		const xAxis = showAxes ? svg
-			.append("g")
-			.attr("class", "x-axis")
-			.attr("transform", `translate(0,${height - margin.bottom})`)
-			.call(d3.axisBottom(xScale)) : null;
+		const xAxis = showAxes
+			? svg
+					.append("g")
+					.attr("class", "x-axis")
+					.attr("transform", `translate(0,${height - margin.bottom})`)
+					.call(d3.axisBottom(xScale))
+			: null;
 
 		const yAxis = showAxes ? svg.append("g").attr("class", "y-axis").attr("transform", `translate(${margin.left},0)`).call(d3.axisLeft(yScale)) : null;
 
@@ -350,6 +353,9 @@ export default function ScatterPlot({
 		const zoomed = (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
 			const transform = event.transform;
 
+			// Store the current zoom transform
+			zoomTransformRef.current = transform;
+
 			// Apply transform only to the points group
 			pointsGroup.attr("transform", transform.toString());
 
@@ -362,7 +368,7 @@ export default function ScatterPlot({
 				xAxis.call(d3.axisBottom(newXScale));
 				yAxis.call(d3.axisLeft(newYScale));
 			}
-				
+
 			// keep histograms aligned with axes (recompute positions using rescaled axes)
 			if (showHistogram) {
 				xHistRects
@@ -396,6 +402,11 @@ export default function ScatterPlot({
 			});
 
 		svg.call(zoom);
+
+		// Restore the previous zoom transform if it exists
+		if (zoomTransformRef.current) {
+			svg.call(zoom.transform, zoomTransformRef.current);
+		}
 	}, [points, rect.width, rect.height, showHistogram, showAxes]);
 
 	// Render
