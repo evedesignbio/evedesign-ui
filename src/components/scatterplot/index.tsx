@@ -75,6 +75,17 @@ export default function ScatterPlot({
 		svg.selectAll("*").remove();
 		svg.attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%").attr("height", "100%");
 
+		// Define clipping path for points
+		svg
+			.append("defs")
+			.append("clipPath")
+			.attr("id", "plot-clip")
+			.append("rect")
+			.attr("x", margin.left)
+			.attr("y", margin.top)
+			.attr("width", width - margin.left - margin.right)
+			.attr("height", height - margin.top - margin.bottom);
+
 		// Static axes (not transformed by zoom)
 		const xAxis = showAxes
 			? svg
@@ -84,10 +95,13 @@ export default function ScatterPlot({
 					.call(d3.axisBottom(xScale))
 			: null;
 
-		const yAxis = showAxes ? svg.append("g").attr("class", "y-axis").attr("transform", `translate(${margin.left},0)`).call(d3.axisLeft(yScale)) : null;
+		const yAxis = showAxes ? svg.append("g").attr("class", "y-axis").attr("transform", `translate(${margin.left},0)`).call(d3.axisLeft(yScale)).attr("z-index", 1000) : null;
+
+		// Create clipped area that stays fixed
+		const clippedArea = svg.append("g").attr("clip-path", "url(#plot-clip)");
 
 		// Create group for points that will be transformed by zoom
-		const pointsGroup = svg.append("g").attr("class", "points-group");
+		const pointsGroup = clippedArea.append("g").attr("class", "points-group");
 
 		// ------------------------------------------------------------------
 		// TOOLTIP FUNCTIONS

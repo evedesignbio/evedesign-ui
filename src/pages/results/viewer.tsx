@@ -290,7 +290,7 @@ export const AnalysisViewer = ({
         <ScatterPlot
           points={seqSpaceProjectionPoints}
           showHistogram={false}
-          showAxes={false}
+          showAxes={true}
           handleEvent={scatterplotClickHandler}
         />
       </div>
