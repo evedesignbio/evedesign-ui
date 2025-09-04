@@ -575,10 +575,6 @@ export const useSeqSpaceProjection = (
           instance.metadata?.seqspace_projection &&
           instance.metadata?.seqspace_projection.length === 2,
       )
-      .sort(
-        // put active instances on top
-        (a, b) => (activeIds.has(a.id) ? 1 : 0) - (activeIds.has(b.id) ? 1 : 0),
-      )
       .map((instance) => ({
         id: instance.id,
         x: instance.metadata!.seqspace_projection![0],
@@ -597,6 +593,10 @@ export const useSeqSpaceProjection = (
           Score: instance.score?.toFixed(2),
           "Mutation distance": instance.mutant.length,
         },
+        isSelected: activeIds.size < dataSelection.filteredInstances.length &&
+          activeIds?.has(instance.id)
+            ? true
+            : false
       }));
 
     // natural sequences (cannot be selected, marked with NATURAL_SEQ_PREFIX which is used by reducer to filter

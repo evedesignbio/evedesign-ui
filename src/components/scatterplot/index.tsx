@@ -14,7 +14,7 @@ export type Point = {
 	transparency: number;
 	outlineColor?: string;
 	tooltipData?: Record<string, any>;
-	// isSelected: boolean;
+	isSelected?: boolean;
 };
 
 type ScatterPlotProps = {
