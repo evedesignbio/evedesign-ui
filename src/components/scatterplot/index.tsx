@@ -14,6 +14,7 @@ export type Point = {
 	transparency: number;
 	outlineColor?: string;
 	tooltipData?: Record<string, any>;
+	// isSelected: boolean;
 };
 
 type ScatterPlotProps = {
@@ -375,6 +376,9 @@ export default function ScatterPlot({
 				// 	);
 				// } // DEBUG: check points being rerendered
 
+		// Move selected nodes to the end of the group (show on top)
+		pointsGroup.selectAll<SVGPathElement, Point>("path.dot").classed("is-selected", (d) => (d as any).isSelected == true); 
+		pointsGroup.selectAll<SVGPathElement, Point>("path.dot.is-selected").raise();
 
 		// Collect selected points in brush rectangle (with current transform)
 		const brushBox = (svg.node() as any).__brushBox;
