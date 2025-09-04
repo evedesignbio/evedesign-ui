@@ -37,7 +37,19 @@ export default function ScatterPlot({
 }: ScatterPlotProps) {
 	const svgRef = useRef<SVGSVGElement | null>(null);
 	const [containerRef, rect] = useResizeObserver();
-	const zoomTransformRef = useRef<d3.ZoomTransform | null>(null);
+	const [zoomTransform, setZoomTransform] = useState<d3.ZoomTransform>(d3.zoomIdentity);
+	const [brushTrigger, setBrushTrigger] = useState(0);
+
+	// NEW: persistent groups
+	const gPointsRef = useRef<SVGGElement | null>(null);
+	const gXAxisRef = useRef<SVGGElement | null>(null);
+	const gYAxisRef = useRef<SVGGElement | null>(null);
+	const gXHistRef = useRef<SVGGElement | null>(null);
+	const gYHistRef = useRef<SVGGElement | null>(null);
+
+	// NEW: unique clipPath id to avoid collisions if multiple charts mount
+	const clipIdRef = useRef(`plot-clip-${Math.random().toString(36).slice(2)}`);
+
 	const [tooltip, setTooltip] = useState<{
 		show: boolean;
 		x: number;
@@ -45,10 +57,16 @@ export default function ScatterPlot({
 		content: string | React.ReactNode;
 	}>({ show: false, x: 0, y: 0, content: "" });
 
+	// INIT: build static SVG structure and behaviors (no data-dependent drawing here)
 	useEffect(() => {
 		if (!svgRef.current || rect.width === 0 || rect.height === 0) return;
 
+		// Clean slate only on reinitialization
 		const { width, height } = rect;
+		const svg = d3.select(svgRef.current);
+		svg.selectAll("*").remove();
+		svg.attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%").attr("height", "100%");
+
 		const margin = {
 			top: showHistogram ? 10 + TOP_HIST_HEIGHT : 10,
 			right: showHistogram ? 10 + RIGHT_HIST_WIDTH : 10,
@@ -56,216 +74,42 @@ export default function ScatterPlot({
 			left: showAxes ? 30 : 0,
 		};
 
-		// TODO: makes scales robust to empty
-
-		// scales
-		const xScale = d3
-			.scaleLinear()
-			.domain(d3.extent(points, (d) => d.x) as [number, number])
-			.nice()
-			.range([margin.left, width - margin.right]);
-		const yScale = d3
-			.scaleLinear()
-			.domain(d3.extent(points, (d) => d.y) as [number, number])
-			.nice()
-			.range([height - margin.bottom, margin.top]);
-
-		// clean slate
-		const svg = d3.select(svgRef.current);
-		svg.selectAll("*").remove();
-		svg.attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%").attr("height", "100%");
-
-		// Define clipping path for points
+		// Clip
 		svg
 			.append("defs")
 			.append("clipPath")
-			.attr("id", "plot-clip")
+			.attr("id", clipIdRef.current)
 			.append("rect")
 			.attr("x", margin.left)
 			.attr("y", margin.top)
 			.attr("width", width - margin.left - margin.right)
 			.attr("height", height - margin.top - margin.bottom);
 
-		// Static axes (not transformed by zoom)
-		const xAxis = showAxes
+		// Axes
+		gXAxisRef.current = showAxes
 			? svg
 					.append("g")
 					.attr("class", "x-axis")
 					.attr("transform", `translate(0,${height - margin.bottom})`)
-					.call(d3.axisBottom(xScale))
+					.node()
 			: null;
 
-		const yAxis = showAxes ? svg.append("g").attr("class", "y-axis").attr("transform", `translate(${margin.left},0)`).call(d3.axisLeft(yScale)).attr("z-index", 1000) : null;
+		gYAxisRef.current = showAxes
+			? svg.append("g")
+					.attr("class", "y-axis")
+					.attr("transform", `translate(${margin.left},0)`)
+					.node()
+			: null;
 
-		// Create clipped area that stays fixed
-		const clippedArea = svg.append("g").attr("clip-path", "url(#plot-clip)");
+		// Histograms
+		gXHistRef.current = showHistogram ? svg.append("g").attr("class", "x-hist").node() : null;
+		gYHistRef.current = showHistogram ? svg.append("g").attr("class", "y-hist").node() : null;
 
-		// Create group for points that will be transformed by zoom
-		const pointsGroup = clippedArea.append("g").attr("class", "points-group");
+		// Clipped plot area + points group
+		const clippedArea = svg.append("g").attr("clip-path", `url(#${clipIdRef.current})`);
+		gPointsRef.current = clippedArea.append("g").attr("class", "points-group").node();
 
-		// ------------------------------------------------------------------
-		// TOOLTIP FUNCTIONS
-		// ------------------------------------------------------------------
-		// @ts-ignore
-		const showTooltip = (event: MouseEvent, d: Point, index: number) => {
-			const mouseX = event.clientX;
-			const mouseY = event.clientY;
-
-			const content = d.tooltipData
-				? Object.entries(d.tooltipData)
-						.map(([k, v]) => `${k}: ${v}`)
-						.join("\n")
-				: "";
-			setTooltip({
-				show: true,
-				x: mouseX + 10,
-				y: mouseY - 10,
-				content,
-			});
-		};
-
-		const hideTooltip = () => {
-			setTooltip((prev) => ({ ...prev, show: false }));
-		};
-
-		const updateTooltipPosition = (event: MouseEvent) => {
-			const mouseX = event.clientX;
-			const mouseY = event.clientY;
-			setTooltip((prev) => ({
-				...prev,
-				x: mouseX + 10,
-				y: mouseY - 10,
-			}));
-		};
-
-		function symbolType(shape: string) {
-			switch (shape) {
-				case "circle":
-					return d3.symbolCircle;
-				case "triangle":
-					return d3.symbolTriangle;
-				case "square":
-					return d3.symbolSquare;
-				case "star":
-					return d3.symbolStar;
-				case "diamond":
-					return d3.symbolDiamond;
-				case "cross":
-					return d3.symbolCross;
-				default:
-					return d3.symbolCircle;
-			}
-		}
-
-		const symbolSize = (r: number) => r * 20;
-
-		// ---------- draw points ----------
-		const dots = pointsGroup
-			.selectAll<SVGPathElement, Point>("path.dot")
-			// @ts-ignore
-			.data(points, (d: Point) => d.id)
-			.join(
-				(enter: d3.Selection<d3.EnterElement, Point, SVGGElement, unknown>) =>
-					enter
-						.append("path")
-						.attr("class", "dot")
-						.attr("d", (d: Point) => d3.symbol().type(symbolType(d.shape)).size(symbolSize(d.size))())
-						.attr("transform", (d: Point) => `translate(${xScale(d.x)}, ${yScale(d.y)})`)
-						.attr("fill", (d: Point) => d.color)
-						.attr("fill-opacity", (d: Point) => d.transparency)
-						.attr("stroke", (d: Point) => d.outlineColor ?? "none")
-						.attr("stroke-width", (d: Point) => (d.outlineColor ? 0.6 : 0))
-						// .attr("data-oob", (d) => (isOob(d) ? "1" : "0"))
-						.on("mouseover", (event: MouseEvent, d: Point) => {
-							const index = points.findIndex((p) => p.id === d.id);
-							showTooltip(event, d, index);
-						})
-						.on("mousemove", (event: MouseEvent) => updateTooltipPosition(event))
-						.on("mouseleave", hideTooltip)
-						.on("click", function (event: MouseEvent, d: Point) {
-							// prevent background reset
-							event.stopPropagation();
-							// natural sequences are not selectable
-							if (d.id.startsWith(NATURAL_SEQ_PREFIX)) return;
-							handleEvent?.([d.id], extractModifiers(event));
-						}),
-				(update: d3.Selection<SVGPathElement, Point, SVGGElement, unknown>) =>
-					update
-						.attr("d", (d: Point) => d3.symbol().type(symbolType(d.shape)).size(symbolSize(d.size))())
-						.attr("transform", (d: Point) => `translate(${xScale(d.x)}, ${yScale(d.y)})`)
-						.attr("fill", (d: Point) => d.color)
-						.attr("fill-opacity", (d: Point) => d.transparency)
-						.attr("stroke", (d: Point) => d.outlineColor ?? "none")
-						.attr("stroke-width", (d: Point) => (d.outlineColor ? 0.6 : 0)),
-				// .attr("data-oob", (d) => (isOob(d) ? "1" : "0"))
-				(exit: d3.Selection<SVGPathElement, Point, SVGGElement, unknown>) => exit.remove()
-			);
-
-		// ---------- marginal histograms ----------
-		let xHistRects: d3.Selection<SVGRectElement, d3.Bin<number, number>, SVGGElement, unknown> | null = null;
-		let yHistRects: d3.Selection<SVGRectElement, d3.Bin<number, number>, SVGGElement, unknown> | null = null;
-
-		if (showHistogram && points.length) {
-			// top histogram (X)
-			const xValues = points.map((p) => p.x);
-			const xBins = d3
-				.bin()
-				.domain(xScale.domain() as [number, number])
-				.thresholds(X_THRESHOLDS)(xValues);
-			const xMax = d3.max(xBins, (b) => b.length) ?? 1;
-			const xCountToY = d3.scaleLinear().domain([0, xMax]).range([TOP_HIST_HEIGHT, 0]);
-
-			const xHistG = svg.append("g").attr("class", "x-hist");
-			xHistRects = xHistG
-				.selectAll("rect")
-				.data(xBins)
-				.enter()
-				.append("rect")
-				.attr("stroke", "#333")
-				.attr("stroke-width", 1)
-				.attr("fill", "none")
-				.attr("x", (b) => (b.x0 == null ? 0 : xScale(b.x0)) + 1)
-				.attr("y", (b) => margin.top - TOP_HIST_HEIGHT + xCountToY(b.length))
-				.attr("width", (b) => {
-					const x0 = b.x0 == null ? 0 : xScale(b.x0);
-					const x1 = b.x1 == null ? 0 : xScale(b.x1);
-					return Math.max(0, x1 - x0 - 2);
-				})
-				.attr("height", (b) => TOP_HIST_HEIGHT - xCountToY(b.length));
-
-			// right histogram (Y)
-			const yValues = points.map((p) => p.y);
-			const yBins = d3
-				.bin()
-				.domain(yScale.domain() as [number, number])
-				.thresholds(Y_THRESHOLDS)(yValues);
-			const yMax = d3.max(yBins, (b) => b.length) ?? 1;
-			const yCountToX = d3.scaleLinear().domain([0, yMax]).range([0, RIGHT_HIST_WIDTH]);
-
-			const yHistG = svg.append("g").attr("class", "y-hist");
-			yHistRects = yHistG
-				.selectAll("rect")
-				.data(yBins)
-				.enter()
-				.append("rect")
-				.attr("stroke", "#333")
-				.attr("fill", "none")
-				.attr("x", width - margin.right)
-				.attr("y", (b) => {
-					const y1 = b.x1 == null ? 0 : yScale(b.x1);
-					return y1;
-				})
-				.attr("width", (b) => yCountToX(b.length))
-				.attr("height", (b) => {
-					const y0 = b.x0 == null ? 0 : yScale(b.x0);
-					const y1 = b.x1 == null ? 0 : yScale(b.x1);
-					return Math.max(0, y0 - y1 - 1);
-				});
-		}
-
-		// ------------------------------------------------------------------
-		// BRUSH HANDLER
-		// ------------------------------------------------------------------
+		// ----- BRUSH (listeners attached to the svg; selection computed in Update effect scales) -----
 		let brushing = false;
 		let brushStart: [number, number] | null = null;
 		let brushRect: d3.Selection<SVGRectElement, unknown, null, undefined> | null = null;
@@ -273,7 +117,6 @@ export default function ScatterPlot({
 
 		const handleBrushStart = (event: MouseEvent) => {
 			if (!event.shiftKey) return;
-
 			event.preventDefault();
 			event.stopPropagation();
 
@@ -282,7 +125,6 @@ export default function ScatterPlot({
 			brushStart = [x, y];
 			selectedPointIds.clear(); // Clear previous selection when starting new drag-select
 
-			// Create brush rectangle
 			brushRect = svg
 				.append("rect")
 				.attr("class", "brush-rect")
@@ -298,60 +140,44 @@ export default function ScatterPlot({
 
 		const handleBrushMove = (event: MouseEvent) => {
 			if (!brushing || !brushStart || !brushRect) return;
-
-			// stop the click from propagating after a brush (prevents interfering with reset click)
 			event.stopPropagation();
 
-			const [currentX, currentY] = d3.pointer(event, svg.node());
-			const x0 = Math.min(brushStart[0], currentX);
-			const y0 = Math.min(brushStart[1], currentY);
-			const x1 = Math.max(brushStart[0], currentX);
-			const y1 = Math.max(brushStart[1], currentY);
+			const [cx, cy] = d3.pointer(event, svg.node());
+			const x0 = Math.min(brushStart[0], cx);
+			const y0 = Math.min(brushStart[1], cy);
+			const x1 = Math.max(brushStart[0], cx);
+			const y1 = Math.max(brushStart[1], cy);
 
-			// Draw the brush rectangle
-			const width = Math.abs(currentX - brushStart[0]);
-			const height = Math.abs(currentY - brushStart[1]);
-			brushRect.attr("x", x0).attr("y", y0).attr("width", width).attr("height", height);
+			brushRect
+				.attr("x", x0)
+				.attr("y", y0)
+				.attr("width", Math.abs(cx - brushStart[0]))
+				.attr("height", Math.abs(cy - brushStart[1]));
 
-			// Find selected points
-			selectedPointIds.clear(); // Clear previous selection and rebuild selection each move
-			const currentTransform = d3.zoomTransform(pointsGroup.node()!);
-
-			dots.each((d: Point) => {
-				const screenX = currentTransform.applyX(xScale(d.x));
-				const screenY = currentTransform.applyY(yScale(d.y));
-				const hit = x0 <= screenX && screenX <= x1 && y0 <= screenY && screenY <= y1;
-				if (hit && !d.id.startsWith(NATURAL_SEQ_PREFIX)) selectedPointIds.add(d.id);
-			});
+			// Hit-test happens in Update effect where we have current scales.
+			// Store the brush box on the svg for Update effect to read.
+			(svg.node() as any).__brushBox = { x0, y0, x1, y1 };
+			(svg.node() as any).__needsBrushUpdate = true;
+			setBrushTrigger((prev) => prev + 1);
 		};
 
 		const handleBrushEnd = (event: MouseEvent) => {
 			if (!brushing || !brushStart || !brushRect) return;
+			handleEvent?.(Array.from(selectedPointIds), extractModifiers(event));
 
-			// TODO: Set up handler for selection event
-			if (handleEvent) {
-				console.log(selectedPointIds); // DEBUG
-				const modifiers = extractModifiers(event);
-				const selectedPoints = Array.from(selectedPointIds);
-				handleEvent(selectedPoints, modifiers);
-			}
-
-			// Clean up
 			brushRect.remove();
 			brushRect = null;
 			brushStart = null;
 			brushing = false;
+			
+			(svg.node() as any).__brushBox = null;
+			(svg.node() as any).__needsBrushUpdate = false;
 		};
 
-		// -------------------------------------------------------------
-		// RESET ON CLICK
-		// -------------------------------------------------------------
-		// when you click anywhere (and you're not brushing), clear highlights
+		// Reset on click (when not brushing)
 		svg.on("click.reset", (event: MouseEvent) => {
-			// don't reset while shift-dragging
-			if (event.shiftKey || brushing) return;
-
-			// TODO: Set up handler for selection event (currently ignores event in data.ts when empty array is passed)
+			// do nothing if shift-brushing
+			if ((event as any).shiftKey || brushing) return;
 			handleEvent?.([], extractModifiers(event));
 		});
 
@@ -361,71 +187,251 @@ export default function ScatterPlot({
 		svg.on("mouseup.brush", handleBrushEnd);
 		svg.on("mouseleave.brush", handleBrushEnd);
 
-		// ------------------------------------------------------------------
-		// ZOOM HANDLER
-		// ------------------------------------------------------------------
+		// ----- ZOOM (only transforms the points group; axes/hists updated in Update effect) -----
 		const zoomed = (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
-			const transform = event.transform;
-
-			// Store the current zoom transform
-			zoomTransformRef.current = transform;
-
-			// Apply transform only to the points group
-			pointsGroup.attr("transform", transform.toString());
-
-			// Update axis scales to reflect the current zoom/pan state
-			const newXScale = transform.rescaleX(xScale);
-			const newYScale = transform.rescaleY(yScale);
-
-			// Update axis ticks and labels
-			if (showAxes) {
-				xAxis.call(d3.axisBottom(newXScale));
-				yAxis.call(d3.axisLeft(newYScale));
-			}
-
-			// keep histograms aligned with axes (recompute positions using rescaled axes)
-			if (showHistogram) {
-				xHistRects
-					?.attr("x", (b) => (b.x0 == null ? 0 : newXScale(b.x0)) + 1)
-					.attr("width", (b) => {
-						const x0 = b.x0 == null ? 0 : newXScale(b.x0);
-						const x1 = b.x1 == null ? 0 : newXScale(b.x1);
-						return Math.max(0, x1 - x0 - 2);
-					});
-
-				yHistRects
-					?.attr("y", (b) => {
-						const y1 = b.x1 == null ? 0 : newYScale(b.x1);
-						return y1;
-					})
-					.attr("height", (b) => {
-						const y0 = b.x0 == null ? 0 : newYScale(b.x0);
-						const y1 = b.x1 == null ? 0 : newYScale(b.x1);
-						return Math.max(0, y0 - y1 - 1);
-					});
-			}
+			setZoomTransform(event.transform);
+			// Apply this transform on the <g> element that holds all your points
+			d3.select(gPointsRef.current).attr("transform", event.transform.toString());
 		};
 
 		const zoom = d3
 			.zoom<SVGSVGElement, unknown>()
 			.scaleExtent([0.5, 10])
 			.on("zoom", zoomed)
-			.filter((event: any) => {
-				// Only allow zoom if not shift-clicking (for brush) and not currently brushing
-				return !event.shiftKey && !brushing;
-			});
+			.filter((ev: any) => !ev.shiftKey); // disable zoom when shift (brushing)
 
 		svg.call(zoom);
-
-		// Restore the previous zoom transform if it exists
-		if (zoomTransformRef.current) {
-			svg.call(zoom.transform, zoomTransformRef.current);
+		if (zoomTransform !== d3.zoomIdentity) {
+			svg.call(zoom.transform, zoomTransform);
 		}
-	}, [points, rect.width, rect.height, showHistogram, showAxes]);
+
+		// Expose selection set so Update effect can fill it
+		(svg.node() as any).__selectedPointIds = selectedPointIds;
+	}, [rect.width, rect.height, showHistogram, showAxes]);
+
+	// UPDATE: compute scales, update axes/hists, and *selectively* update points
+	useEffect(() => {
+		if (!svgRef.current || !gPointsRef.current || rect.width === 0 || rect.height === 0) return;
+
+		const svg = d3.select(svgRef.current);
+		const pointsGroup = d3.select(gPointsRef.current);
+
+		const { width, height } = rect;
+		const margin = {
+			top: showHistogram ? 10 + TOP_HIST_HEIGHT : 10,
+			right: showHistogram ? 10 + RIGHT_HIST_WIDTH : 10,
+			bottom: showAxes ? 20 : 0,
+			left: showAxes ? 30 : 0,
+		};
+
+		// Scales from data
+		const xScale = d3
+			.scaleLinear()
+			.domain(d3.extent(points, (d) => d.x) as [number, number])
+			.nice()
+			.range([margin.left, width - margin.right]);
+
+		const yScale = d3
+			.scaleLinear()
+			.domain(d3.extent(points, (d) => d.y) as [number, number])
+			.nice()
+			.range([height - margin.bottom, margin.top]);
+
+		// Rescale by current zoom transform (if any)
+		const t = zoomTransform;
+		const newX = t.rescaleX(xScale);
+		const newY = t.rescaleY(yScale);
+
+		// Axes
+		if (showAxes && gXAxisRef.current && gYAxisRef.current) {
+			d3.select(gXAxisRef.current).call(d3.axisBottom(newX));
+			d3.select(gYAxisRef.current).call(d3.axisLeft(newY));
+		}
+
+		// Histograms (data-join, don’t rebuild containers)
+		if (showHistogram) {
+			// X
+			if (gXHistRef.current) {
+				const xVals = points.map((p) => p.x);
+				const xBins = d3
+					.bin()
+					.domain(xScale.domain() as [number, number])
+					.thresholds(X_THRESHOLDS)(xVals);
+				const xMax = d3.max(xBins, (b) => b.length) ?? 1;
+				const xCountToY = d3.scaleLinear().domain([0, xMax]).range([TOP_HIST_HEIGHT, 0]);
+
+				const gx = d3.select(gXHistRef.current);
+				const rects = gx.selectAll<SVGRectElement, d3.Bin<number, number>>("rect").data(xBins, (d: any) => `${d.x0}|${d.x1}`);
+
+				rects.enter().append("rect").attr("stroke", "#333").attr("stroke-width", 1).attr("fill", "none");
+				rects
+					.attr("x", (b) => (b.x0 == null ? 0 : newX(b.x0)) + 1)
+					.attr("y", (b) => margin.top - TOP_HIST_HEIGHT + xCountToY(b.length))
+					.attr("width", (b) => {
+						const x0 = b.x0 == null ? 0 : newX(b.x0);
+						const x1 = b.x1 == null ? 0 : newX(b.x1);
+						return Math.max(0, x1 - x0 - 2);
+					})
+					.attr("height", (b) => TOP_HIST_HEIGHT - xCountToY(b.length));
+				rects.exit().remove();
+			}
+
+			// Y
+			if (gYHistRef.current) {
+				const yVals = points.map((p) => p.y);
+				const yBins = d3
+					.bin()
+					.domain(yScale.domain() as [number, number])
+					.thresholds(Y_THRESHOLDS)(yVals);
+				const yMax = d3.max(yBins, (b) => b.length) ?? 1;
+				const yCountToX = d3.scaleLinear().domain([0, yMax]).range([0, RIGHT_HIST_WIDTH]);
+
+				const gy = d3.select(gYHistRef.current);
+				const rects = gy.selectAll<SVGRectElement, d3.Bin<number, number>>("rect").data(yBins, (d: any) => `${d.x0}|${d.x1}`);
+
+				rects.enter().append("rect").attr("stroke", "#333").attr("fill", "none");
+				rects
+					.attr("x", width - margin.right)
+					.attr("y", (b) => (b.x1 == null ? 0 : newY(b.x1)))
+					.attr("width", (b) => yCountToX(b.length))
+					.attr("height", (b) => {
+						const y0 = b.x0 == null ? 0 : newY(b.x0);
+						const y1 = b.x1 == null ? 0 : newY(b.x1);
+						return Math.max(0, y0 - y1 - 1);
+					});
+				rects.exit().remove();
+			}
+		}
+
+		// Tooltip helpers
+		const showTooltip = (event: MouseEvent, d: Point) => {
+			const content = d.tooltipData
+				? Object.entries(d.tooltipData)
+						.map(([k, v]) => `${k}: ${v}`)
+						.join("\n")
+				: "";
+			setTooltip({ 
+				show: true, 
+				x: event.clientX + 10, 
+				y: event.clientY - 10, 
+				content 
+			});
+		};
+		const hideTooltip = () => {
+			setTooltip((prev) => ({ ...prev, show: false }));
+		};
+		const moveTooltip = (event: MouseEvent) => {
+			setTooltip((prev) => ({
+				...prev,
+				x: event.clientX + 10,
+				y: event.clientY - 10
+			}));
+		};
+
+		// POINTS: keyed join + per-node hash to skip unchanged
+		const pts = points.map((p) => ({ ...p, __hash: hashPointForRender(p) }));
+
+		const sel = pointsGroup.selectAll<SVGPathElement, Point & { __hash: string }>("path.dot").data(pts, (d: any) => d.id);
+
+		sel.exit().remove();
+
+		const enter = sel
+			.enter()
+			.append("path")
+			.attr("class", "dot")
+			.each(function () {
+				(this as any).__hash = "";
+			})
+			.attr("d", d3.symbol().type(symbolType("circle")).size(1)()) // temp; real 'd' set below when changed
+			.on("mouseover", (event: MouseEvent, d: Point) => showTooltip(event, d))
+			.on("mousemove", (event: MouseEvent) => moveTooltip(event))
+			.on("mouseleave", () => hideTooltip())
+			.on("click", function (event: MouseEvent, d: Point) {
+				event.stopPropagation();
+				if (d.id.startsWith(NATURAL_SEQ_PREFIX)) return;
+				handleEvent?.([d.id], extractModifiers(event));
+			});
+
+		// Only rerender nodes whose visual hash changed
+		const update = enter.merge(sel as any).filter(function (d) {
+			const prev = (this as any).__hash;
+			const changed = prev !== d.__hash;
+			if (changed) (this as any).__hash = d.__hash;
+			return changed;
+		});
+		
+		update
+		.attr("d", (d: Point) => d3.symbol().type(symbolType(d.shape)).size(symbolSize(d.size))())
+		.attr("transform", (d: Point) => `translate(${xScale(d.x)}, ${yScale(d.y)})`)
+		.attr("fill", (d: Point) => d.color)
+		.attr("fill-opacity", (d: Point) => d.transparency)
+		.attr("stroke", (d: Point) => d.outlineColor ?? "none")
+		.attr("stroke-width", (d: Point) => (d.outlineColor ? 0.6 : 0));
+		
+				// if (!update.empty()) {
+				// 	console.log(
+				// 		"Points re-rendered this frame:",
+				// 		update.data().map((d) => d.id)
+				// 	);
+				// } // DEBUG: check points being rerendered
+
+
+		// Collect selected points in brush rectangle (with current transform)
+		const brushBox = (svg.node() as any).__brushBox;
+		const needsBrushUpdate = (svg.node() as any).__needsBrushUpdate;
+
+		if (brushBox && needsBrushUpdate) {
+			const selSet: Set<string> = (svg.node() as any).__selectedPointIds;
+			selSet.clear();
+
+			pointsGroup.selectAll<SVGPathElement, Point>("path.dot").each(function (d: Point) {
+				// NOTE: use original scales + zoom transform for screen coords
+				const sx = t.applyX(xScale(d.x));
+				const sy = t.applyY(yScale(d.y));
+				if (brushBox.x0 <= sx && sx <= brushBox.x1 && brushBox.y0 <= sy && sy <= brushBox.y1) {
+					if (!d.id.startsWith(NATURAL_SEQ_PREFIX)) selSet.add(d.id);
+				}
+			});
+
+			// Reset the update flag
+			(svg.node() as any).__needsBrushUpdate = false;
+			console.log("Brush selection updated:", Array.from(selSet)); // DEBUG
+		}
+	}, [points, rect.width, rect.height, showHistogram, showAxes, zoomTransform, brushTrigger]);
+
+	function hashPointForRender(p: Point): string {
+		const s = `${p.x}|${p.y}|${p.color}|${p.shape}|${p.size}|${p.transparency}|${p.outlineColor ?? ""}`;
+		let h = 2166136261 >>> 0; // FNV-1a
+		for (let i = 0; i < s.length; i++) {
+			h ^= s.charCodeAt(i);
+			h = Math.imul(h, 16777619);
+		}
+		return `${h}`;
+	}
+
+	function symbolType(shape: string) {
+		switch (shape) {
+			case "circle":
+				return d3.symbolCircle;
+			case "triangle":
+				return d3.symbolTriangle;
+			case "square":
+				return d3.symbolSquare;
+			case "star":
+				return d3.symbolStar;
+			case "diamond":
+				return d3.symbolDiamond;
+			case "cross":
+				return d3.symbolCross;
+			default:
+				return d3.symbolCircle;
+		}
+	}
+	const symbolSize = (r: number) => r * 20;
 
 	// Render
 	return (
-		<div ref={containerRef} style={{ width: '100%', height: '100%' }}>
+		<div ref={containerRef} style={{ width: "100%", height: "100%" }}>
 			<svg ref={svgRef} width="100%" height="100%" />
 
 			{/* Tooltip */}
