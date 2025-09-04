@@ -15,6 +15,7 @@ export type Point = {
 	outlineColor?: string;
 	tooltipData?: Record<string, any>;
 	isSelected?: boolean;
+	showPoint?: boolean;
 };
 
 type ScatterPlotProps = {
@@ -330,7 +331,9 @@ export default function ScatterPlot({
 		};
 
 		// POINTS: keyed join + per-node hash to skip unchanged
-		const pts = points.map((p) => ({ ...p, __hash: hashPointForRender(p) }));
+		const pts = points
+			.filter((p) => p.showPoint)
+			.map((p) => ({ ...p, __hash: hashPointForRender(p) }));
 
 		const sel = pointsGroup.selectAll<SVGPathElement, Point & { __hash: string }>("path.dot").data(pts, (d: any) => d.id);
 
