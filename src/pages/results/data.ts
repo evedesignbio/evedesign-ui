@@ -560,49 +560,11 @@ export const useSeqSpaceProjection = (
   activeIds: Set<string>,
   colorMap: InstaneColorMapCallback,
   naturalSeqColor: string,
-) =>
-  useMemo(() => {
-    // nothing interesting to show for single mutation scans as all mutants have same distance
-    if (isMutationScan) {
-      return null;
-    }
-
-    // instance points (actual designs, can be selected)
-    const instancesToShow = new Set(
-      dataSelection.filteredInstances.map((instance) => instance.id)
-    );
-    const instanceProjections = dataSelection.allInstances
-      .filter(
-        (instance) =>
-          instance.metadata &&
-          instance.metadata?.seqspace_projection &&
-          instance.metadata?.seqspace_projection.length === 2,
-      )
-      .map((instance) => ({
-        id: instance.id,
-        showPoint: instancesToShow.has(instance?.id),
-				isSelected: activeIds.has(instance.id),
-				x: instance.metadata!.seqspace_projection![0],
-				y: instance.metadata!.seqspace_projection![1],
-				color: toHexStyle(colorMap(instance)),
-				shape: "circle",
-				size: dataSelection.instances?.has(instance.id) ? 1.5 : 1.5,
-				transparency: 0.8,
-				outlineColor: 
-          activeIds.size < dataSelection.filteredInstances.length && 
-          activeIds?.has(instance.id) 
-          ? SELECTED_SEQUENCE_COLOR 
-          : undefined,
-				tooltipData: {
-					"Design ID": instance.id,
-					Score: instance.score?.toFixed(2),
-					"Mutation distance": instance.mutant.length,
-				},
-			}));
-
-    // natural sequences (cannot be selected, marked with NATURAL_SEQ_PREFIX which is used by reducer to filter
-    // selections to instances only)
-    const naturalProjections = spec.system[0].sequences.seqs
+) => {
+  // natural sequences (cannot be selected, marked with NATURAL_SEQ_PREFIX which is used by reducer to filter
+  // selections to instances only)
+  const naturalProjections = useMemo(() => {
+    return spec.system[0].sequences.seqs
       ? spec.system[0].sequences.seqs
           .filter(
             (seq) =>
@@ -634,13 +596,53 @@ export const useSeqSpaceProjection = (
                   : "n/a",
             },
           }))
+          .reverse() // reverse order so target is on top
       : [];
+  }, [spec, naturalSeqColor]);
+
+  const validInstances = useMemo(() => {
+    return dataSelection.allInstances.filter(
+      (instance) =>
+        instance.metadata &&
+        instance.metadata?.seqspace_projection &&
+        instance.metadata?.seqspace_projection.length === 2,
+    );
+  }, [dataSelection.allInstances]);
+
+  return useMemo(() => {
+    // nothing interesting to show for single mutation scans as all mutants have same distance
+    if (isMutationScan) {
+      return null;
+    }
+
+    // instance points (actual designs, can be selected)
+    const instancesToShow = new Set(
+      dataSelection.filteredInstances.map((instance) => instance.id),
+    );
+    const instanceProjections = validInstances.map((instance) => ({
+      id: instance.id,
+      showPoint: instancesToShow.has(instance?.id),
+      isSelected: activeIds.has(instance.id),
+      x: instance.metadata!.seqspace_projection![0],
+      y: instance.metadata!.seqspace_projection![1],
+      color: toHexStyle(colorMap(instance)),
+      shape: "circle",
+      size: dataSelection.instances?.has(instance.id) ? 1.5 : 1.5,
+      transparency: 0.8,
+      outlineColor:
+        activeIds.size < dataSelection.filteredInstances.length &&
+        activeIds?.has(instance.id)
+          ? SELECTED_SEQUENCE_COLOR
+          : undefined,
+      tooltipData: {
+        "Design ID": instance.id,
+        Score: instance.score?.toFixed(2),
+        "Mutation distance": instance.mutant.length,
+      },
+    }));
 
     // reverse natural sequences so target is on top
-    const allProjections = [
-      ...naturalProjections.reverse(),
-      ...instanceProjections,
-    ];
+    const allProjections = [...naturalProjections, ...instanceProjections];
     if (allProjections.length > 0) {
       return allProjections;
     } else {
@@ -648,10 +650,10 @@ export const useSeqSpaceProjection = (
     }
   }, [
     isMutationScan,
+    naturalProjections,
+    validInstances,
     dataSelection.filteredInstances,
-    dataSelection.instances,
     activeIds,
-    spec,
     colorMap,
-    naturalSeqColor,
   ]);
+};
