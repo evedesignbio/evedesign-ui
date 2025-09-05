@@ -568,36 +568,37 @@ export const useSeqSpaceProjection = (
     }
 
     // instance points (actual designs, can be selected)
-    const instanceProjections = dataSelection.filteredInstances
+    const instancesToShow = new Set(
+      dataSelection.filteredInstances.map((instance) => instance.id)
+    );
+    const instanceProjections = dataSelection.allInstances
       .filter(
         (instance) =>
           instance.metadata &&
           instance.metadata?.seqspace_projection &&
           instance.metadata?.seqspace_projection.length === 2,
       )
-      .sort(
-        // put active instances on top
-        (a, b) => (activeIds.has(a.id) ? 1 : 0) - (activeIds.has(b.id) ? 1 : 0),
-      )
       .map((instance) => ({
         id: instance.id,
-        x: instance.metadata!.seqspace_projection![0],
-        y: instance.metadata!.seqspace_projection![1],
-        color: toHexStyle(colorMap(instance)),
-        shape: "circle",
-        size: dataSelection.instances?.has(instance.id) ? 1.5 : 1.5,
-        transparency: 0.8,
-        outlineColor:
-          activeIds.size < dataSelection.filteredInstances.length &&
-          activeIds?.has(instance.id)
-            ? SELECTED_SEQUENCE_COLOR
-            : undefined,
-        tooltipData: {
-          "Design ID": instance.id,
-          Score: instance.score?.toFixed(2),
-          "Mutation distance": instance.mutant.length,
-        },
-      }));
+        showPoint: instancesToShow.has(instance?.id),
+				isSelected: activeIds.has(instance.id),
+				x: instance.metadata!.seqspace_projection![0],
+				y: instance.metadata!.seqspace_projection![1],
+				color: toHexStyle(colorMap(instance)),
+				shape: "circle",
+				size: dataSelection.instances?.has(instance.id) ? 1.5 : 1.5,
+				transparency: 0.8,
+				outlineColor: 
+          activeIds.size < dataSelection.filteredInstances.length && 
+          activeIds?.has(instance.id) 
+          ? SELECTED_SEQUENCE_COLOR 
+          : undefined,
+				tooltipData: {
+					"Design ID": instance.id,
+					Score: instance.score?.toFixed(2),
+					"Mutation distance": instance.mutant.length,
+				},
+			}));
 
     // natural sequences (cannot be selected, marked with NATURAL_SEQ_PREFIX which is used by reducer to filter
     // selections to instances only)
