@@ -612,6 +612,8 @@ export const useSeqSpaceProjection = (
           )
           .map((seq, idx: number) => ({
             id: `${NATURAL_SEQ_PREFIX}_${idx}`,
+            showPoint: true,
+            isSelected: false,
             x: seq.metadata!.seqspace_projection![0],
             y: seq.metadata!.seqspace_projection![1],
             color: idx !== 0 ? naturalSeqColor : TARGET_SEQUENCE_COLOR,
