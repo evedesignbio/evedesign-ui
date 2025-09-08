@@ -582,7 +582,7 @@ export const useSeqSpaceProjection = (
             shape: "circle",
             size: 1,
             transparency: idx !== 0 ? 0.2 : 1,
-            // outlineColor: "#ff0000",
+            outlineColor: undefined,
             tooltipData: {
               "Natural sequence ID":
                 idx !== 0 ? seq.id?.split(/\s/)[0] : "Target sequence",
@@ -619,27 +619,30 @@ export const useSeqSpaceProjection = (
     const instancesToShow = new Set(
       dataSelection.filteredInstances.map((instance) => instance.id),
     );
-    const instanceProjections = validInstances.map((instance) => ({
-      id: instance.id,
-      showPoint: instancesToShow.has(instance?.id),
-      isSelected: activeIds.has(instance.id),
-      x: instance.metadata!.seqspace_projection![0],
-      y: instance.metadata!.seqspace_projection![1],
-      color: toHexStyle(colorMap(instance)),
-      shape: "circle",
-      size: dataSelection.instances?.has(instance.id) ? 1.5 : 1.5,
-      transparency: 0.8,
-      outlineColor:
-        activeIds.size < dataSelection.filteredInstances.length &&
-        activeIds?.has(instance.id)
-          ? SELECTED_SEQUENCE_COLOR
-          : undefined,
-      tooltipData: {
-        "Design ID": instance.id,
-        Score: instance.score?.toFixed(2),
-        "Mutation distance": instance.mutant.length,
-      },
-    }));
+    const instanceProjections = validInstances
+      .map((instance) => ({
+        id: instance.id,
+        showPoint: instancesToShow.has(instance?.id),
+        isSelected: activeIds.has(instance.id),
+        x: instance.metadata!.seqspace_projection![0],
+        y: instance.metadata!.seqspace_projection![1],
+        color: toHexStyle(colorMap(instance)),
+        shape: "circle",
+        size: dataSelection.instances?.has(instance.id) ? 1.5 : 1.5,
+        transparency: 0.8,
+        outlineColor:
+          activeIds.size < dataSelection.filteredInstances.length &&
+          activeIds?.has(instance.id)
+            ? SELECTED_SEQUENCE_COLOR
+            : undefined,
+        tooltipData: {
+          "Design ID": instance.id,
+          Score: instance.score?.toFixed(2),
+          "Mutation distance": instance.mutant.length,
+        },
+      }))
+      .filter((point) => point.showPoint)
+      .sort((a, b) => (a.isSelected ? 1 : 0) - (b.isSelected ? 1 : 0));
 
     // reverse natural sequences so target is on top
     const allProjections = [...naturalProjections, ...instanceProjections];

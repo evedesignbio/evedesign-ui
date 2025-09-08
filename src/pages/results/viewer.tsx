@@ -13,7 +13,6 @@ import {
 } from "../../models/api.ts";
 import { DEFAULT_STYLE, StructurePanel } from "../../features/structurepanel";
 import { AutowrapHeatmap } from "../../components/autowrapheatmap";
-import ScatterPlot from "../../components/scatterplot";
 import "./viewer.css";
 import {
   ColorMapVariable,
@@ -56,6 +55,7 @@ import {
 } from "./elements.tsx";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import { ellipsis } from "../../utils/helpers.ts";
+import { Plot } from "../../components/plotly";
 
 export interface AnalysisViewerProps {
   id: string;
@@ -171,6 +171,7 @@ export const AnalysisViewer = ({
     activeInstances,
   );
 
+  // @ts-ignore
   const scatterplotClickHandler = useScatterPlotSelectionHandler(
     dispatchDataSelection,
   );
@@ -280,6 +281,8 @@ export const AnalysisViewer = ({
     />
   );
 
+  // TODO: separate out natural and designed sequences into individual traces?
+  // TODO: memoize as needed - check again re exact plotly diffing behaviour
   const scatterplotPanel =
     seqSpaceProjectionPoints !== null ? (
       <div className="resizable-viewer-box" style={{ display: "flex" }}>
@@ -287,11 +290,58 @@ export const AnalysisViewer = ({
           colorVariable={seqSpaceColorVariable}
           setColorVariable={setSeqSpaceColorVariable}
         />
-        <ScatterPlot
-          points={seqSpaceProjectionPoints}
-          showHistogram={false}
-          showAxes={true}
-          handleEvent={scatterplotClickHandler}
+        <Plot
+          data={[
+            {
+              x: seqSpaceProjectionPoints.map((point) => point.x),
+              y: seqSpaceProjectionPoints.map((point) => point.y),
+              type: "scattergl",
+              mode: "markers",
+              marker: {
+                color: seqSpaceProjectionPoints.map((point) => point.color),
+                line: {
+                  color: seqSpaceProjectionPoints.map(
+                    (point) => point.outlineColor,
+                  ),
+                  width: seqSpaceProjectionPoints.map((point) =>
+                    point.outlineColor ? 2 : 0,
+                  ),
+                },
+              },
+            },
+          ]}
+          layout={{
+            // TODO: background
+            plot_bgcolor:
+              computedColorScheme === "dark"
+                ? theme.colors.dark[7] // cf. https://mantine.dev/styles/css-variables-list/
+                : "#ffffff",
+            paper_bgcolor:
+              computedColorScheme === "dark"
+                ? theme.colors.dark[7] // cf. https://mantine.dev/styles/css-variables-list/
+                : "#ffffff",
+            // bgcolor: 'rgba(0,0,0,0)',  // TODO: dynamic based on theme
+            dragmode: "pan",
+            autosize: true,
+            xaxis: {
+              showline: true,
+              zeroline: false,
+              showgrid: false,
+            },
+            yaxis: {
+              showline: true,
+              zeroline: false,
+              showgrid: false,
+            },
+            margin: {
+              b: 30,
+              l: 30,
+              r: 30,
+              t: 30,
+            },
+          }}
+          useResizeHandler={true}
+          style={{ width: "100%", height: "100%" }}
         />
       </div>
     ) : null;
