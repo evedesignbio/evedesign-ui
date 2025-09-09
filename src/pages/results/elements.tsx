@@ -899,7 +899,7 @@ export const ColorVariableSelector = ({
   setColorVariable,
 }: ColorVariableSelectorProps) => {
   return (
-    <div style={{ position: "absolute", top: "20px", right: "20px" }}>
+    <div style={{ position: "absolute", top: "20px", right: "20px", zIndex: 2 }}>
       <Select
         className="select-in-panel"
         width={300}

@@ -16,6 +16,7 @@ import { AutowrapHeatmap } from "../../components/autowrapheatmap";
 import "./viewer.css";
 import {
   ColorMapVariable,
+  NATURAL_SEQ_PREFIX,
   useInstances,
   useMatrix,
   useSeqSpaceProjection,
@@ -281,6 +282,8 @@ export const AnalysisViewer = ({
     />
   );
 
+  // const [uiRevision, setUiRevision] = useState(1);
+
   // TODO: separate out natural and designed sequences into individual traces?
   // TODO: memoize as needed - check again re exact plotly diffing behaviour
   const scatterplotPanel =
@@ -295,10 +298,14 @@ export const AnalysisViewer = ({
             {
               x: seqSpaceProjectionPoints.map((point) => point.x),
               y: seqSpaceProjectionPoints.map((point) => point.y),
+              ids: seqSpaceProjectionPoints.map((point) => point.id),
               type: "scattergl",
               mode: "markers",
               marker: {
                 color: seqSpaceProjectionPoints.map((point) => point.color),
+                opacity: seqSpaceProjectionPoints.map((point) =>
+                  point.id.startsWith(NATURAL_SEQ_PREFIX) ? 0.2 : 1,
+                ),
                 line: {
                   color: seqSpaceProjectionPoints.map(
                     (point) => point.outlineColor,
@@ -320,28 +327,64 @@ export const AnalysisViewer = ({
               computedColorScheme === "dark"
                 ? theme.colors.dark[7] // cf. https://mantine.dev/styles/css-variables-list/
                 : "#ffffff",
-            // bgcolor: 'rgba(0,0,0,0)',  // TODO: dynamic based on theme
-            dragmode: "pan",
+            dragmode: "select",
             autosize: true,
             xaxis: {
-              showline: true,
+              showline: false,
               zeroline: false,
               showgrid: false,
+              uirevision: 1,
             },
             yaxis: {
-              showline: true,
+              showline: false,
               zeroline: false,
               showgrid: false,
+              uirevision: 1,
             },
             margin: {
-              b: 30,
-              l: 30,
-              r: 30,
-              t: 30,
+              b: 0,
+              l: 0,
+              r: 0,
+              t: 0,
             },
+            hovermode: "closest",
+            hoverlabel: { bgcolor: "#333333" },
+            showlegend: false,
+            modebar: {
+              // uirevision: uiRevision,
+            },
+            // uirevision: 1, // don't reset on select
+            // selections: [],
           }}
           useResizeHandler={true}
           style={{ width: "100%", height: "100%" }}
+          config={{
+            displayModeBar: false,
+            scrollZoom: true,
+            // doubleClick: false
+          }}
+          onClick={(event: any) => {
+            console.log("event_click", event);
+          }}
+          onSelected={(event: any) => {
+            if (!event) return;
+            console.log("event", event); // TODO: remove
+
+            scatterplotClickHandler(
+              event.points?.map((point: any) => point.id),
+              {
+                // TODO: bring modifiers back in if possible
+                alt: false, // event.event.alKey,
+                shift: false, // event.event.shiftKey,
+                ctrl: false, // event.event.ctrlKey,
+                meta: false, // event.event.metaKey,
+              },
+            );
+
+            // setUiRevision((rev) => rev + 1);
+
+          }}
+          // onSelected={(event: any) => console.log("selected", event)}
         />
       </div>
     ) : null;
