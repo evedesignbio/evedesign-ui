@@ -35,7 +35,7 @@ import {
   useScatterPlotSelectionHandler,
   useStructureClickHandler,
 } from "./reducers.ts";
-import { useReducer, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import {
   ColorVariableSelector,
   InstanceDownloadMenu,
@@ -282,7 +282,10 @@ export const AnalysisViewer = ({
     />
   );
 
-  // const [uiRevision, setUiRevision] = useState(1);
+  const [dataRevision, setDataRevision] = useState(1);
+  useEffect(() => {
+    setDataRevision((rev) => rev + 1);
+  }, [seqSpaceProjectionPoints]);
 
   // TODO: separate out natural and designed sequences into individual traces?
   // TODO: memoize as needed - check again re exact plotly diffing behaviour
@@ -327,7 +330,7 @@ export const AnalysisViewer = ({
               computedColorScheme === "dark"
                 ? theme.colors.dark[7] // cf. https://mantine.dev/styles/css-variables-list/
                 : "#ffffff",
-            dragmode: "select",
+            dragmode: "select", // "pan"
             autosize: true,
             xaxis: {
               showline: false,
@@ -355,6 +358,7 @@ export const AnalysisViewer = ({
             },
             // uirevision: 1, // don't reset on select
             // selections: [],
+            datarevision: dataRevision,
           }}
           useResizeHandler={true}
           style={{ width: "100%", height: "100%" }}
@@ -364,7 +368,17 @@ export const AnalysisViewer = ({
             // doubleClick: false
           }}
           onClick={(event: any) => {
-            console.log("event_click", event);
+            console.log("CLICK"); // TODO: remove
+            scatterplotClickHandler(
+              event.points?.map((point: any) => point.id),
+              {
+                alt: event.event.alKey,
+                shift: event.event.shiftKey,
+                ctrl: event.event.ctrlKey,
+                meta: event.event.metaKey,
+              },
+            );
+            setDataRevision((rev) => rev + 1);
           }}
           onSelected={(event: any) => {
             if (!event) return;
@@ -380,9 +394,8 @@ export const AnalysisViewer = ({
                 meta: false, // event.event.metaKey,
               },
             );
-
-            // setUiRevision((rev) => rev + 1);
-
+            // update data revision to reset selection drawing for empty selection
+            setDataRevision((rev) => rev + 1);
           }}
           // onSelected={(event: any) => console.log("selected", event)}
         />
