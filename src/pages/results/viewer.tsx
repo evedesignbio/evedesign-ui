@@ -282,11 +282,34 @@ export const AnalysisViewer = ({
     />
   );
 
-  const [dataRevision, setDataRevision] = useState(1);
-  useEffect(() => {
-    setDataRevision((rev) => rev + 1);
-  }, [seqSpaceProjectionPoints]);
+  const [_dataRevision, setDataRevision] = useState(1);
+  //useEffect(() => {
+  //  setDataRevision((rev) => rev + 1);
+  //}, [seqSpaceProjectionPoints]);
 
+  // const [selectionMode, { toggle: toggleSelectionMode }] = useDisclosure(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+
+  useEffect(() => {
+    // const handler = (x: any) => console.log(x.type, x.key);
+    const down = (x: any) => {
+      console.log("down");
+      if (x.key === "Meta") setSelectionMode(true);
+    };
+    const up = (x: any) => {
+      console.log("up");
+      if (x.key === "Meta") setSelectionMode(false);
+    };
+    document.addEventListener("keydown", down);
+    document.addEventListener("keyup", up);
+
+    return () => {
+      document.removeEventListener("keydown", down);
+      document.removeEventListener("keyup", up);
+    };
+  }, [setSelectionMode]);
+
+  console.log("mode", selectionMode); // TODO: remove
   // TODO: separate out natural and designed sequences into individual traces?
   // TODO: memoize as needed - check again re exact plotly diffing behaviour
   const scatterplotPanel =
@@ -330,7 +353,7 @@ export const AnalysisViewer = ({
               computedColorScheme === "dark"
                 ? theme.colors.dark[7] // cf. https://mantine.dev/styles/css-variables-list/
                 : "#ffffff",
-            dragmode: "select", // "pan"
+            dragmode: selectionMode ? "select" : "pan", // "pan"
             autosize: true,
             xaxis: {
               showline: false,
@@ -353,12 +376,12 @@ export const AnalysisViewer = ({
             hovermode: "closest",
             hoverlabel: { bgcolor: "#333333" },
             showlegend: false,
-            modebar: {
+            // modebar: {
               // uirevision: uiRevision,
-            },
+            // },
             // uirevision: 1, // don't reset on select
             // selections: [],
-            datarevision: dataRevision,
+            // datarevision: dataRevision,  // TODO -------- reset this?!?!
           }}
           useResizeHandler={true}
           style={{ width: "100%", height: "100%" }}
@@ -378,7 +401,7 @@ export const AnalysisViewer = ({
                 meta: event.event.metaKey,
               },
             );
-            setDataRevision((rev) => rev + 1);
+            // setDataRevision((rev) => rev + 1);
           }}
           onSelected={(event: any) => {
             if (!event) return;
@@ -395,6 +418,7 @@ export const AnalysisViewer = ({
               },
             );
             // update data revision to reset selection drawing for empty selection
+            // TODO - seems like rerender is enough?!
             setDataRevision((rev) => rev + 1);
           }}
           // onSelected={(event: any) => console.log("selected", event)}
