@@ -516,7 +516,7 @@ export const useScatterPlotSelectionHandler = (
 
       dispatchDataSelection({
         type: "SELECT_INSTANCES",
-        payload: selectedPointIds,
+        payload: selectedPointsInstOnly,
         source: "SEQSPACE",
         modifiers: modifiers,
       });
