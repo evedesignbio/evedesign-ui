@@ -15,7 +15,11 @@ import {
 import { DEFAULT_STYLE, StructurePanel } from "../../features/structurepanel";
 import { AutowrapHeatmap } from "../../components/autowrapheatmap";
 import "./viewer.css";
-import { useInstances, useMatrix } from "./data.ts";
+import {
+  useInstances,
+  useMatrix,
+  useSeqSpaceProjections,
+} from "./data.ts";
 import { InstanceTable, renderSequenceLabel } from "./table.tsx";
 import { useDisclosure, useViewportSize } from "@mantine/hooks";
 import { DNAGenerationDialog } from "./dna.tsx";
@@ -36,7 +40,7 @@ import {
   StructureErrorOverlay,
   StructureLoadingOverlay,
   useAnnotationTracks,
-  useColorMap,
+  useColorMapForMatrix,
   useHeatmapCellMarks,
   useHeatmapCellSelections,
   useHeatmapColorMap,
@@ -48,6 +52,7 @@ import {
 } from "./elements.tsx";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import { ellipsis } from "../../utils/helpers.ts";
+import { SeqSpaceViewer } from "./seqspace.tsx";
 import { IconCheck, IconDna2, IconMinus, IconPlus } from "@tabler/icons-react";
 
 export interface AnalysisViewerProps {
@@ -58,7 +63,8 @@ export interface AnalysisViewerProps {
   isPublic: boolean;
 }
 
-const NA_COLOR = 0xaaaaaa;
+export const NA_COLOR = 0xaaaaaa;
+export const NO_COLORMAP_COLOR = 0x008080;
 const MAX_NAME_LENGTH = 40;
 const REDUCED_MENU_WIDTH = 1200;
 
@@ -115,7 +121,7 @@ export const AnalysisViewer = ({
 
   // derive global colormap for heatmap / 3D structure coloring (individual colors will
   // be derived from this intermediate object)
-  const { colorMap } = useColorMap(matrix, isMutationScan, NA_COLOR);
+  const { colorMap } = useColorMapForMatrix(matrix, isMutationScan, NA_COLOR);
 
   const heatmapAnnotationTracks = useAnnotationTracks(matrix);
   const heatmapTooltipStyle = useTooltipStyle(computedColorScheme);
@@ -166,6 +172,12 @@ export const AnalysisViewer = ({
     isMutationScan,
     dataSelection,
     activeInstances,
+  );
+
+  const seqSpaceProjections = useSeqSpaceProjections(
+    spec,
+    isMutationScan,
+    dataSelection,
   );
 
   const dnaModal = (
@@ -263,6 +275,16 @@ export const AnalysisViewer = ({
       </div>
     </div>
   ) : null;
+
+  const seqSpacePanel =
+    seqSpaceProjections !== null ? (
+      <SeqSpaceViewer
+        projections={seqSpaceProjections}
+        dataSelection={dataSelection}
+        dispatchDataSelection={dispatchDataSelection}
+        activeIds={activeIds}
+      />
+    ) : null;
 
   // TODO: factor this out into own component
   const menuPanel = (
@@ -392,6 +414,7 @@ export const AnalysisViewer = ({
           {tablePanel}
           {heatmapPanel}
           {structurePanel}
+          {seqSpacePanel}
         </div>
       </div>
       <ReactTooltip

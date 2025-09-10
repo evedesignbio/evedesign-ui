@@ -1,0 +1,4 @@
+/* https://community.plot.ly/t/disable-double-click-unzoom/2630 */
+div.plotly-notifier {
+    visibility: hidden;
+}

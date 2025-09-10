@@ -1,10 +1,11 @@
 import {
-  aggregateMutationMatrix,
   AggregationFunc,
+  ColorMapVariable,
   decodeMutation,
   decodePosition,
   effectPercentile,
   encodePosition,
+  FlatValueArray,
   instancesToCountMatrix,
   MutationMatrix,
 } from "./data.ts";
@@ -23,7 +24,6 @@ import {
   mutationsToPosMap,
 } from "./reducers.ts";
 import {
-  ColorBarParams,
   ColorBarSpec,
   ColorMapBoundaryType,
   ColorMapCallback,
@@ -50,25 +50,25 @@ import { StructureAlignment } from "../../models/structure.ts";
 import {IconDownload} from "@tabler/icons-react";
 
 // Per-effect score visualization properties
-export interface ScoreParameters {
-  // name of score in data file
-  key: string;
-  // priority of score in automatic score selection (lower number is higher priority)
-  priority: number;
-  // display name of score
-  displayName: string;
-  // display group of score (used in score selection dialog)
-  group: string;
-  // colormap to use for visualization of score
-  colorMap?: ColorMapParams;
-  // if true, allow to override score-specific colormap with
-  // global default based on UI setting
-  allowDefaultColorMap: boolean;
-  // parameters for corresponding colobar
-  colorBar?: ColorBarParams;
-  // only show in expert mode?
-  expertModeOnly: boolean;
-}
+// export interface ScoreParameters {
+//   // name of score in data file
+//   key: string;
+//   // priority of score in automatic score selection (lower number is higher priority)
+//   priority: number;
+//   // display name of score
+//   displayName: string;
+//   // display group of score (used in score selection dialog)
+//   group: string;
+//   // colormap to use for visualization of score
+//   colorMap?: ColorMapParams;
+//   // if true, allow to override score-specific colormap with
+//   // global default based on UI setting
+//   allowDefaultColorMap: boolean;
+//   // parameters for corresponding colobar
+//   colorBar?: ColorBarParams;
+//   // only show in expert mode?
+//   expertModeOnly: boolean;
+// }
 
 export const useAnnotationTracks = (matrix: MutationMatrix) => {
   return useMemo(
@@ -255,62 +255,56 @@ export const useHeatmapCellSelections = (
     });
   }, [matrix, dataSelection.mutations, dataSelection.instances]);
 
-/**
- * Select one representative effect per position in the mutation matrix, either
- * by aggregating values or selecting one global substitution
- * @param mutations Full mutation matrix
- * @param mutationPredictionType Selected submatrix
- * @param aggFunc Aggregation function to apply
- * @param substitution Selected global substitution, will override aggregation function if defined
- * @returns Position-wise effect (aggregated or fixed substitution)
- */
-export const computePositionEffect = (
-  mutations: MutationMatrix,
-  mutationPredictionType: string,
-  aggFunc: AggregationFunc,
-  substitution: string | undefined,
-) => {
-  // selected substitution overrides aggregation function
-  if (substitution) {
-    return mutations.data[mutations.names.get(mutationPredictionType)!]!.map(
-      (posVector) => posVector[mutations.substitutions.get(substitution)!],
-    );
-  } else {
-    return aggregateMutationMatrix(mutations, mutationPredictionType, aggFunc);
-  }
-};
+// /**
+//  * Select one representative effect per position in the mutation matrix, either
+//  * by aggregating values or selecting one global substitution
+//  * @param mutations Full mutation matrix
+//  * @param mutationPredictionType Selected submatrix
+//  * @param aggFunc Aggregation function to apply
+//  * @param substitution Selected global substitution, will override aggregation function if defined
+//  * @returns Position-wise effect (aggregated or fixed substitution)
+//  */
+// export const computePositionEffect = (
+//   mutations: MutationMatrix,
+//   mutationPredictionType: string,
+//   aggFunc: AggregationFunc,
+//   substitution: string | undefined,
+// ) => {
+//   // selected substitution overrides aggregation function
+//   if (substitution) {
+//     return mutations.data[mutations.names.get(mutationPredictionType)!]!.map(
+//       (posVector) => posVector[mutations.substitutions.get(substitution)!],
+//     );
+//   } else {
+//     return aggregateMutationMatrix(mutations, mutationPredictionType, aggFunc);
+//   }
+// };
 
 /**
  * Derive colormap based on score specification
- * @param mutations Full mutation matrix
- * @param verifiedMutationPredictionType Currently selected prediction score
- * @param defaultColorMap Default color map
- * @param overrideWithDefault If true, override score-specific colormap with defaultColorMap
- * @param scoreParams Prediction-score specific settings (used to extract score-specific colormap)
+ * @param values Flat array of values
+ * @param colorMapParams Default color map
  * @returns Mapping function from value to color
  */
 export const deriveColorMap = (
-  mutations: MutationMatrix,
-  verifiedMutationPredictionType: string,
-  defaultColorMap: ColorMapParams,
-  overrideWithDefault = false,
-  scoreParams?: ScoreParameters[],
+  values: FlatValueArray,
+  colorMapParams: ColorMapParams,
 ) => {
   // extract params for currently selected score (if available)
-  const selectedScoreParams = scoreParams
-    ?.filter((p) => p.key === verifiedMutationPredictionType)
-    .at(0);
+  // const selectedScoreParams = scoreParams
+  //   ?.filter((p) => p.key === verifiedMutationPredictionType)
+  //   .at(0);
 
-  const selectedColorMap =
-    selectedScoreParams && selectedScoreParams.colorMap && !overrideWithDefault
-      ? selectedScoreParams.colorMap
-      : defaultColorMap;
+  // const selectedColorMap =
+  //   selectedScoreParams && selectedScoreParams.colorMap && !overrideWithDefault
+  //     ? selectedScoreParams.colorMap
+  //     : colorMapParams;
+
+  const selectedColorMap = colorMapParams;
 
   // helper function to avoid code repetition
   const getBoundary = (boundaryType: ColorMapBoundaryType, boundary: number) =>
-    boundaryType === "fixed"
-      ? boundary
-      : effectPercentile(mutations, verifiedMutationPredictionType, boundary);
+    boundaryType === "fixed" ? boundary : effectPercentile(values, boundary);
 
   // derive colorbar information first, if settings for it are present
   let colorBarSpec = undefined;
@@ -419,32 +413,81 @@ const COLOR_MAP_SETTINGS_PIPELINE: ColorMapParams = {
   },
 };
 
-export const useColorMap = (
+export const useColorMapBase = (
+  values: FlatValueArray,
+  ColorMapParams: ColorMapParams,
+  naColor: number,
+) => {
+  const { colorMap, colorBarSpec } = deriveColorMap(values, ColorMapParams);
+
+  return {
+    // wrap for null/NA value handling
+    colorMap: ((value: number | null): Color => {
+      if (value === null) {
+        return Color(naColor);
+      } else {
+        return colorMap(value);
+      }
+    }) as ColorMapCallbackWithNull,
+    colorBarSpec: colorBarSpec,
+  };
+};
+
+export const useColorMapForMatrix = (
   matrix: MutationMatrix,
   isMutationScan: boolean,
   naColor: number,
 ) => {
   return useMemo(() => {
-    const { colorMap, colorBarSpec } = deriveColorMap(
-      matrix,
-      isMutationScan ? "scores" : "freqs",
+    return useColorMapBase(
+      matrix.data[
+        matrix.names.get(isMutationScan ? "scores" : "freqs")!
+      ]!.flat(),
       isMutationScan ? COLOR_MAP_SETTINGS_SCAN : COLOR_MAP_SETTINGS_PIPELINE,
-      false,
-      undefined, // specify this parameter to dynamically derive color map params from object
+      naColor,
     );
-
-    return {
-      // wrap for null/NA value handling
-      colorMap: ((value: number | null): Color => {
-        if (value === null) {
-          return Color(naColor);
-        } else {
-          return colorMap(value);
-        }
-      }) as ColorMapCallbackWithNull,
-      colorBarSpec: colorBarSpec,
-    };
   }, [matrix, isMutationScan]);
+};
+
+export const useColorMapForInstances = (
+  instances: SystemInstanceSpecEnhanced[],
+  colorVariable: ColorMapVariable,
+  naColor: number,
+  noVariableColor: number,
+) => {
+  return useMemo(() => {
+    let extractFunc = null;
+    switch (colorVariable) {
+      case "score":
+        extractFunc = (instance: SystemInstanceSpecEnhanced) => instance.score;
+        break;
+      case "mutation_distance":
+        extractFunc = (instance: SystemInstanceSpecEnhanced) =>
+          instance.mutant.length;
+        break;
+      default:
+        break;
+    }
+
+    if (extractFunc === null) {
+      return {
+        colorMap: (_instance: SystemInstanceSpecEnhanced) =>
+          Color(noVariableColor),
+      };
+    } else {
+      const values = instances.map(extractFunc);
+      const cMapBase = useColorMapBase(
+        values,
+        COLOR_MAP_SETTINGS_SCAN,
+        naColor,
+      );
+
+      return {
+        colorMap: (instance: SystemInstanceSpecEnhanced) =>
+          cMapBase.colorMap(extractFunc(instance)),
+      };
+    }
+  }, [instances, colorVariable, naColor, noVariableColor]);
 };
 
 export const useHeatmapColorMap = (
@@ -843,6 +886,38 @@ export const renderStructureSelectionMenu = (
           }
 
           dispatch(idToPayload.get(value)!);
+        }}
+      />
+    </div>
+  );
+};
+
+interface ColorVariableSelectorProps {
+  colorVariable: ColorMapVariable;
+  setColorVariable: (value: ColorMapVariable) => void;
+}
+
+export const ColorVariableSelector = ({
+  colorVariable,
+  setColorVariable,
+}: ColorVariableSelectorProps) => {
+  return (
+    <div style={{ position: "absolute", top: "20px", right: "20px", zIndex: 2 }}>
+      <Select
+        className="select-in-panel"
+        width={300}
+        allowDeselect={false}
+        data={[
+          { value: "score", label: "Score" },
+          { value: "mutation_distance", label: "Mutation distance" },
+          { value: "none", label: "No colormap" },
+        ]}
+        value={colorVariable}
+        onChange={(value) => {
+          if (value === null) {
+            return;
+          }
+          setColorVariable(value as ColorMapVariable);
         }}
       />
     </div>
