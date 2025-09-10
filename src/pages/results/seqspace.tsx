@@ -73,6 +73,14 @@ export const SeqSpaceViewer = ({
           idx === numPoints - 1 ? TARGET_SEQUENCE_COLOR : naturalSeqColor,
         ),
         opacity: rev.map((_, idx) => (idx === numPoints - 1 ? 1 : 0.2)),
+        size: rev.map((_) => 1),
+
+        line: {
+          color: rev.map((_, idx) =>
+            idx === numPoints - 1 ? TARGET_SEQUENCE_COLOR : naturalSeqColor,
+          ),
+          width: rev.map(() => 0),
+        },
       },
     };
   }, [projections.system, naturalSeqColor]);
@@ -100,10 +108,11 @@ export const SeqSpaceViewer = ({
       mode: "markers",
       marker: {
         color: instancesFilt.map((inst) => toHexStyle(colorMap(inst))),
-        opacity: 0.8,
+        opacity: instancesFilt.map((_inst) => 0.8),
+        size: instancesFilt.map((_inst) => 7),
 
         line: {
-          color: SELECTED_SEQUENCE_COLOR,
+          color: instancesFilt.map(() => SELECTED_SEQUENCE_COLOR),
           width: instancesFilt.map((inst) =>
             activeIds.size < dataSelection.filteredInstances.length &&
             activeIds?.has(inst.id)
@@ -121,11 +130,13 @@ export const SeqSpaceViewer = ({
   ]);
 
   // merge traces for rendering bunt only if either one changed
-  const allPoints = useMemo(() => {
-    return [naturalPoints, instancePoints];
-  }, [naturalPoints, instancePoints]);
+  // const allPoints = useMemo(() => {
+  //   return [naturalPoints, instancePoints];
+  // }, [naturalPoints, instancePoints]);
 
+  // allows to trigger rerender even if nothing changed (to remove selection box again)
   const [_dataRevision, setDataRevision] = useState(1);
+
   //useEffect(() => {
   //  setDataRevision((rev) => rev + 1);
   //}, [seqSpaceProjectionPoints]);
@@ -154,6 +165,7 @@ export const SeqSpaceViewer = ({
   }, [setSelectionMode]);
 
   console.log("mode", selectionMode); // TODO: remove
+
   const bgColor =
     computedColorScheme === "dark"
       ? theme.colors.dark[7] // cf. https://mantine.dev/styles/css-variables-list/
@@ -166,30 +178,40 @@ export const SeqSpaceViewer = ({
         setColorVariable={setSeqSpaceColorVariable}
       />
       <Plot
-        data={allPoints}
-        // data={[
-        //   {
-        //     x: seqSpaceProjectionPoints.map((point) => point.x),
-        //     y: seqSpaceProjectionPoints.map((point) => point.y),
-        //     ids: seqSpaceProjectionPoints.map((point) => point.id),
-        //     type: "scattergl",
-        //     mode: "markers",
-        //     marker: {
-        //       color: seqSpaceProjectionPoints.map((point) => point.color),
-        //       opacity: seqSpaceProjectionPoints.map((point) =>
-        //         point.id.startsWith(NATURAL_SEQ_PREFIX) ? 0.2 : 1,
-        //       ),
-        //       line: {
-        //         color: seqSpaceProjectionPoints.map(
-        //           (point) => point.outlineColor,
-        //         ),
-        //         width: seqSpaceProjectionPoints.map((point) =>
-        //           point.outlineColor ? 2 : 0,
-        //         ),
-        //       },
-        //     },
-        //   },
-        // ]}
+        data={
+          // note : this unpacking instead of using two traces from above seems to fix odd
+          // https://community.plotly.com/t/react-scattergl-drag-issue/87737
+          [
+            {
+              x: [...naturalPoints.x, ...instancePoints.x],
+              y: [...naturalPoints.y, ...instancePoints.y],
+              ids: [...naturalPoints.ids, ...instancePoints.ids],
+              type: PLOTLY_SCATTER_PLOT_TYPE,
+              mode: "markers",
+              marker: {
+                color: [
+                  ...naturalPoints.marker.color,
+                  ...instancePoints.marker.color,
+                ],
+                opacity: [
+                  ...naturalPoints.marker.opacity,
+                  ...instancePoints.marker.opacity,
+                ],
+                line: {
+                  color: [
+                    ...naturalPoints.marker.line.color,
+                    ...instancePoints.marker.line.color,
+                  ],
+                  width: [
+                    ...naturalPoints.marker.line.width,
+                    ...instancePoints.marker.line.width,
+                  ],
+                },
+              },
+            },
+          ]
+        }
+        // data={allPoints}
         layout={{
           plot_bgcolor: bgColor,
           paper_bgcolor: bgColor,
