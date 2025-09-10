@@ -7,6 +7,7 @@ import {
   UNCLASSIFIED_TAXONOMY_ID,
   UNCLASSIFIED_TAXONOMY_LINEAGE,
 } from "../utils/bio.ts";
+import { MsaResult } from "../models/api.ts";
 
 const mmseqsBaseUrl = (): string => "https://api.colabfold.com/";
 
@@ -18,7 +19,7 @@ export const useMmseqsSearch = (seq: string | null) => {
     mmseqsBaseUrl() + "ticket/",
     {
       q: `>1\n${seq}`,
-      mode: "env-taxonomy",
+      mode: "env-taxonomy-taxonomyreport",
     },
   );
 };
@@ -35,10 +36,12 @@ const parseTar = async (blob: Blob) => {
 
   let sequences: Sequence[] = [];
   const idToTaxonomy = new Map<string, TaxonomyInfo>();
+  let taxonomyReport: string | null = null;
 
   for (let i = 0; i < reader.length; i++) {
     const fileName = reader[i].name;
     if (fileName.endsWith(".a3m")) {
+      let curAlignmentSeqs = 0;
       const text = await tar.getTextFile(fileName);
       // end of file appears to always have null terminator which we must remove
       const lines = text.replaceAll("\x00", "").trim().split("\n");
@@ -62,9 +65,11 @@ const parseTar = async (blob: Blob) => {
             type: "protein",
             metadata: {}, // init metadata here so we can easily add taxonomy info below
           });
+          curAlignmentSeqs++;
           curId = null;
         }
       }
+      // console.log("SEQ COUNT:", fileName, curAlignmentSeqs);
     } else if (fileName.endsWith("_tax.tsv")) {
       const text = await tar.getTextFile(fileName);
       text
@@ -78,14 +83,24 @@ const parseTar = async (blob: Blob) => {
             taxonomyLineage: taxLineage,
           });
         });
+    } else if (fileName.endsWith("_taxreport.tsv")) {
+      if (taxonomyReport != null) {
+        throw new Error("Currently can only load one taxonomy report per MSA");
+      }
+      taxonomyReport = await tar.getTextFile(fileName);
     }
   }
+
+  // track sequences without taxonomy classification for potential update of taxonomy report
+  let unclassifiedSeqs = 0;
 
   // add taxonomy to sequences (modify in-place)
   sequences.forEach((seq) => {
     if (seq.id !== null) {
       const seqId = seq.id.split(/(\s+)/)[0];
       const seqTax = idToTaxonomy.get(seqId);
+      if (!seqTax) unclassifiedSeqs++;
+
       seq.metadata!.taxonomy_id = seqTax
         ? seqTax.taxonomyId
         : UNCLASSIFIED_TAXONOMY_ID;
@@ -95,8 +110,85 @@ const parseTar = async (blob: Blob) => {
     }
   });
 
-  return new Promise<Sequence[]>((resolve, _) => {
-    resolve(sequences);
+  if (taxonomyReport !== null && unclassifiedSeqs > 0) {
+    type Entry = {
+			_: string;
+			proportion: number;
+			cladeReads: number;
+			taxonReads: number;
+			rank: string; 
+			taxId: number;
+			name: string;
+		};
+
+		const entries: Entry[] = [];
+
+    // Parse taxonomy report
+    taxonomyReport
+			.trim()
+			.split("\n")
+			.forEach((line: string) => {
+				const cols = line.split("\t", 7);
+				if (cols.length < 7) return;
+
+				const [_, proportion, cladeReads, taxonReads, rank, taxId, name] = cols;
+				entries.push({
+					_,
+					proportion: parseFloat(proportion), // percent in [0,100] to be recomputed
+					cladeReads: parseInt(cladeReads),
+					taxonReads: parseInt(taxonReads),
+					rank,
+					taxId: parseInt(taxId),
+					name,
+				});
+			});
+
+      // old total is the cladeReads of the root row (first row)
+      const oldTotalCladeReads = entries[0].cladeReads;
+      const newTotalCladeReads = oldTotalCladeReads + unclassifiedSeqs;
+
+      // Recompute proportions for all existing rows
+      for (const e of entries) {
+        e.proportion = e.cladeReads / newTotalCladeReads;
+      }
+
+      // Prepend a row for unclassified sequences
+      const unclassified: Entry = {
+        _: entries[0]._,
+        proportion: unclassifiedSeqs / newTotalCladeReads,
+        cladeReads: unclassifiedSeqs,
+        taxonReads: unclassifiedSeqs,
+        rank: "no rank",
+        taxId: UNCLASSIFIED_TAXONOMY_ID,
+        name: "unclassified",
+      };
+
+      entries.unshift(unclassified); // Add unclassified row to front
+
+      // Rebuild taxonomyReport string
+      taxonomyReport =
+        entries
+          .map((e) =>
+            [
+              e._,
+              e.proportion.toFixed(4),
+              String(e.cladeReads),
+              String(e.taxonReads),
+              e.rank,
+              String(e.taxId),
+              e.name,
+            ].join("\t")
+          )
+          .join("\n");
+  }
+
+  const msaResult: MsaResult = {
+    seqs: sequences,
+    taxonomyReport: taxonomyReport,
+  };
+
+  return new Promise<MsaResult>((resolve, _) => {
+    resolve(msaResult);
   });
 };
 

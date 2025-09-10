@@ -47,6 +47,7 @@ import {
   structureSelectionId,
 } from "../../features/structurepanel/reducers.ts";
 import { StructureAlignment } from "../../models/structure.ts";
+import {IconDownload} from "@tabler/icons-react";
 
 // Per-effect score visualization properties
 // export interface ScoreParameters {
@@ -771,12 +772,14 @@ export interface DownloadMenuProps {
   id: string;
   instances: SystemInstanceSpecEnhanced[];
   basket: Set<String> | null;
+  useIcon?: boolean;
 }
 
 export const InstanceDownloadMenu = ({
   id,
   instances,
   basket,
+  useIcon = false,
 }: DownloadMenuProps) => {
   return (
     <Menu shadow="md" width={200} position="bottom-start">
@@ -785,7 +788,7 @@ export const InstanceDownloadMenu = ({
           disabled={basket !== null && basket.size === 0}
           variant={"default"}
         >
-          Download
+          {useIcon ? <IconDownload size={16} /> : "Download"}
         </Button>
       </Menu.Target>
       <Menu.Dropdown>

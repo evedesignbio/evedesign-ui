@@ -246,7 +246,9 @@ export const extractMappings = (
 
       // current positions in query and database sequence; local alignment
       // should not start with gaps in either pos
-      let qIdxSeq = firstIndex; // 1-based index in target sequence
+
+      // 1-based index in target sequence, note that qStartPos does not incorporate first index shifts
+      let qIdxSeq = firstIndex + hit.qStartPos - 1;
       let dbIdx = hit.dbStartPos - 1; // 0-based index in string
 
       // iterate through pairwise alignment

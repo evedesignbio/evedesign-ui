@@ -2,15 +2,12 @@ import {
   Alert,
   Button,
   Group,
-  Loader,
   Modal,
   Select,
   Space,
   Stack,
-  Text,
 } from "@mantine/core";
 import { useJobData } from "../../api/backend.ts";
-import { useQueryClient } from "@tanstack/react-query";
 import { AnalysisViewer } from "./viewer.tsx";
 import {
   DesignJobApiResult,
@@ -20,7 +17,13 @@ import {
 } from "../../models/api.ts";
 import { DNAGenerationDialog } from "./dna.tsx";
 import { useState } from "react";
-import { BoxedLayout, JobStatusBadge, useDownloadButton } from "./helpers.tsx";
+import {
+  BoxedLayout,
+  ErrorView,
+  JobStatusBadge,
+  LoadingView,
+  useDownloadButton,
+} from "./helpers.tsx";
 import { useViewportProperties } from "../../utils/ui.ts";
 import { useInstances } from "./data.ts";
 import { useDisclosure } from "@mantine/hooks";
@@ -164,7 +167,6 @@ export const DownloadOnlyViewer = ({
       <BoxedLayout id={id} name={name} title={"Job result"}>
         <JobStatusBadge
           label={"finished"}
-          color={"green"}
           jobType={results.spec.key}
         />
         <Stack>
@@ -250,7 +252,6 @@ interface ResultsWrapperProps {
 export const ResultsPageWrapper = ({ id }: ResultsWrapperProps) => {
   // status options: initialized, running, failed, finished, invalid
   const qJob = useJobData(id);
-  const queryClient = useQueryClient();
 
   if (qJob.isSuccess) {
     const jobType = qJob.data.type;
@@ -272,56 +273,16 @@ export const ResultsPageWrapper = ({ id }: ResultsWrapperProps) => {
       );
     } else {
       // otherwise render different flavors of standard view
-      let color;
       let label = qJob.data.status as string;
-      switch (status) {
-        case "running":
-          color = "orange";
-          break;
-        case "failed":
-          color = "red";
-          break;
-        case "terminated":
-          color = "red";
-          break;
-        case "paused":
-          color = "red";
-          break;
-        case "initialized":
-          color = "orange";
-          break;
-        case "pending":
-          color = "orange";
-          break;
-        case "invalid":
-          color = "red";
-          label = "Invalid job ID";
-          break;
-        default:
-          color = "gray";
-      }
       return (
         <BoxedLayout title={"Job result"} id={id} name={name}>
-          <JobStatusBadge label={label} color={color} jobType={jobType} />
+          <JobStatusBadge label={label} jobType={jobType} />
         </BoxedLayout>
       );
     }
   } else if (qJob.isPending) {
-    return (
-      <BoxedLayout>
-        <Group justify="center">
-          <Loader type={"dots"} size={"xl"} />
-        </Group>
-      </BoxedLayout>
-    );
+    return <LoadingView />;
   } else if (qJob.isError) {
-    return (
-      <BoxedLayout title={"Error"} id={id}>
-        <Text>
-          Something went wrong while trying to retrieve your job results.
-        </Text>
-        <Button onClick={() => queryClient.invalidateQueries()}>Retry</Button>
-      </BoxedLayout>
-    );
+    return <ErrorView id={id} />;
   }
 };

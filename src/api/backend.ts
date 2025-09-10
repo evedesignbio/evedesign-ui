@@ -4,8 +4,8 @@ import {
   ProteinToDnaSpec,
   SingleMutationScanSpec,
 } from "../models/design.ts";
-import { useJobList } from "./local.ts";
-import {ApiBalanceResult, ApiJobResult} from "../models/api.ts";
+// import { useJobList } from "./local.ts";
+import {ApiBalanceResult, ApiJobResult, JobListResponse} from "../models/api.ts";
 import { getAccessToken, useSession } from "../context/SessionContext.tsx";
 
 export const getBackendUrl = () =>
@@ -32,7 +32,7 @@ export const JOB_LIST_STORAGE_KEY = "design-job-list";
 const POLLING_INTERVAL = 5000;
 
 export const useSubmission = () => {
-  const [jobList, setJobList] = useJobList();
+  // const [jobList, setJobList] = useJobList();
   const { session } = useSession();
   const token = getAccessToken(session);
 
@@ -56,20 +56,20 @@ export const useSubmission = () => {
         return res.json();
       });
     },
-    onSuccess: (data, params) => {
-      const { parent_job_id, spec } = params;
+    onSuccess: (data, _params) => {
+      // const { parent_job_id, spec } = params;
       if (typeof data?.job_id !== "string") {
         return;
       }
 
-      setJobList(
-        jobList.concat({
-          jobId: data.job_id,
-          submissionDate: new Date().toJSON(),
-          parentId: parent_job_id,
-          specType: spec.key,
-        }),
-      );
+      // setJobList(
+      //   jobList.concat({
+      //     jobId: data.job_id,
+      //     submissionDate: new Date().toJSON(),
+      //     parentId: parent_job_id,
+      //     specType: spec.key,
+      //   }),
+      // );
     },
   });
 };
@@ -140,4 +140,28 @@ export const useBalance = () => {
       balance: null,
     }
   }
+};
+
+export const useJobList = () => {
+  const { session } = useSession();
+  const token = getAccessToken(session);
+
+  // status options: initialized, running, failed, finished, invalid
+  return useQuery({
+    queryKey: ["joblist", token],  // include token in case we switch accounts and need to reload
+    queryFn: (): Promise<JobListResponse> =>
+        fetch(getBackendUrl() + "job", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }).then((res) => {
+          if (!res.ok) {
+            throw new Error(`${res.status}`);
+          }
+          return res.json();
+        }),
+    enabled: token !== null,
+  });
 };
