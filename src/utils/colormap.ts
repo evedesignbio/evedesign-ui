@@ -4,6 +4,7 @@
 import { ColorScale } from "molstar/lib/mol-util/color";
 import { ColorListName } from "molstar/lib/mol-util/color/lists";
 import { Color, ColorListEntry } from "molstar/lib/mol-util/color/color";
+import { SystemInstanceSpecEnhanced } from "../models/design.ts";
 
 // export type { Color };
 // const scale = ColorScale.create({
@@ -18,6 +19,7 @@ export type PositionColorCallback = (pos: number | null) => string;
 export type ColorMapCallback = (value: number) => Color;
 export type ColorMapCallbackWithNull = (value: number | null) => Color;
 export type ColorMapCallbackWithNullHex = (value: number | null) => string;
+export type InstaneColorMapCallback = (instance: SystemInstanceSpecEnhanced) => Color;
 export type ColorMapScaleNoFunction = ColorListEntry[] | ColorListName;
 export type ColorMapScale = ColorMapCallback | ColorMapScaleNoFunction;
 

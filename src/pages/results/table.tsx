@@ -2,7 +2,6 @@ import { TableVirtuoso, TableVirtuosoHandle } from "react-virtuoso";
 import {
   PipelineSpec,
   SingleMutationScanSpec,
-  SystemInstanceSpec,
   SystemInstanceSpecEnhanced,
   Mutation,
 } from "../../models/design.ts";
@@ -23,7 +22,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { extractModifiers, Modifiers } from "../../utils/events.tsx";
+import { extractModifiers } from "../../utils/events.tsx";
 import {
   DataInteractionReducerDispatchFunc,
   DataInteractionReducerState,
@@ -44,11 +43,11 @@ import {
 import { ChildrenType } from "react-tooltip";
 import { SequenceViewer } from "../../components/sequenceviewer";
 
-export type InstanceTableEventHandler = (
-  instance: SystemInstanceSpec,
-  index: number,
-  modifiers: Modifiers,
-) => void;
+// export type InstanceTableEventHandler = (
+//   instance: SystemInstanceSpec,
+//   index: number,
+//   modifiers: Modifiers,
+// ) => void;
 
 export interface InstanceTableProps {
   instances: SystemInstanceSpecEnhanced[];

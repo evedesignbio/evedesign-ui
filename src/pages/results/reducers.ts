@@ -13,6 +13,7 @@ import {
   encodeMutation,
   encodePosition,
   MutationMatrix,
+  NATURAL_SEQ_PREFIX,
 } from "./data.ts";
 import { Modifiers } from "../../utils/events.tsx";
 import { ClickEvent } from "../../components/autowrapheatmap";
@@ -323,6 +324,11 @@ export const filterInstanceSet = (
   return instances;
 };
 
+export const hasActiveFilter = (dataSelection: DataInteractionReducerState) =>
+  dataSelection.mutations.size > 0 ||
+  dataSelection.positions.size > 0 ||
+  dataSelection.instances.size > 0;
+
 export const useActiveInstances = (
   dataSelection: DataInteractionReducerState,
 ) =>
@@ -376,35 +382,32 @@ export const useStructureClickHandler = (
   dispatchDataSelection: DataInteractionReducerDispatchFunc,
   isMutationScan: boolean,
 ) =>
-  useMemo(
-    () => {
-      return (
-        pos: number | null,
-        modifiers: ModifiersKeys,
-        _button: number,
-        _buttons: number,
-        _ai: AtomInfo[],
-      ) => {
-        if (pos !== null) {
-          // positions in structure may not be included in matrix, so need to check first if covered
-          const posEnc = encodePosition({ entity: 0, pos: pos });
-          if (!matrix.positions.has(posEnc)) {
-            return;
-          }
-          const payload = positionSelectionPayload(
-            matrix,
-            posEnc,
-            isMutationScan,
-            modifiers,
-            "STRUCTURE",
-          );
-
-          dispatchDataSelection(payload);
+  useMemo(() => {
+    return (
+      pos: number | null,
+      modifiers: ModifiersKeys,
+      _button: number,
+      _buttons: number,
+      _ai: AtomInfo[],
+    ) => {
+      if (pos !== null) {
+        // positions in structure may not be included in matrix, so need to check first if covered
+        const posEnc = encodePosition({ entity: 0, pos: pos });
+        if (!matrix.positions.has(posEnc)) {
+          return;
         }
-      };
-    },
-    [matrix, dispatchDataSelection, isMutationScan],
-  );
+        const payload = positionSelectionPayload(
+          matrix,
+          posEnc,
+          isMutationScan,
+          modifiers,
+          "STRUCTURE",
+        );
+
+        dispatchDataSelection(payload);
+      }
+    };
+  }, [matrix, dispatchDataSelection, isMutationScan]);
 
 export const useHeatmapClickHandler = (
   matrix: MutationMatrix,
@@ -501,3 +504,27 @@ export const mutationsToPosMap = (mutations: Set<string>) => {
   });
   return posMap;
 };
+
+export const useScatterPlotSelectionHandler = (
+  dispatchDataSelection: DataInteractionReducerDispatchFunc,
+) =>
+  useMemo(() => {
+    return (selectedPointIds: string[], modifiers: any) => {
+      // filter selected points down to instances (natural sequences, if present, cannot be selected)
+      const selectedPointsInstOnly = selectedPointIds.filter(
+        (id) => !id.startsWith(NATURAL_SEQ_PREFIX),
+      );
+
+      // do nothing if no instances are part of selection event
+      if (selectedPointsInstOnly.length === 0) {
+        return;
+      }
+
+      dispatchDataSelection({
+        type: "SELECT_INSTANCES",
+        payload: selectedPointsInstOnly,
+        source: "SEQSPACE",
+        modifiers: modifiers,
+      });
+    };
+  }, [dispatchDataSelection]);
