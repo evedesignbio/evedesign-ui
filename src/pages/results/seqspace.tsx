@@ -136,24 +136,29 @@ export const SeqSpaceViewer = ({
 
   // allows to trigger rerender even if nothing changed (to remove selection box again)
   const [_dataRevision, setDataRevision] = useState(1);
+  // useEffect(() => {
+  //   setDataRevision((rev) => rev + 1);
+  // }, [seqSpaceProjectionPoints]);
 
-  //useEffect(() => {
-  //  setDataRevision((rev) => rev + 1);
-  //}, [seqSpaceProjectionPoints]);
+  // modifier keys (not emitted by plotly as part of selection event, only for click events)
+  const [shift, setShift] = useState(false);
+  const [meta, setMeta] = useState(false);
+  const [alt, setAlt] = useState(false);
+  const [ctrl, setCtrl] = useState(false);
 
-  // const [selectionMode, { toggle: toggleSelectionMode }] = useDisclosure(false);
-  const [selectionMode, setSelectionMode] = useState(false);
-
-  // TODO: track shift key
   useEffect(() => {
     // const handler = (x: any) => console.log(x.type, x.key);
     const down = (x: any) => {
-      console.log("down");
-      if (x.key === "Meta") setSelectionMode(true);
+      if (x.key === "Meta") setMeta(true);
+      if (x.key === "Alt") setAlt(true);
+      if (x.key === "Control") setCtrl(true);
+      if (x.key === "Shift") setShift(true);
     };
     const up = (x: any) => {
-      console.log("up");
-      if (x.key === "Meta") setSelectionMode(false);
+      if (x.key === "Meta") setMeta(false);
+      if (x.key === "Alt") setAlt(false);
+      if (x.key === "Control") setCtrl(false);
+      if (x.key === "Shift") setShift(false);
     };
     document.addEventListener("keydown", down);
     document.addEventListener("keyup", up);
@@ -162,9 +167,7 @@ export const SeqSpaceViewer = ({
       document.removeEventListener("keydown", down);
       document.removeEventListener("keyup", up);
     };
-  }, [setSelectionMode]);
-
-  console.log("mode", selectionMode); // TODO: remove
+  }, [setShift, setMeta, setAlt, setCtrl]);
 
   const bgColor =
     computedColorScheme === "dark"
@@ -215,7 +218,7 @@ export const SeqSpaceViewer = ({
         layout={{
           plot_bgcolor: bgColor,
           paper_bgcolor: bgColor,
-          dragmode: selectionMode ? "select" : "pan",
+          dragmode: meta ? "select" : "pan",
           autosize: true,
           xaxis: {
             showline: false,
@@ -243,7 +246,7 @@ export const SeqSpaceViewer = ({
           // },
           // uirevision: 1, // don't reset on select
           // selections: [],
-          // datarevision: dataRevision,  // TODO -------- reset this?!?!
+          // datarevision: dataRevision,  // -------- reset this?!?!
         }}
         useResizeHandler={true}
         style={{ width: "100%", height: "100%" }}
@@ -253,8 +256,6 @@ export const SeqSpaceViewer = ({
           // doubleClick: false
         }}
         onClick={(event: any) => {
-          console.log("CLICK"); // TODO: remove
-          // TODO: return if no points
           scatterplotClickHandler(
             event.points?.map((point: any) => point.id),
             {
@@ -264,24 +265,23 @@ export const SeqSpaceViewer = ({
               meta: event.event.metaKey,
             },
           );
+          // force rerender
           setDataRevision((rev) => rev + 1);
         }}
         onSelected={(event: any) => {
           if (!event) return;
-          console.log("event", event); // TODO: remove
 
           scatterplotClickHandler(
             event.points?.map((point: any) => point.id),
             {
-              // TODO: bring modifiers back in if possible
-              alt: false, // event.event.alKey,
-              shift: false, // event.event.shiftKey,
-              ctrl: false, // event.event.ctrlKey,
-              meta: false, // event.event.metaKey,
+              alt: alt,
+              shift: shift,
+              ctrl: ctrl,
+              meta: false, // do not transmit meta as we use this as modifier key for enabling rectangle selection
             },
           );
-          // update data revision to reset selection drawing for empty selection
-          // TODO - seems like rerender is enough?!
+          // update data revision to reset selection drawing for empty selection;
+          // force rerender
           setDataRevision((rev) => rev + 1);
         }}
         // onSelected={(event: any) => console.log("selected", event)}
