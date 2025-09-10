@@ -8,7 +8,7 @@ import {
 } from "./data.ts";
 import {
   DataInteractionReducerDispatchFunc,
-  DataInteractionReducerState,
+  DataInteractionReducerState, hasActiveFilter,
   useScatterPlotSelectionHandler,
 } from "./reducers.ts";
 import { useComputedColorScheme, useMantineTheme } from "@mantine/core";
@@ -130,10 +130,7 @@ export const SeqSpaceViewer = ({
         line: {
           color: instancesFilt.map(() => SELECTED_SEQUENCE_COLOR),
           width: instancesFilt.map((inst) =>
-            activeIds.size < dataSelection.filteredInstances.length &&
-            activeIds?.has(inst.id)
-              ? 2
-              : 0,
+            hasActiveFilter(dataSelection) && activeIds?.has(inst.id) ? 2 : 0,
           ),
         },
       },

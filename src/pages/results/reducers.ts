@@ -12,7 +12,8 @@ import {
   decodePosition,
   encodeMutation,
   encodePosition,
-  MutationMatrix, NATURAL_SEQ_PREFIX,
+  MutationMatrix,
+  NATURAL_SEQ_PREFIX,
 } from "./data.ts";
 import { Modifiers } from "../../utils/events.tsx";
 import { ClickEvent } from "../../components/autowrapheatmap";
@@ -322,6 +323,11 @@ export const filterInstanceSet = (
 
   return instances;
 };
+
+export const hasActiveFilter = (dataSelection: DataInteractionReducerState) =>
+  dataSelection.mutations.size > 0 ||
+  dataSelection.positions.size > 0 ||
+  dataSelection.instances.size > 0;
 
 export const useActiveInstances = (
   dataSelection: DataInteractionReducerState,
