@@ -6,7 +6,7 @@ import {
   SystemInstanceSpecEnhanced,
   Mutation,
   PipelineSpec,
-  SingleMutationScanSpec,
+  SingleMutationScanSpec, Sequence,
 } from "../../models/design.ts";
 import { useMemo } from "react";
 import {
@@ -26,7 +26,7 @@ import toHexStyle = Color.toHexStyle;
 
 export type AggregationFunc = "sum" | "avg" | "min" | "max" | "entropy";
 
-export const NATURAL_SEQ_PREFIX = "natural";
+export const NATURAL_SEQ_PREFIX = "natural__";
 const TARGET_SEQUENCE_COLOR = "red";
 const SELECTED_SEQUENCE_COLOR = "red";
 export type ColorMapVariable = "score" | "mutation_distance" | "none";
@@ -553,7 +553,50 @@ export const aggregateMutationMatrix = (
 //   return { minValue: minValue, maxValue };
 // };
 
-export const useSeqSpaceProjection = (
+export interface SeqSpaceProjections {
+  system: Sequence[];
+  instances: SystemInstanceSpecEnhanced[];
+}
+
+export const useSeqSpaceProjections = (
+  spec: PipelineSpec | SingleMutationScanSpec,
+  isMutationScan: boolean,
+  dataSelection: DataInteractionReducerState,
+): SeqSpaceProjections | null => {
+  // natural sequences
+  const systemProjections = useMemo(() => {
+    return spec.system[0].sequences.seqs
+      ? spec.system[0].sequences.seqs
+          .filter(
+            (seq) =>
+              seq.metadata &&
+              seq.metadata.seqspace_projection &&
+              seq.metadata.seqspace_projection.length === 2,
+          )
+      : [];
+  }, [spec]);
+
+  // designs
+  const validInstances = useMemo(() => {
+    return dataSelection.allInstances.filter(
+      (instance) =>
+        instance.metadata &&
+        instance.metadata?.seqspace_projection &&
+        instance.metadata?.seqspace_projection.length === 2,
+    );
+  }, [dataSelection.allInstances]);
+
+  if (isMutationScan || validInstances.length === 0) {
+    return null;
+  } else {
+    return {
+      system: systemProjections,
+      instances: validInstances,
+    };
+  }
+};
+
+export const useSeqSpaceProjectionPoints = (
   spec: PipelineSpec | SingleMutationScanSpec,
   isMutationScan: boolean,
   dataSelection: DataInteractionReducerState,

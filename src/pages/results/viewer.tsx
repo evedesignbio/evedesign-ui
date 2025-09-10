@@ -15,11 +15,9 @@ import { DEFAULT_STYLE, StructurePanel } from "../../features/structurepanel";
 import { AutowrapHeatmap } from "../../components/autowrapheatmap";
 import "./viewer.css";
 import {
-  ColorMapVariable,
-  NATURAL_SEQ_PREFIX,
   useInstances,
   useMatrix,
-  useSeqSpaceProjection,
+  useSeqSpaceProjections,
 } from "./data.ts";
 import { InstanceTable, renderSequenceLabel } from "./table.tsx";
 import { useDisclosure } from "@mantine/hooks";
@@ -32,18 +30,15 @@ import {
   useBasketInstances,
   useHeatmapClickHandler,
   useReset,
-  useScatterPlotSelectionHandler,
   useStructureClickHandler,
 } from "./reducers.ts";
-import { useEffect, useReducer, useState } from "react";
+import { useReducer, useState } from "react";
 import {
-  ColorVariableSelector,
   InstanceDownloadMenu,
   renderStructureSelectionMenu,
   StructureErrorOverlay,
   StructureLoadingOverlay,
   useAnnotationTracks,
-  useColorMapForInstances,
   useColorMapForMatrix,
   useHeatmapCellMarks,
   useHeatmapCellSelections,
@@ -56,7 +51,7 @@ import {
 } from "./elements.tsx";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import { ellipsis } from "../../utils/helpers.ts";
-import { Plot } from "../../components/plotly";
+import { SeqSpaceViewer } from "./seqspace.tsx";
 
 export interface AnalysisViewerProps {
   id: string;
@@ -66,8 +61,8 @@ export interface AnalysisViewerProps {
   isPublic: boolean;
 }
 
-const NA_COLOR = 0xaaaaaa;
-const NO_COLORMAP_COLOR = 0x008080;
+export const NA_COLOR = 0xaaaaaa;
+export const NO_COLORMAP_COLOR = 0x008080;
 const MAX_NAME_LENGTH = 40;
 
 export const AnalysisViewer = ({
@@ -172,28 +167,10 @@ export const AnalysisViewer = ({
     activeInstances,
   );
 
-  // @ts-ignore
-  const scatterplotClickHandler = useScatterPlotSelectionHandler(
-    dispatchDataSelection,
-  );
-
-  const [seqSpaceColorVariable, setSeqSpaceColorVariable] =
-    useState<ColorMapVariable>("score");
-
-  const { colorMap: seqSpaceColorMap } = useColorMapForInstances(
-    enhancedInstances.instances,
-    seqSpaceColorVariable,
-    NA_COLOR,
-    NO_COLORMAP_COLOR,
-  );
-
-  const seqSpaceProjectionPoints = useSeqSpaceProjection(
+  const seqSpaceProjections = useSeqSpaceProjections(
     spec,
     isMutationScan,
     dataSelection,
-    activeIds,
-    seqSpaceColorMap,
-    computedColorScheme === "dark" ? "#444" : "#CCC",
   );
 
   const dnaModal = (
@@ -282,148 +259,14 @@ export const AnalysisViewer = ({
     />
   );
 
-  const [_dataRevision, setDataRevision] = useState(1);
-  //useEffect(() => {
-  //  setDataRevision((rev) => rev + 1);
-  //}, [seqSpaceProjectionPoints]);
-
-  // const [selectionMode, { toggle: toggleSelectionMode }] = useDisclosure(false);
-  const [selectionMode, setSelectionMode] = useState(false);
-
-  useEffect(() => {
-    // const handler = (x: any) => console.log(x.type, x.key);
-    const down = (x: any) => {
-      console.log("down");
-      if (x.key === "Meta") setSelectionMode(true);
-    };
-    const up = (x: any) => {
-      console.log("up");
-      if (x.key === "Meta") setSelectionMode(false);
-    };
-    document.addEventListener("keydown", down);
-    document.addEventListener("keyup", up);
-
-    return () => {
-      document.removeEventListener("keydown", down);
-      document.removeEventListener("keyup", up);
-    };
-  }, [setSelectionMode]);
-
-  console.log("mode", selectionMode); // TODO: remove
-  // TODO: separate out natural and designed sequences into individual traces?
-  // TODO: memoize as needed - check again re exact plotly diffing behaviour
-  const scatterplotPanel =
-    seqSpaceProjectionPoints !== null ? (
-      <div className="resizable-viewer-box" style={{ display: "flex" }}>
-        <ColorVariableSelector
-          colorVariable={seqSpaceColorVariable}
-          setColorVariable={setSeqSpaceColorVariable}
-        />
-        <Plot
-          data={[
-            {
-              x: seqSpaceProjectionPoints.map((point) => point.x),
-              y: seqSpaceProjectionPoints.map((point) => point.y),
-              ids: seqSpaceProjectionPoints.map((point) => point.id),
-              type: "scattergl",
-              mode: "markers",
-              marker: {
-                color: seqSpaceProjectionPoints.map((point) => point.color),
-                opacity: seqSpaceProjectionPoints.map((point) =>
-                  point.id.startsWith(NATURAL_SEQ_PREFIX) ? 0.2 : 1,
-                ),
-                line: {
-                  color: seqSpaceProjectionPoints.map(
-                    (point) => point.outlineColor,
-                  ),
-                  width: seqSpaceProjectionPoints.map((point) =>
-                    point.outlineColor ? 2 : 0,
-                  ),
-                },
-              },
-            },
-          ]}
-          layout={{
-            // TODO: background
-            plot_bgcolor:
-              computedColorScheme === "dark"
-                ? theme.colors.dark[7] // cf. https://mantine.dev/styles/css-variables-list/
-                : "#ffffff",
-            paper_bgcolor:
-              computedColorScheme === "dark"
-                ? theme.colors.dark[7] // cf. https://mantine.dev/styles/css-variables-list/
-                : "#ffffff",
-            dragmode: selectionMode ? "select" : "pan", // "pan"
-            autosize: true,
-            xaxis: {
-              showline: false,
-              zeroline: false,
-              showgrid: false,
-              uirevision: 1,
-            },
-            yaxis: {
-              showline: false,
-              zeroline: false,
-              showgrid: false,
-              uirevision: 1,
-            },
-            margin: {
-              b: 0,
-              l: 0,
-              r: 0,
-              t: 0,
-            },
-            hovermode: "closest",
-            hoverlabel: { bgcolor: "#333333" },
-            showlegend: false,
-            // modebar: {
-              // uirevision: uiRevision,
-            // },
-            // uirevision: 1, // don't reset on select
-            // selections: [],
-            // datarevision: dataRevision,  // TODO -------- reset this?!?!
-          }}
-          useResizeHandler={true}
-          style={{ width: "100%", height: "100%" }}
-          config={{
-            displayModeBar: false,
-            scrollZoom: true,
-            // doubleClick: false
-          }}
-          onClick={(event: any) => {
-            console.log("CLICK"); // TODO: remove
-            scatterplotClickHandler(
-              event.points?.map((point: any) => point.id),
-              {
-                alt: event.event.alKey,
-                shift: event.event.shiftKey,
-                ctrl: event.event.ctrlKey,
-                meta: event.event.metaKey,
-              },
-            );
-            // setDataRevision((rev) => rev + 1);
-          }}
-          onSelected={(event: any) => {
-            if (!event) return;
-            console.log("event", event); // TODO: remove
-
-            scatterplotClickHandler(
-              event.points?.map((point: any) => point.id),
-              {
-                // TODO: bring modifiers back in if possible
-                alt: false, // event.event.alKey,
-                shift: false, // event.event.shiftKey,
-                ctrl: false, // event.event.ctrlKey,
-                meta: false, // event.event.metaKey,
-              },
-            );
-            // update data revision to reset selection drawing for empty selection
-            // TODO - seems like rerender is enough?!
-            setDataRevision((rev) => rev + 1);
-          }}
-          // onSelected={(event: any) => console.log("selected", event)}
-        />
-      </div>
+  const seqSpacePanel =
+    seqSpaceProjections !== null ? (
+      <SeqSpaceViewer
+        projections={seqSpaceProjections}
+        dataSelection={dataSelection}
+        dispatchDataSelection={dispatchDataSelection}
+        activeIds={activeIds}
+      />
     ) : null;
 
   // TODO: factor this out into own component
@@ -512,7 +355,7 @@ export const AnalysisViewer = ({
             <div className="heatmap-wrapper">{heatmapPanel}</div>
           </div>
           <div className="resizable-viewer-box">{structurePanel}</div>
-          {scatterplotPanel}
+          {seqSpacePanel}
         </div>
       </div>
       <ReactTooltip
