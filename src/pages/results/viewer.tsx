@@ -15,11 +15,7 @@ import {
 import { DEFAULT_STYLE, StructurePanel } from "../../features/structurepanel";
 import { AutowrapHeatmap } from "../../components/autowrapheatmap";
 import "./viewer.css";
-import {
-  useInstances,
-  useMatrix,
-  useSeqSpaceProjections,
-} from "./data.ts";
+import { useInstances, useMatrix, useSeqSpaceProjections } from "./data.ts";
 import { InstanceTable, renderSequenceLabel } from "./table.tsx";
 import { useDisclosure, useViewportSize } from "@mantine/hooks";
 import { DNAGenerationDialog } from "./dna.tsx";
@@ -80,6 +76,7 @@ export const AnalysisViewer = ({
   const [showTable, { toggle: toggleShowTable }] = useDisclosure(true);
   const [showHeatmap, { toggle: toggleShowHeatmap }] = useDisclosure(true);
   const [showStructure, { toggle: toggleShowStructure }] = useDisclosure(true);
+  const [showSeqSpace, { toggle: toggleShowSeqSpace }] = useDisclosure(true);
 
   const theme = useMantineTheme();
   const computedColorScheme = useComputedColorScheme("light", {
@@ -201,9 +198,15 @@ export const AnalysisViewer = ({
     </Modal>
   );
 
+  const panelWidth = {
+    width: isMutationScan
+      ? "calc((100vw - 1.5em) / 3"
+      : "calc((100vw - 1.5em) / 4",
+  };
+
   // table only shows active instances if selecting from outside panel, otherwise full filteredSet
   const tablePanel = showTable ? (
-    <div className="resizable-viewer-box">
+    <div className="resizable-viewer-box" style={panelWidth}>
       <InstanceTable
         instances={
           !dataSelection.lastEventSource ||
@@ -223,7 +226,7 @@ export const AnalysisViewer = ({
   ) : null;
 
   const structurePanel = showStructure ? (
-    <div className="resizable-viewer-box">
+    <div className="resizable-viewer-box" style={panelWidth}>
       <StructurePanel
         structureStyle={DEFAULT_STYLE}
         structureHits={
@@ -249,7 +252,7 @@ export const AnalysisViewer = ({
   ) : null;
 
   const heatmapPanel = showHeatmap ? (
-    <div className="resizable-viewer-box">
+    <div className="resizable-viewer-box" style={panelWidth}>
       <div className="heatmap-wrapper">
         <AutowrapHeatmap
           data={
@@ -277,13 +280,15 @@ export const AnalysisViewer = ({
   ) : null;
 
   const seqSpacePanel =
-    seqSpaceProjections !== null ? (
-      <SeqSpaceViewer
-        projections={seqSpaceProjections}
-        dataSelection={dataSelection}
-        dispatchDataSelection={dispatchDataSelection}
-        activeIds={activeIds}
-      />
+    showSeqSpace && seqSpaceProjections !== null ? (
+      <div className="resizable-viewer-box" style={{ display: "flex", ...panelWidth }}>
+        <SeqSpaceViewer
+          projections={seqSpaceProjections}
+          dataSelection={dataSelection}
+          dispatchDataSelection={dispatchDataSelection}
+          activeIds={activeIds}
+        />
+      </div>
     ) : null;
 
   // TODO: factor this out into own component
@@ -335,6 +340,14 @@ export const AnalysisViewer = ({
             >
               Structure
             </Menu.Item>
+            {seqSpaceProjections !== null ? (
+              <Menu.Item
+                onClick={toggleShowSeqSpace}
+                leftSection={showSeqSpace ? <IconCheck size={16} /> : undefined}
+              >
+                Sequence space
+              </Menu.Item>
+            ) : null}
           </Menu.Dropdown>
         </Menu>
         <Button

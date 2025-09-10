@@ -188,7 +188,7 @@ export const SeqSpaceViewer = ({
       : "#ffffff";
 
   return (
-    <div className="resizable-viewer-box" style={{ display: "flex" }}>
+    <>
       <ColorVariableSelector
         colorVariable={seqSpaceColorVariable}
         setColorVariable={setSeqSpaceColorVariable}
@@ -310,6 +310,6 @@ export const SeqSpaceViewer = ({
         }}
         // onSelected={(event: any) => console.log("selected", event)}
       />
-    </div>
+    </>
   );
 };
