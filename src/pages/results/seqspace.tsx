@@ -15,6 +15,7 @@ import { useComputedColorScheme, useMantineTheme } from "@mantine/core";
 import { NA_COLOR, NO_COLORMAP_COLOR } from "./viewer.tsx";
 import { Color } from "molstar/lib/mol-util/color";
 import toHexStyle = Color.toHexStyle;
+import { UNCLASSIFIED_TAXONOMY_LINEAGE } from "../../utils/bio.ts";
 
 export interface SeqSpaceViewerProps {
   projections: SeqSpaceProjections;
@@ -60,12 +61,23 @@ export const SeqSpaceViewer = ({
     // reverse order so target seq is on top
     const rev = [...projections.system].reverse();
     const numPoints = rev.length;
-
-    // TODO: add hover labels
     return {
       x: rev.map((seq) => seq.metadata!.seqspace_projection![0]),
       y: rev.map((seq) => seq.metadata!.seqspace_projection![1]),
       ids: rev.map((_, idx) => `${NATURAL_SEQ_PREFIX}${numPoints - idx - 1}`),
+      hoverinfo: "text",
+      text: rev.map(
+        (seq, idx) =>
+          `ID: <b>${idx === numPoints - 1 ? "Target sequence" : seq.id?.split(/\s/)[0]}</b><br />Taxonomy: <b>${
+            seq.metadata!.taxonomy_lineage &&
+            seq.metadata!.taxonomy_lineage !== UNCLASSIFIED_TAXONOMY_LINEAGE
+              ? seq
+                  .metadata!.taxonomy_lineage.split(";")
+                  .map((taxon) => taxon.split("_")[1])
+                  .join(" → <br />")
+              : "N/A"
+          }</b>`,
+      ),
       type: PLOTLY_SCATTER_PLOT_TYPE,
       mode: "markers",
       marker: {
@@ -73,7 +85,7 @@ export const SeqSpaceViewer = ({
           idx === numPoints - 1 ? TARGET_SEQUENCE_COLOR : naturalSeqColor,
         ),
         opacity: rev.map((_, idx) => (idx === numPoints - 1 ? 1 : 0.2)),
-        size: rev.map((_) => 1),
+        size: rev.map((_, idx) => (idx === numPoints - 1 ? 10 : 5)),
 
         line: {
           color: rev.map((_, idx) =>
@@ -86,7 +98,6 @@ export const SeqSpaceViewer = ({
   }, [projections.system, naturalSeqColor]);
 
   // designed instances
-  // TODO: add hover labels
   const instancePoints = useMemo(() => {
     // instance points (actual designs, can be selected)
     const instancesToShow = new Set(
@@ -104,6 +115,11 @@ export const SeqSpaceViewer = ({
       x: instancesFilt.map((inst) => inst.metadata!.seqspace_projection![0]),
       y: instancesFilt.map((inst) => inst.metadata!.seqspace_projection![1]),
       ids: instancesFilt.map((inst) => inst.id),
+      text: instancesFilt.map(
+        (inst) =>
+          `Design ID: <b>${inst.id}</b><br />Score: <b>${inst.score?.toFixed(2)}</b><br />Mutation distance: <b>${inst.mutant.length}</b>`,
+      ),
+      hoverinfo: "text",
       type: PLOTLY_SCATTER_PLOT_TYPE,
       mode: "markers",
       marker: {
@@ -189,6 +205,8 @@ export const SeqSpaceViewer = ({
               x: [...naturalPoints.x, ...instancePoints.x],
               y: [...naturalPoints.y, ...instancePoints.y],
               ids: [...naturalPoints.ids, ...instancePoints.ids],
+              text: [...naturalPoints.text, ...instancePoints.text],
+              hoverinfo: "text",
               type: PLOTLY_SCATTER_PLOT_TYPE,
               mode: "markers",
               marker: {
@@ -200,6 +218,10 @@ export const SeqSpaceViewer = ({
                   ...naturalPoints.marker.opacity,
                   ...instancePoints.marker.opacity,
                 ],
+                // size: [
+                //   ...naturalPoints.marker.size,
+                //   ...instancePoints.marker.size,
+                // ],
                 line: {
                   color: [
                     ...naturalPoints.marker.line.color,
@@ -239,7 +261,12 @@ export const SeqSpaceViewer = ({
             t: 0,
           },
           hovermode: "closest",
-          hoverlabel: { bgcolor: "#333333" },
+          hoverlabel: {
+            bgcolor: computedColorScheme === "dark" ? "#fff" : "#000",
+            font: {
+              color: computedColorScheme === "dark" ? "#000" : "#fff",
+            },
+          },
           showlegend: false,
           // modebar: {
           // uirevision: uiRevision,
