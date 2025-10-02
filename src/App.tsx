@@ -13,6 +13,7 @@ import {
   ChangePasswordPage,
   SignUpPage,
 } from "./pages/auth/account.tsx";
+import { DocumentationPage } from "./pages/docs";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => {
                 <ChangePasswordPage />
               </AuthProtectedRoute>
             </Route>
+            <Route path="/docs" component={DocumentationPage} />
             <Route path="/results/">
               <AuthProtectedRoute>
                 <JobListPage />

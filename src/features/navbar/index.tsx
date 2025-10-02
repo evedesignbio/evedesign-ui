@@ -19,6 +19,7 @@ import { useViewportSize } from "@mantine/hooks";
 const links = [
   { link: "/", label: "Start", requiresLogin: false },
   { link: "/results", label: "Results", requiresLogin: true },
+  { link: "/docs", label: "Guide", requiresLogin: false },
 ];
 
 // TODO: fix mobile nav
