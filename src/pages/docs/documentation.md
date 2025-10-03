@@ -4,7 +4,7 @@
 
 Our server can be used to design protein mutants and sequences end-to-end starting from a given target protein sequence, using evolutionarily related sequences and structures from the sequence family for conditional design.
 
-You can analyze and inspect the designed sequence library with an interactive viewer application in the context of 3D structure and natural sequences.
+You can analyze and inspect the designed sequence library with an interactive viewer application in the context of 3D structures and natural sequences.
 
 After analyzing your generated library, you can also seamlessly export codon-optimized nucleotide sequences for experimental testing.
 
@@ -12,9 +12,9 @@ After analyzing your generated library, you can also seamlessly export codon-opt
 
 Not yet, but we also plan to integrate de novo design methods in a future release. Our underlying design framework is able to accommodate these methods out of the box.
 
-### Does the server cover other types of non-protein biomolecules such as nucleotide sequences?
+### Does the server cover non-protein molecules?
 
-Not yet, but our design framework is agnostic to the type of biomolecule being designed. We plan to add such methods in a future release.
+Not yet, but our design framework is agnostic to the type of biomolecule being designed (protein, DNA, RNA, small molecules). We plan to add such methods in a future release.
 
 ### What models are included?
 
@@ -39,13 +39,13 @@ If you want to use the server commercially, please set up your own backend insta
 
 No, you can use the server in public access mode without registration. This is assuming fair usage by everyone \- we reserve to require personal account registration in the future if we detect misuse. Creating your own account does offer private results and your own compute budget on top, so please consider signing up nevertheless.
 
-### Can I run the design methods myself? / Can I review the code?
+### Is the code open source?
 
 Yes\! The underlying protein design framework and pipeline will be released as open source Python packages shortly. This will allow you to run design jobs on your own computing infrastructure or on cloud providers, and to review/extend the code as needed. The framework is designed to be agnostic to the type of model to accommodate all types of biomolecular design going forward.
 
 ### Are you looking for contributors?
 
-Yes\! We are aiming to build a community to unify approaches for biomolecular modeling and design. This refers to further method development and integration, experimental validation, or any other useful contribution you can think of. Please get in contact to discuss\!
+Yes\! We are aiming to build a community to unify approaches for biomolecular modeling and design. This refers to further method development and integration, experimental validation, or any other useful contribution you can think of. We are also looking for sponsors supporting the development of new features. Please get in contact to discuss\!
 
 ## Submitting a design job
 
@@ -57,7 +57,7 @@ You can design any protein sequence of interest, either by inputting a UniProt I
 
 If your protein consists of multiple domains, you may want to consider limiting the modelled protein region to the parts relevant to the design problem (e.g. by not including the Fc region if designing antibody CDRs), as this will both speed up the computation and potentially can give more accurate results.
 
-### What model should I use? / What properties do different zero-shot methods design for?
+### What model should I use? / What properties do different zero-shot methods capture?
 
 As a rule of thumb, to design functional proteins we recommend to use:
 
@@ -94,7 +94,7 @@ Evolutionary sequences related to the target sequence are identified using the M
 
 ## Analyzing the results
 
-### What do the sequence/mutation scores mean and how do I compare designs relative to each other?
+### What do the scores mean and how do I compare designs relative to each other?
 
 The scores assigned to single mutants and designs are log-likelihood scores relative to the target (wild-type) sequence:
 
@@ -112,22 +112,21 @@ Use the interactive result viewer to analyze the properties of your generated se
 
 You can disable any of the following panels by clicking the "Panels" button and resizing the other panels to assign them more space on the screen.
 
-#### Table view (select individual designs):
+Note: *If you switch between selection by mutation (e.g. in the heatmap) and selection by design (e.g. in the table), the current selection will be logged in as a filter and the next selections will be against that subset*. Use the "Reset filter" button to start selecting from scratch.
+
+#### Table view
 
 Clicking a row will select the corresponding sequence (individual design for design jobs, or single mutant sequence for single mutation scans). For design jobs, all changed positions in the currently selected design will be highlighted as sticks in the 3D structure panel and with little black dots in the heatmap viewer. Hold the shift key while clicking to select multiple designs/mutants.
 
 You can sort the order of the table by clicking on the respective column headers, e.g. to display all sequences with high scores or high mutational distance first.
 
-Hover over the eye icon to view the full sequence, with all positions changed relative to the target sequence highlighted in orange..
+Hover over the eye icon to view the full sequence, with all positions changed relative to the target sequence highlighted in orange.
 
 Click the copy icon to copy the full design sequence to the clipboard.
 
-Note:
+Note: If multiple designs/mutants are selected in another panel, the table will only display that current selected subset.
 
-* If multiple designs/mutants are selected in another panel, the table will only display that current selected subset
-* *If you switch between selection by mutation (e.g. in the heatmap) and selection by design (e.g. in the table), the current selection will be logged in as a filter and the next selections will operate on that subset*. Use the "Reset filter" button to start selecting from scratch again.
-
-#### Mutation heatmap (select by mutation):
+#### Mutation heatmap
 
 Displayed information depends on whether looking at the results for a design job or a single mutation scan:
 
@@ -136,11 +135,9 @@ Displayed information depends on whether looking at the results for a design job
 
 Use the shift key for multiple selection. Selecting multiple amino acids in the same position acts as an "or" filter, selecting multiple mutations in different positions acts as an "and" filter. For example, this functionality can be used to select all designs that retain a given combination of active site residues.
 
-Note: *If you switch between selection by mutation (e.g. in the heatmap) and selection by design (e.g. in the table), the current selection will be logged in as a filter and the next selections will be against that subset*. Use the "Reset filter" button to start selecting from scratch.
-
 Clicking on the position label for each column (x-axis) will select all available mutations *but* the WT residue in the target sequence (i.e., all sequences that were changed relative to the target sequence in that position; in the case of fully conserved positions nothing will be selected). If you hold the alt key while clicking, the WT residue will be selected instead.
 
-#### 3D structure viewer (select by mutation):
+#### 3D structure viewer
 
 Displays positional information about designs on top of related 3D structures (select with the dropdown menu, these are automatically gathered for you using FoldSeek from PDB biological assembly and AFDB structures, ranked by alignment score starting with closest sequences first):
 
@@ -155,7 +152,7 @@ Use the shift key for multiple selection across different positions; this will a
 
 Note that any residues not covered by the target sequence region will be colored in gray.
 
-#### Sequence space viewer (design jobs only, select individual designs):
+#### Sequence space viewer (design jobs only)
 
 Displays overall topology of sequence space of designs and natural sequences by projecting designs to 2D space based on their mutual sequence identity, where similar sequences will be placed more closely together. Allows to identify subsets of designs e.g. more similar to each other or to certain subfamilies of the natural protein families.
 
@@ -177,23 +174,24 @@ Click on "Build DNA..." to proceed and generate codon-optimized sequences for yo
 
 ## Building DNA sequences
 
-### Do I need to specify upstream/downstream DNA sequences?
+### Do I need to specify flanking sequences?
 
-Specifying the fixed DNA sequences before and after the DNA sequence generated for you from the design is optional, but strongly advised for the following reasons:
+Specifying the fixed DNA sequences upstream and downstream of the DNA sequence generated for you from the design is optional, but strongly advised for the following reasons:
 
-* Used as a context to avoid introduction of restriction site motifs, repeats, etc.
-* If start/stop codons are present in the upstream/downstream sequences, the server will verify integrity of the ORF or display a warning instead
+* Used as context to avoid introduction of restriction site motifs, repeats, etc.
+* If start/stop codons are present in the upstream/downstream sequences, the server will verify the integrity of the ORF or display a warning instead
 
 ### How do I resolve failing optimization jobs?
 
-If your DNA generation job fails, this is typically due to strict constraints that cannot be satisfied by the codon optimizer (e.g. too tight GC content range/window). We recommend to resubmit with relaxed settings in this case.
+If your DNA generation job fails, this is typically due to strict constraints that cannot be satisfied by the codon optimizer (e.g. too tight GC content range/window). We recommend resubmitting with relaxed settings in this case.
 
-### Why should I optimize sequences relative to the target sequence?
+### Why should I optimize sequences relative to the target?
 
-This setting is advisable if you only want to control for unnecessary codon changes as far as possible, by only optimizing positions that are different to the target sequence.
+This setting is advisable if you want to control for unnecessary codon changes as far as possible, by only optimizing positions that are different to the target sequence.
 
 You can specify an existing DNA sequence for your target if available, otherwise the server will create a full codon-optimized DNA sequence first. Afterwards, only positions that need to be changed to code for the mutations in each of the designs will be codon-optimized.
 
 ### What tool is used to perform codon optimization?
 
 We use the well-established DNA Chisel Python package under the hood to perform codon optimization.
+

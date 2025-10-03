@@ -10,7 +10,6 @@ import {
 import { useViewportProperties } from "../../utils/ui.ts";
 
 export const DocumentationPage = () => {
-  // TODO: change components used for rendering (link!)
   const viewportProps = useViewportProperties();
   const computedColorScheme = useComputedColorScheme("light", {
     getInitialValueInEffect: true,
