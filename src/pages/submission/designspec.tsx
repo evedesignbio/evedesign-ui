@@ -677,11 +677,11 @@ export const DesignSpecInput = ({
               label:
                 "EVmutation2 (evolutionary model; best for designing functional proteins)",
             },
-            {
-              value: "evmutation2",
-              label:
-                "EVmutation2 (lower accuracy mode, 4x speedup over ensembled version)",
-            },
+            // {
+            //   value: "evmutation2",
+            //   label:
+            //     "EVmutation2 (lower accuracy mode, 4x speedup over ensembled version)",
+            // },
             {
               value: "esm2_650m",
               label:
