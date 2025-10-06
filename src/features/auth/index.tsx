@@ -12,12 +12,13 @@ import {
   Title,
 } from "@mantine/core";
 import React, { useState } from "react";
-import { signIn } from "../../context/SessionContext.tsx";
+import {
+  PUBLIC_ACCOUNT_EMAIL,
+  PUBLIC_ACCOUNT_PW,
+  signIn,
+} from "../../context/SessionContext.tsx";
 import { IconExclamationCircle } from "@tabler/icons-react";
 import { Link } from "wouter";
-
-const PUBLIC_ACCOUNT_EMAIL = "evcouplingsnotifications@gmail.com";
-const PUBLIC_ACCOUNT_PW = "rQYlsSeMx67eNSDXUpXYUnQxGFBmpPbKVlUqHmS5xIlssqrGkL";
 
 interface AuthenticationFormProps {
   title?: string;

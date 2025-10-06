@@ -17,9 +17,10 @@ import { useHashLocation } from "wouter/use-hash-location";
 import { useViewportSize } from "@mantine/hooks";
 
 const links = [
-  { link: "/", label: "Start", requiresLogin: false },
+  { link: "/", label: "evedesign", requiresLogin: false },
+  { link: "/submit", label: "Submit", requiresLogin: false },
   { link: "/results", label: "Results", requiresLogin: true },
-  { link: "/docs", label: "Guide", requiresLogin: false },
+  { link: "/docs", label: "Docs", requiresLogin: false },
 ];
 
 // TODO: fix mobile nav
