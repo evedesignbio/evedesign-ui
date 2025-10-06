@@ -48,7 +48,7 @@ export function NavBar() {
     .map((link) => (
       <Link
         key={link.label}
-        href={link.link}
+        to={link.link}
         className={"link"}
         // className={(active) => (active ? "link" : "link")}
         // data-active={true}  // TODO
@@ -109,7 +109,16 @@ export function NavBar() {
             >
               <IconLogout size={16} />
             </ActionIcon>
-          ) : null}
+          ) : (
+            <>
+              <Link to={"/submit"} className={"link"}>
+                Log in
+              </Link>
+              <Link to={"/auth/sign-up"} className={"link"}>
+                Sign up
+              </Link>
+            </>
+          )}
         </Group>
       </Container>
     </header>
