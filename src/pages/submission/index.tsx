@@ -11,7 +11,7 @@ import { DesignSpecInput } from "./designspec.tsx";
 import { useSession } from "../../context/SessionContext.tsx";
 import { AuthenticationForm } from "../../features/auth";
 import { useHashLocation } from "wouter/use-hash-location";
-import imgUrl from "../../assets/background_image.jpg";
+import { BACKGROUND_IMAGE_STYLE } from "../../utils/ui.ts";
 
 export const SubmissionPage = () => {
   // login session
@@ -104,24 +104,7 @@ export const SubmissionPage = () => {
 
   return (
     <>
-      {targetSeq === null ? (
-        <div
-          style={{
-            position: "absolute",
-            top: 55,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundImage: `url(${imgUrl})`,
-            opacity: 0.2,
-            backgroundAttachment: "fixed",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-            backgroundSize: "cover",
-            zIndex: -1,
-          }}
-        />
-      ) : null}
+      {targetSeq === null ? <div style={BACKGROUND_IMAGE_STYLE} /> : null}
       <Container size="sm" pt="xl">
         <Stack>{render}</Stack>
       </Container>
