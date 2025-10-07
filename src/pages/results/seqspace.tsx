@@ -238,7 +238,7 @@ export const SeqSpaceViewer = ({
         layout={{
           plot_bgcolor: bgColor,
           paper_bgcolor: bgColor,
-          dragmode: meta || ctrl ? "select" : "pan",
+          dragmode: alt ? "pan" : "select",
           autosize: true,
           xaxis: {
             showline: false,
@@ -302,7 +302,7 @@ export const SeqSpaceViewer = ({
               alt: alt,
               shift: shift,
               ctrl: ctrl,
-              meta: false, // do not transmit meta as we use this as modifier key for enabling rectangle selection
+              meta: meta,
             },
           );
           // update data revision to reset selection drawing for empty selection;

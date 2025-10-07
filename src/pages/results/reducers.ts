@@ -86,7 +86,7 @@ export const dataInteractionReducer = (
 ): DataInteractionReducerState => {
   const { type, source, payload, modifiers } = action;
   const multiSelect = modifiers
-    ? modifiers.control || modifiers.meta || modifiers.shift
+    ? modifiers.control || modifiers.meta // || modifiers.shift
     : false;
 
   switch (type) {

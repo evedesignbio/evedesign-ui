@@ -374,6 +374,18 @@ export const InstanceTable = ({
     }
   }, [instancesSorted, dataSelection.instances, virtuoso]);
 
+  // if single instance selected from the outside, also use it as new anchor
+  if (dataSelection.lastEventSource !== "TABLE") {
+    if (dataSelection.instances.size === 1) {
+      const targetId = [...dataSelection.instances][0];
+      anchor.current = targetId;
+      focus.current = targetId;
+    } else {
+      anchor.current = null;
+      focus.current = null;
+    }
+  }
+
   const clickHandler = (event: any, instance: SystemInstanceSpecEnhanced) => {
     if (dispatchDataSelection) {
       const modifiers = extractModifiers(event);
@@ -390,6 +402,14 @@ export const InstanceTable = ({
 
         // map anchor index
         const anchorIdx = instancesToIndex.get(anchor.current)!;
+
+        // check if anchor is still part of selection (may have been deselected
+        // in the meantime)
+        if (!dataSelection.instances.has(anchor.current)) {
+          console.log("!!! ANCHOR MISSING !!!");
+
+          // TODO: update anchor reference
+        }
 
         console.log("SHIFT pressed", instance.id, anchorIdx); // TODO: remove
 
@@ -415,9 +435,9 @@ export const InstanceTable = ({
         }
 
         const newSelection = selectionIndices.map(
-            idx => instancesSorted[idx].id
-        )
-        console.log("NEW:", newSelection);  // TODO: remove
+          (idx) => instancesSorted[idx].id,
+        );
+        console.log("NEW:", newSelection); // TODO: remove
 
         // update focus (i.e. last item selected while shift key pressed)
         focus.current = instance.id;
@@ -438,7 +458,7 @@ export const InstanceTable = ({
         // update anchor and focus to reset multi-select behaviour to now
         // start from currently selected item
         anchor.current = instance.id;
-        focus.current = null;
+        focus.current = instance.id;
 
         // dispatch as is, leave multi-select handling for single clicks to reducer
         dispatchDataSelection({
