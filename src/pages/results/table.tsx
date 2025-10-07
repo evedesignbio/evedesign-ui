@@ -313,7 +313,6 @@ export const InstanceTable = ({
   // https://stackoverflow.com/questions/2959887/algorithm-for-shift-clicking-items-in-a-collection-to-select-them
   const anchor = useRef<string | null>(null);
   const focus = useRef<string | null>(null);
-  console.log("anchor", anchor, "focus", focus); // TODO: remove
 
   // sort instances based on selected key and sorting order
   const instancesSorted = useMemo(() => {
@@ -396,27 +395,43 @@ export const InstanceTable = ({
         anchor.current !== null
       ) {
         // map current selection to index in table
-        let selectionIndices: number[] = [...dataSelection.instances].map(
+        let selectionIndices: number[] = [...dataSelection.instances].sort().map(
           (id) => instancesToIndex.get(id)!,
         );
 
         // map anchor index
-        const anchorIdx = instancesToIndex.get(anchor.current)!;
+        let anchorIdx = instancesToIndex.get(anchor.current)!;
 
         // check if anchor is still part of selection (may have been deselected
-        // in the meantime)
+        // in the meantime), handle otherwise
         if (!dataSelection.instances.has(anchor.current)) {
-          console.log("!!! ANCHOR MISSING !!!");
+          // search forward for next highest selected element
+          const higherIndices = selectionIndices.filter(
+            (idx) => idx > anchorIdx,
+          );
+          if (higherIndices.length > 0) {
+            anchorIdx = higherIndices[0];
+          } else {
+            // search backwards
+            const lowerIndices = selectionIndices.filter(
+              (idx) => idx < anchorIdx,
+            );
 
-          // TODO: update anchor reference
+            if (lowerIndices.length > 0) {
+              anchorIdx = lowerIndices[lowerIndices.length - 1];
+            } else {
+              anchorIdx = instancesToIndex.get(instance.id)!;
+            }
+          }
+
+          // update anchor value
+          anchor.current = instancesSorted[anchorIdx].id;
         }
 
-        console.log("SHIFT pressed", instance.id, anchorIdx); // TODO: remove
 
         // revert previous selection from anchor to focus (note this is inclusive!)
         if (focus.current !== null) {
           const focusIdx = instancesToIndex.get(focus.current)!;
-          console.log("--> clear focus", anchorIdx, focusIdx); // TODO: remove
           selectionIndices = selectionIndices.filter(
             (idx) =>
               idx < Math.min(anchorIdx, focusIdx) ||
@@ -437,7 +452,6 @@ export const InstanceTable = ({
         const newSelection = selectionIndices.map(
           (idx) => instancesSorted[idx].id,
         );
-        console.log("NEW:", newSelection); // TODO: remove
 
         // update focus (i.e. last item selected while shift key pressed)
         focus.current = instance.id;
