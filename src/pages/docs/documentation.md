@@ -116,7 +116,7 @@ Note: *If you switch between selection by mutation (e.g. in the heatmap) and sel
 
 #### Table view
 
-Clicking a row will select the corresponding sequence (individual design for design jobs, or single mutant sequence for single mutation scans). For design jobs, all changed positions in the currently selected design will be highlighted as sticks in the 3D structure panel and with little black dots in the heatmap viewer. Hold the shift key while clicking to select multiple designs/mutants.
+Clicking a row will select the corresponding sequence (individual design for design jobs, or single mutant sequence for single mutation scans). For design jobs, all changed positions in the currently selected design will be highlighted as sticks in the 3D structure panel and with little black dots in the heatmap viewer. Hold the shift key while clicking to select a consecutive range of designs/mutants, or hold the command/control key to add or remove individual designs/mutants.
 
 You can sort the order of the table by clicking on the respective column headers, e.g. to display all sequences with high scores or high mutational distance first.
 
@@ -133,7 +133,7 @@ Displayed information depends on whether looking at the results for a design job
 * For single mutation scans, displays the quantitative log-odds score relative to the target sequence for each possible substitution in each position. Each heatmap cell corresponds to exactly one mutant sequence, which will be selected when clicking the cell.
 * For design jobs, each heatmap cell shows the percentage of sequences that contain the particular amino acid in that position. The displayed frequencies are updated live based on the currently active selection of designs from other panels. If clicking a heatmap cell, any sequences with that amino acid in the position will be selected.
 
-Use the shift key for multiple selection. Selecting multiple amino acids in the same position acts as an "or" filter, selecting multiple mutations in different positions acts as an "and" filter. For example, this functionality can be used to select all designs that retain a given combination of active site residues.
+Use the command/control key for multiple selection. Selecting multiple amino acids in the same position acts as an "or" filter, selecting multiple mutations in different positions acts as an "and" filter. For example, this functionality can be used to select all designs that retain a given combination of active site residues.
 
 Clicking on the position label for each column (x-axis) will select all available mutations *but* the WT residue in the target sequence (i.e., all sequences that were changed relative to the target sequence in that position; in the case of fully conserved positions nothing will be selected). If you hold the alt key while clicking, the WT residue will be selected instead.
 
@@ -148,7 +148,7 @@ Selected mutations will be additionally displayed as spheres on top of the carto
 
 Clicking on a position in the structure will select all available non-WT substitutions for that position (nothing will happen if all sequences have the WT amino acid). Hold the alt key to select the WT substitution in that position instead.
 
-Use the shift key for multiple selection across different positions; this will act as an "and" filter just like in the heatmap.
+Use the command/control key for multiple selection across different positions; this will act as an "and" filter just like in the heatmap.
 
 Note that any residues not covered by the target sequence region will be colored in gray.
 
@@ -156,9 +156,9 @@ Note that any residues not covered by the target sequence region will be colored
 
 Displays overall topology of sequence space of designs and natural sequences by projecting designs to 2D space based on their mutual sequence identity, where similar sequences will be placed more closely together. Allows to identify subsets of designs e.g. more similar to each other or to certain subfamilies of the natural protein families.
 
-Use the mouse wheel to zoom the plot, or draw a rectangle while holding the shift key to zoom to that area.
+Use the mouse wheel to zoom the plot, or draw a rectangle while holding the alt key to zoom to that area.
 
-Select individual designs by clicking on the respective data point. Hold the shift key while clicking to select multiple designs, or press the command/meta key while selecting with the mouse to select all points in the drawn rectangle.
+Select individual designs by clicking on the respective data point. Hold the mouse button and draw a rectangle to select multiple designs at once. Press the command/control key while selecting with the mouse to add or remove these points from the current selection.
 
 Individual designs can be colored by different quantitative properties like score or mutation distance to the target sequence. Select the desired property in the dropdown menu in the top right of the panel.
 
@@ -194,4 +194,3 @@ You can specify an existing DNA sequence for your target if available, otherwise
 ### What tool is used to perform codon optimization?
 
 We use the well-established DNA Chisel Python package under the hood to perform codon optimization.
-
