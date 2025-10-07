@@ -8,7 +8,8 @@ import {
 } from "./data.ts";
 import {
   DataInteractionReducerDispatchFunc,
-  DataInteractionReducerState, hasActiveFilter,
+  DataInteractionReducerState,
+  hasActiveFilter,
   useScatterPlotSelectionHandler,
 } from "./reducers.ts";
 import { useComputedColorScheme, useMantineTheme } from "@mantine/core";
@@ -237,7 +238,7 @@ export const SeqSpaceViewer = ({
         layout={{
           plot_bgcolor: bgColor,
           paper_bgcolor: bgColor,
-          dragmode: meta ? "select" : "pan",
+          dragmode: meta || ctrl ? "select" : "pan",
           autosize: true,
           xaxis: {
             showline: false,

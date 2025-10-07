@@ -1,4 +1,4 @@
-import { TableVirtuoso, TableVirtuosoHandle } from "react-virtuoso";
+import { ListRange, TableVirtuoso, TableVirtuosoHandle } from "react-virtuoso";
 import {
   PipelineSpec,
   SingleMutationScanSpec,
@@ -302,14 +302,18 @@ export const InstanceTable = ({
   spec,
   dispatchDataSelection = undefined,
 }: InstanceTableProps) => {
-  // TODO: implement selection of range of designs with shift key (all up or down from last selection)?
-
   // handle for imperative scrolling
   const virtuoso = useRef<TableVirtuosoHandle>(null);
-
   const selectedIds = dataSelection.instances;
-
   const [sortKey, setSortKey] = useState(DEFAULT_SORT_KEY);
+
+  const displayedRange = useRef<ListRange | null>(null);
+
+  // state tracking for multi-select behaviour, cf.
+  // https://stackoverflow.com/questions/2959887/algorithm-for-shift-clicking-items-in-a-collection-to-select-them
+  const anchor = useRef<string | null>(null);
+  const focus = useRef<string | null>(null);
+  console.log("anchor", anchor, "focus", focus); // TODO: remove
 
   // sort instances based on selected key and sorting order
   const instancesSorted = useMemo(() => {
@@ -324,6 +328,13 @@ export const InstanceTable = ({
       return instances.slice().sort((a, b) => sortingFunc(a, b) * sign);
     }
   }, [sortKey, instances]);
+
+  // mapping from instance ID to index in table (after resorting)
+  const instancesToIndex = useMemo(() => {
+    return new Map<string, number>(
+      instancesSorted.map((inst, idx) => [inst.id, idx]),
+    );
+  }, [instancesSorted]);
 
   // track scrolling position as state rather than scrolling directly,
   // as this will miss some scrolls when instance set is updated
@@ -351,19 +362,92 @@ export const InstanceTable = ({
 
       // "indirect scroll" via state to get around missing scrolls when instances update
       // (eg after resetting list)
-      setScrollPos(targetIdx);
+
+      // only call if element not currently visible
+      if (
+        displayedRange.current === null ||
+        targetIdx < displayedRange.current.startIndex ||
+        targetIdx >= displayedRange.current.endIndex
+      ) {
+        setScrollPos(targetIdx);
+      }
     }
   }, [instancesSorted, dataSelection.instances, virtuoso]);
 
   const clickHandler = (event: any, instance: SystemInstanceSpecEnhanced) => {
     if (dispatchDataSelection) {
       const modifiers = extractModifiers(event);
-      dispatchDataSelection({
-        type: "SELECT_INSTANCES",
-        payload: [instance.id],
-        source: "TABLE",
-        modifiers: modifiers,
-      });
+
+      if (
+        modifiers.shift &&
+        dataSelection.instances.size > 0 &&
+        anchor.current !== null
+      ) {
+        // map current selection to index in table
+        let selectionIndices: number[] = [...dataSelection.instances].map(
+          (id) => instancesToIndex.get(id)!,
+        );
+
+        // map anchor index
+        const anchorIdx = instancesToIndex.get(anchor.current)!;
+
+        console.log("SHIFT pressed", instance.id, anchorIdx); // TODO: remove
+
+        // revert previous selection from anchor to focus (note this is inclusive!)
+        if (focus.current !== null) {
+          const focusIdx = instancesToIndex.get(focus.current)!;
+          console.log("--> clear focus", anchorIdx, focusIdx); // TODO: remove
+          selectionIndices = selectionIndices.filter(
+            (idx) =>
+              idx < Math.min(anchorIdx, focusIdx) ||
+              idx > Math.max(anchorIdx, focusIdx),
+          );
+        }
+
+        // add any elements between anchor and new focus
+        const newFocusIdx = instancesToIndex.get(instance.id)!;
+        for (
+          let idx = Math.min(anchorIdx, newFocusIdx);
+          idx <= Math.max(anchorIdx, newFocusIdx);
+          idx++
+        ) {
+          selectionIndices.push(idx);
+        }
+
+        const newSelection = selectionIndices.map(
+            idx => instancesSorted[idx].id
+        )
+        console.log("NEW:", newSelection);  // TODO: remove
+
+        // update focus (i.e. last item selected while shift key pressed)
+        focus.current = instance.id;
+
+        // dispatch selection in its entirety, override other modifiers
+        dispatchDataSelection({
+          type: "SELECT_INSTANCES",
+          payload: newSelection,
+          source: "TABLE",
+          modifiers: {
+            meta: false,
+            control: false,
+            shift: false,
+            alt: false,
+          },
+        });
+      } else {
+        // update anchor and focus to reset multi-select behaviour to now
+        // start from currently selected item
+        anchor.current = instance.id;
+        focus.current = null;
+
+        // dispatch as is, leave multi-select handling for single clicks to reducer
+        dispatchDataSelection({
+          type: "SELECT_INSTANCES",
+          payload: [instance.id],
+          source: "TABLE",
+          modifiers: modifiers,
+        });
+      }
     }
   };
 
@@ -375,6 +459,7 @@ export const InstanceTable = ({
         ref={virtuoso}
         style={{ height: "100%", width: "100%" }}
         data={instancesSorted}
+        rangeChanged={(range) => (displayedRange.current = range)}
         components={{
           Table: (props) => (
             <Table
