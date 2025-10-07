@@ -25,8 +25,8 @@ import {
   IconCheck, IconMail,
 } from "@tabler/icons-react";
 
-const EXAMPLE_DESIGN_JOB_URL = "/results/04e6f544-4eed-40b0-a698-aea8fdd67d1c";
-const EXAMPLE_SCAN_JOB_URL = "/results/961caf35-5c23-49fd-81ef-2d1b6f37e13b";
+const EXAMPLE_DESIGN_JOB_URL = "/results/17159c7d-b639-40de-aa65-991861386adc";
+const EXAMPLE_SCAN_JOB_URL = "/results/969d9fe8-b658-4dd0-9f0c-7826d468f681";
 
 export const StartPage = () => {
   const [_location, navigate] = useLocation();
@@ -94,7 +94,7 @@ export const StartPage = () => {
               // component="a"
               disabled={true}
               size={"lg"}
-              variant="default"
+              variant="light"
               leftSection={<IconBrandGithubFilled size={20} />}
             >
               <Stack gap={0}>
@@ -103,7 +103,7 @@ export const StartPage = () => {
             </Button>
             <Menu shadow="md" width={200} position="bottom-start">
               <Menu.Target>
-                <Button variant={"default"} size={"lg"}>
+                <Button variant={"light"} size={"lg"}>
                   View example results
                 </Button>
               </Menu.Target>
@@ -111,12 +111,12 @@ export const StartPage = () => {
                 <Menu.Item
                   onClick={() => navigateToExample(EXAMPLE_DESIGN_JOB_URL)}
                 >
-                  <Text size={"md"}>Full redesign</Text>
+                  <Text size={"md"}>Sequence sampling</Text>
                 </Menu.Item>
                 <Menu.Item
                   onClick={() => navigateToExample(EXAMPLE_SCAN_JOB_URL)}
                 >
-                  <Text size={"md"}>Mutation scan</Text>
+                  <Text size={"md"}>Single mutation scan</Text>
                 </Menu.Item>
               </Menu.Dropdown>
             </Menu>
