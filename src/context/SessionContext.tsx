@@ -20,6 +20,8 @@ import { useLocation } from "wouter";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "../config.ts";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const PUBLIC_ACCOUNT_EMAIL = "evcouplingsnotifications@gmail.com";
+export const PUBLIC_ACCOUNT_PW = "rQYlsSeMx67eNSDXUpXYUnQxGFBmpPbKVlUqHmS5xIlssqrGkL";
 
 const SessionContext = createContext<{
   session: Session | null;

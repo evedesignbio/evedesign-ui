@@ -17,8 +17,10 @@ import { useHashLocation } from "wouter/use-hash-location";
 import { useViewportSize } from "@mantine/hooks";
 
 const links = [
-  { link: "/", label: "Start", requiresLogin: false },
+  { link: "/", label: "evedesign", requiresLogin: false },
+  { link: "/submit", label: "Submit", requiresLogin: false },
   { link: "/results", label: "Results", requiresLogin: true },
+  { link: "/docs", label: "Docs", requiresLogin: false },
 ];
 
 // TODO: fix mobile nav
@@ -46,7 +48,7 @@ export function NavBar() {
     .map((link) => (
       <Link
         key={link.label}
-        href={link.link}
+        to={link.link}
         className={"link"}
         // className={(active) => (active ? "link" : "link")}
         // data-active={true}  // TODO
@@ -107,7 +109,16 @@ export function NavBar() {
             >
               <IconLogout size={16} />
             </ActionIcon>
-          ) : null}
+          ) : (
+            <>
+              <Link to={"/submit"} className={"link"}>
+                Log in
+              </Link>
+              <Link to={"/auth/sign-up"} className={"link"}>
+                Sign up
+              </Link>
+            </>
+          )}
         </Group>
       </Container>
     </header>
