@@ -5,8 +5,6 @@ import {
   Group,
   Title,
   Text,
-  List,
-  ThemeIcon,
   Stack,
   Menu,
   Anchor,
@@ -22,7 +20,7 @@ import {
   IconBook,
   IconBrandGithubFilled,
   IconBrandSlack,
-  IconCheck, IconMail,
+  IconMail,
 } from "@tabler/icons-react";
 
 const EXAMPLE_DESIGN_JOB_URL = "/results/17159c7d-b639-40de-aa65-991861386adc";
@@ -43,7 +41,7 @@ export const StartPage = () => {
   return (
     <>
       <div style={BACKGROUND_IMAGE_STYLE} />
-      <Container size={"sm"}  mt={"xl"}>
+      <Container size={"sm"} mt={"xl"}>
         <Stack align={"center"}>
           <Title size={50} fw={600}>
             Protein design{" "}
@@ -56,51 +54,53 @@ export const StartPage = () => {
                   "light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-4))",
               }}
             >
-              for the community
+              for everyone
             </span>
+            .
           </Title>
           <Text c={"dimmed"} size={"xl"}>
-            Design your protein sequences end-to-end starting from your target
-            protein, analyze your library interactively and export
-            codon-optimized nucleotide sequences for experimental testing.
+            Design your sequences end-to-end: input your target protein,
+            analyze your generated library interactively, and export codon-optimized DNA
+            sequences for experimental testing. All free and backed by an
+            open-source framework.
           </Text>
 
-          <List
-            mt={30}
-            spacing="sm"
-            size="md"
-            icon={
-              <ThemeIcon size={20} radius="xl">
-                <IconCheck size={12} stroke={1.5} />
-              </ThemeIcon>
-            }
-          >
-            <List.Item>
-              <b>Free design jobs</b> – we provide the computing free of charge
-              for academic/non-commercial research, no registration required.
-            </List.Item>
-            <List.Item>
-              <b>Open source</b> – backed by a unified framework for biosequence
-              design (will be released shortly under a permissive license)
-            </List.Item>
-            <List.Item>
-              <b>Interactive analysis</b> – curate your generated sequence
-              library in the context of 3D structures and natural sequences
-            </List.Item>
-          </List>
+          {/*<List*/}
+          {/*  mt={30}*/}
+          {/*  spacing="sm"*/}
+          {/*  size="md"*/}
+          {/*  icon={*/}
+          {/*    <ThemeIcon size={20} radius="xl">*/}
+          {/*      <IconCheck size={12} stroke={1.5} />*/}
+          {/*    </ThemeIcon>*/}
+          {/*  }*/}
+          {/*>*/}
+          {/*  <List.Item>*/}
+          {/*    <b>Free design jobs</b> – we provide the computing free of charge*/}
+          {/*    for academic/non-commercial research, no registration required.*/}
+          {/*  </List.Item>*/}
+          {/*  <List.Item>*/}
+          {/*    <b>Open source</b> – backed by a unified framework for biosequence*/}
+          {/*    design (will be released shortly under a permissive license)*/}
+          {/*  </List.Item>*/}
+          {/*  <List.Item>*/}
+          {/*    <b>Interactive analysis</b> – curate your generated sequence*/}
+          {/*    library in the context of 3D structures and natural sequences*/}
+          {/*  </List.Item>*/}
+          {/*</List>*/}
 
           <Group mt={30}>
-            <Button
-              // component="a"
-              disabled={true}
-              size={"lg"}
-              variant="light"
-              leftSection={<IconBrandGithubFilled size={20} />}
-            >
-              <Stack gap={0}>
-                GitHub<Text size={"xs"}>(coming soon)</Text>
-              </Stack>
-            </Button>
+            {/*<Button*/}
+            {/*  // component="a"*/}
+            {/*  disabled={true}*/}
+            {/*  size={"lg"}*/}
+            {/*  variant="light"*/}
+            {/*  leftSection={<IconBrandGithubFilled size={20} />}*/}
+            {/*>*/}
+            {/*  <Stack gap={0}>*/}
+            {/*    GitHub<Text size={"xs"}>(coming soon)</Text>*/}
+            {/*  </Stack>*/}
+            {/*</Button>*/}
             <Menu shadow="md" width={200} position="bottom-start">
               <Menu.Target>
                 <Button variant={"light"} size={"lg"}>
@@ -118,9 +118,11 @@ export const StartPage = () => {
                 >
                   <Text size={"md"}>Single mutation scan</Text>
                 </Menu.Item>
+                {/*{session === null ? (*/}
+                {/*  <Menu.Label>(will log in using public access account)</Menu.Label>*/}
+                {/*) : null}*/}
               </Menu.Dropdown>
             </Menu>
-
             <Button
               component={Link}
               to="/submit"
@@ -130,15 +132,23 @@ export const StartPage = () => {
               Create designs
             </Button>
           </Group>
-          <Stack mt={50}>
+          <Stack mt={50} align={"center"}>
             <Group>
               <Button
-                  variant={"subtle"}
-                  component={Link}
-                  to={"/docs"}
-                  leftSection={<IconBook size={20} />}
+                variant={"subtle"}
+                component={Link}
+                to={"/docs"}
+                leftSection={<IconBook size={20} />}
               >
-                Read documentation
+                Documentation
+              </Button>
+              <Button
+                variant={"subtle"}
+                component={Link}
+                to={"/"}
+                leftSection={<IconBrandGithubFilled size={20} />}
+              >
+                GitHub
               </Button>
               <Button
                 variant={"subtle"}
@@ -149,17 +159,15 @@ export const StartPage = () => {
                 target={"_blank"}
                 leftSection={<IconBrandSlack size={20} />}
               >
-                Community slack for support
+                Community Slack
               </Button>
               <Button
-                  variant={"subtle"}
-                  component={"a"}
-                  href={
-                    "mailto:hello@evedesign.bio"
-                  }
-                  leftSection={<IconMail size={20} />}
+                variant={"subtle"}
+                component={"a"}
+                href={"mailto:hello@evedesign.bio"}
+                leftSection={<IconMail size={20} />}
               >
-                Contact the team
+                Email us
               </Button>
             </Group>
             <Text size={"sm"} c={"dimmed"}>
@@ -191,9 +199,9 @@ export const StartPage = () => {
               <Anchor
                 c={"dimmed"}
                 target="_blank"
-                href={"https://synbiohive.org/"}
+                href={"https://simondoelsnitz.com"}
               >
-                Synthetic Biology HIVE
+                Simon d'Oelsnitz Lab
               </Anchor>
             </Text>
           </Stack>
