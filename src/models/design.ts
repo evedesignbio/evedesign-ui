@@ -51,6 +51,7 @@ export interface SystemInstanceSpec {
   score: number | null;
   confidence: number | null;
   metadata: SystemInstanceMetadata | null;
+  id: string | null;
 }
 
 export interface SystemInstanceSpecEnhanced extends SystemInstanceSpec {
@@ -71,6 +72,7 @@ export const systemInstanceFromSystem = (
     score: null,
     confidence: null,
     metadata: null,
+    id: null,
   };
 };
 
