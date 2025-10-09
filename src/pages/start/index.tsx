@@ -59,8 +59,8 @@ export const StartPage = () => {
             .
           </Title>
           <Text c={"dimmed"} size={"xl"}>
-            Design your sequences end-to-end: input your target protein,
-            analyze your generated library interactively, and export codon-optimized DNA
+            Design your sequences end-to-end: input your target protein, analyze
+            your generated library interactively, and export codon-optimized DNA
             sequences for experimental testing. All free and backed by an
             open-source framework.
           </Text>
@@ -132,7 +132,7 @@ export const StartPage = () => {
               Create designs
             </Button>
           </Group>
-          <Stack mt={50} align={"center"}>
+          <Stack mt={50} mb={30} align={"center"}>
             <Group>
               <Button
                 variant={"subtle"}
