@@ -5,13 +5,17 @@ import {
   SingleMutationScanSpec,
 } from "../models/design.ts";
 // import { useJobList } from "./local.ts";
-import {ApiBalanceResult, ApiJobResult, JobListResponse} from "../models/api.ts";
+import {
+  ApiBalanceResult,
+  ApiJobResult,
+  JobListResponse,
+} from "../models/api.ts";
 import { getAccessToken, useSession } from "../context/SessionContext.tsx";
 
 export const getBackendUrl = () =>
   // "https://deboramarkslab--designserver-api-fastapi-app.modal.run/";
   "https://deboramarkslab--designserver-api-nextgen-api.modal.run/";
-  // "http://127.0.0.1:8000/";
+// "http://127.0.0.1:8000/";
 
 export interface SubmissionParams {
   spec: PipelineSpec | SingleMutationScanSpec | ProteinToDnaSpec;
@@ -100,7 +104,7 @@ export const useJobData = (id: string) => {
       query.state.data?.status === "running"
         ? POLLING_INTERVAL
         : false,
-    staleTime: Infinity,
+    // staleTime: Infinity,
     // enabled: token !== null,
   });
 };
@@ -113,32 +117,32 @@ export const useBalance = () => {
   const query = useQuery({
     queryKey: ["balance", token],
     queryFn: (): Promise<ApiBalanceResult> =>
-        fetch(getBackendUrl() + "balance", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        }).then((res) => {
-          if (!res.ok) {
-            throw new Error(`${res.status}`);
-          }
-          return res.json();
-        }),
-    refetchInterval: () => 60 * 1000,  // refresh once per minute
+      fetch(getBackendUrl() + "balance", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      }).then((res) => {
+        if (!res.ok) {
+          throw new Error(`${res.status}`);
+        }
+        return res.json();
+      }),
+    refetchInterval: () => 60 * 1000, // refresh once per minute
     enabled: token !== null,
   });
 
-  if(query.isSuccess) {
+  if (query.isSuccess) {
     return {
       finished: true,
-      balance: query.data?.balance
-    }
+      balance: query.data?.balance,
+    };
   } else {
     return {
       finished: false,
       balance: null,
-    }
+    };
   }
 };
 
@@ -148,20 +152,20 @@ export const useJobList = () => {
 
   // status options: initialized, running, failed, finished, invalid
   return useQuery({
-    queryKey: ["joblist", token],  // include token in case we switch accounts and need to reload
+    queryKey: ["joblist", token], // include token in case we switch accounts and need to reload
     queryFn: (): Promise<JobListResponse> =>
-        fetch(getBackendUrl() + "job", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        }).then((res) => {
-          if (!res.ok) {
-            throw new Error(`${res.status}`);
-          }
-          return res.json();
-        }),
+      fetch(getBackendUrl() + "job", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      }).then((res) => {
+        if (!res.ok) {
+          throw new Error(`${res.status}`);
+        }
+        return res.json();
+      }),
     enabled: token !== null,
   });
 };
