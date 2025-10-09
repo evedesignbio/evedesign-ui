@@ -70,12 +70,12 @@ export const SubmissionPage = () => {
           <LoadingOverlay
             visible={anyLoading}
             zIndex={1000}
-            overlayProps={{ radius: "sm", blur: 2 }}
+            overlayProps={{ radius: "sm", blur: 2, fixed: true }}
             loaderProps={{
               children: (
-                <Stack align="center">
+                <Stack align="center" m={"lg"} justify={"center"}>
                   <Loader type="dots" size="xl" />
-                  <Text>
+                  <Text ta={"center"}>
                     Retrieving evolutionary sequences and 3D structures
                   </Text>
                 </Stack>

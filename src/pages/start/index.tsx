@@ -23,7 +23,7 @@ import {
   IconMail,
 } from "@tabler/icons-react";
 
-const EXAMPLE_DESIGN_JOB_URL = "/results/17159c7d-b639-40de-aa65-991861386adc";
+const EXAMPLE_DESIGN_JOB_URL = "/results/a25685df-6bd6-4272-a715-1ee5b1b47434";
 const EXAMPLE_SCAN_JOB_URL = "/results/969d9fe8-b658-4dd0-9f0c-7826d468f681";
 
 export const StartPage = () => {
@@ -59,8 +59,8 @@ export const StartPage = () => {
             .
           </Title>
           <Text c={"dimmed"} size={"xl"}>
-            Design your sequences end-to-end: input your target protein,
-            analyze your generated library interactively, and export codon-optimized DNA
+            Design your sequences end-to-end: input your target protein, analyze
+            your generated library interactively, and export codon-optimized DNA
             sequences for experimental testing. All free and backed by an
             open-source framework.
           </Text>
@@ -132,7 +132,7 @@ export const StartPage = () => {
               Create designs
             </Button>
           </Group>
-          <Stack mt={50} align={"center"}>
+          <Stack mt={50} mb={30} align={"center"}>
             <Group>
               <Button
                 variant={"subtle"}

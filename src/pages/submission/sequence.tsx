@@ -213,6 +213,7 @@ export const SequenceInput = ({ setTargetSeq }: SequenceInputProps) => {
           <Button
             variant="filled"
             size="md"
+            mb={"lg"}
             disabled={regionError !== null}
             onClick={() => {
               setTargetSeq({ seq: seq, start: regionStart!, end: regionEnd! });
