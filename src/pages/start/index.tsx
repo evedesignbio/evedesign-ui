@@ -23,7 +23,7 @@ import {
   IconMail,
 } from "@tabler/icons-react";
 
-const EXAMPLE_DESIGN_JOB_URL = "/results/17159c7d-b639-40de-aa65-991861386adc";
+const EXAMPLE_DESIGN_JOB_URL = "/results/a25685df-6bd6-4272-a715-1ee5b1b47434";
 const EXAMPLE_SCAN_JOB_URL = "/results/969d9fe8-b658-4dd0-9f0c-7826d468f681";
 
 export const StartPage = () => {
