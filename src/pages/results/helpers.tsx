@@ -213,6 +213,7 @@ export const useDownloadButton = (
       const dnaResult = results as ProteinToDnaApiResult;
       const upstream = dnaResult.spec.args.upstream_dna;
       const downstream = dnaResult.spec.args.downstream_dna;
+      const instances = dnaResult.spec.args.system_instances;
 
       if (format === "json") {
         dataOut = JSON.stringify(dnaResult.dna_sequences);
@@ -223,7 +224,7 @@ export const useDownloadButton = (
               throw new Error(
                 "DNA sequence does not translate into AA sequence, this should never happen",
               );
-            return `${index + 1},${upstream + x.dna + downstream},${x.rep},${x.score?.toFixed(SCORE_NUM_DIGITS)}`;
+            return `${index === 0 && instances[index].id === null ? "target" : instances[index].id},${upstream + x.dna + downstream},${x.rep},${x.score?.toFixed(SCORE_NUM_DIGITS)}`;
           })
           .join("\n");
         dataOut = "id,dna_seq,aa_seq,codon_optimization_score\n" + dataOut;
