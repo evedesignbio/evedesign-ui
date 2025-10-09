@@ -2,8 +2,13 @@
 import {
   ActionIcon,
   Badge,
+  Burger,
+  Button,
   Container,
+  Divider,
+  Drawer,
   Group,
+  ScrollArea,
   useComputedColorScheme,
 } from "@mantine/core";
 // import { useDisclosure } from "@mantine/hooks";
@@ -14,7 +19,7 @@ import { IconLogout, IconSun, IconMoon } from "@tabler/icons-react";
 import { useMantineColorScheme } from "@mantine/core";
 import { useBalance } from "../../api/backend.ts";
 import { useHashLocation } from "wouter/use-hash-location";
-import { useViewportSize } from "@mantine/hooks";
+import { useDisclosure, useViewportSize } from "@mantine/hooks";
 
 const links = [
   { link: "/", label: "evedesign", requiresLogin: false },
@@ -29,6 +34,8 @@ export function NavBar() {
   const { width: viewportWidth } = useViewportSize();
   // const [opened, { toggle }] = useDisclosure(false);
   // const [active, setActive] = useState(links[0].link);
+  const [drawerOpened, { toggle: toggleDrawer, close: closeDrawer }] =
+    useDisclosure(false);
 
   const { session } = useSession();
   const { toggleColorScheme } = useMantineColorScheme();
@@ -65,6 +72,7 @@ export function NavBar() {
             hashNavigate("/");
             e.preventDefault();
           }
+          closeDrawer();
         }}
       >
         {link.label}
@@ -85,8 +93,10 @@ export function NavBar() {
   return (
     <header className="header">
       <Container fluid className="inner">
-        <Group gap={5}>{items}</Group>
-        {/*<Burger opened={opened} onClick={toggle} hiddenFrom="xs" size="sm" />*/}
+        <Burger opened={drawerOpened} onClick={toggleDrawer} hiddenFrom="sm" />
+        <Group gap={5} visibleFrom={"sm"}>
+          {items}
+        </Group>
         <Group gap={1}>
           {balanceBadge}
           <ActionIcon
@@ -102,6 +112,7 @@ export function NavBar() {
           </ActionIcon>
           {session ? (
             <ActionIcon
+              visibleFrom={"sm"}
               variant="subtle"
               color={"gray"}
               onClick={signOut}
@@ -110,16 +121,55 @@ export function NavBar() {
               <IconLogout size={16} />
             </ActionIcon>
           ) : (
-            <>
+            <Group visibleFrom={"sm"} gap={0}>
               <Link to={"/submit"} className={"link"}>
                 Log in
               </Link>
               <Link to={"/auth/sign-up"} className={"link"}>
                 Sign up
               </Link>
-            </>
+            </Group>
           )}
         </Group>
+        <Drawer
+          opened={drawerOpened}
+          onClose={closeDrawer}
+          size="100%"
+          padding="md"
+          title={"Navigation"}
+          hiddenFrom="sm"
+          zIndex={1000000}
+        >
+          <ScrollArea h="calc(100vh - 80px)" mx="-md">
+            <Divider />
+            {items}
+            <Divider my="sm" />
+            <Group justify="center" grow pb="xl" px={"sm"}>
+              {session ? (
+                <Button onClick={signOut}>Log out</Button>
+              ) : (
+                <>
+                  <Button
+                    component={Link}
+                    to={"/submit"}
+                    onClick={closeDrawer}
+                    variant={"outline"}
+                  >
+                    Log in
+                  </Button>
+                  <Button
+                    component={Link}
+                    to={"/auth/sign-up"}
+                    onClick={closeDrawer}
+                    variant={"filled"}
+                  >
+                    Sign up
+                  </Button>
+                </>
+              )}
+            </Group>
+          </ScrollArea>
+        </Drawer>
       </Container>
     </header>
   );
