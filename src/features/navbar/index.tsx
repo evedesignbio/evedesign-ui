@@ -28,9 +28,7 @@ const links = [
   { link: "/docs", label: "Docs", requiresLogin: false },
 ];
 
-// TODO: fix mobile nav
-// TODO: fix centered
-export function NavBar() {
+export const NavBar = () => {
   const { width: viewportWidth } = useViewportSize();
   // const [opened, { toggle }] = useDisclosure(false);
   // const [active, setActive] = useState(links[0].link);
@@ -93,7 +91,13 @@ export function NavBar() {
   return (
     <header className="header">
       <Container fluid className="inner">
-        <Burger opened={drawerOpened} onClick={toggleDrawer} hiddenFrom="sm" />
+        <Burger
+          opened={drawerOpened}
+          onClick={toggleDrawer}
+          size={"sm"}
+          hiddenFrom="sm"
+          aria-label="Toggle navigation"
+        />
         <Group gap={5} visibleFrom={"sm"}>
           {items}
         </Group>
@@ -173,4 +177,4 @@ export function NavBar() {
       </Container>
     </header>
   );
-}
+};
