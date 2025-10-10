@@ -140,17 +140,19 @@ export const NavBar = () => {
           onClose={closeDrawer}
           size="100%"
           padding="md"
-          title={"Navigation"}
+          title={null}
           hiddenFrom="sm"
           zIndex={1000000}
         >
-          <ScrollArea h="calc(100vh - 80px)" mx="-md">
+          <ScrollArea h="calc(100dvh - 100px)" mx="-md">
             <Divider />
             {items}
             <Divider my="sm" />
             <Group justify="center" grow pb="xl" px={"sm"}>
               {session ? (
-                <Button onClick={signOut}>Log out</Button>
+                <Button onClick={() => signOut().then(closeDrawer)}>
+                  Log out
+                </Button>
               ) : (
                 <>
                   <Button

@@ -89,7 +89,7 @@ export const StartPage = () => {
           {/*  </List.Item>*/}
           {/*</List>*/}
 
-          <Group mt={30}>
+          <Group mt={30} align={"center"} justify={"center"}>
             {/*<Button*/}
             {/*  // component="a"*/}
             {/*  disabled={true}*/}
@@ -133,7 +133,7 @@ export const StartPage = () => {
             </Button>
           </Group>
           <Stack mt={50} mb={30} align={"center"}>
-            <Group>
+            <Group align={"center"} justify={"center"}>
               <Button
                 variant={"subtle"}
                 component={Link}
