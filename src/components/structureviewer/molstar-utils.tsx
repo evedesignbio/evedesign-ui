@@ -4,6 +4,7 @@
 import { OrderedSet } from "molstar/lib/mol-data/int";
 import { Loci } from "molstar/lib/mol-model/loci";
 import {
+  ElementIndex,
   Structure,
   StructureElement,
   StructureProperties,
@@ -122,6 +123,7 @@ export type AtomInfo = {
   secondaryStructureTypeMapped: SecondaryStructureTypeCoarse;
   isResidue: boolean;
   isWater: boolean;
+  otherAtomsInResidue?: string[];
 };
 
 export type MolstarEventHandlerArgs = {
@@ -376,12 +378,23 @@ export const extractSecondaryStructure = (structure: SO.Molecule.Structure) => {
         segs.offsets[current.index],
       );
 
+      // iterate all atoms for current residue, and record their type
+      // (e.g. to skip incomplete residues elsewhere)
+      const availableAtoms: string[] = [];
+      for (let i = current.start; i < current.end; i++) {
+        const curAtom = describeAtom(
+          StructureElement.Location.create(structure.data, unit, i as ElementIndex),
+        );
+        availableAtoms.push(curAtom.atomName);
+      }
+
       // const secStruc = SecondaryStructureProvider.get(l.structure).value?.get(
       //   l.unit.invariantId
       // );
       // console.log(secStruc);
       // map location information
       const lm = describeAtom(l);
+      lm.otherAtomsInResidue = availableAtoms;
       secStructElements.push(lm);
 
       // const sse = StructureProperties.residue.secondary_structure_type(l);
