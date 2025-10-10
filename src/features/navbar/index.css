@@ -38,9 +38,10 @@
   }
 
   @media (max-width: 30em) {
-    height: 42px;
+    height: 50px;
     width: 100%;
     padding-left: 16px;
+    font-size: var(--mantine-font-size-md);
   }
 }
 
