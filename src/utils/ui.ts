@@ -1,6 +1,6 @@
 import { useViewportSize } from "@mantine/hooks";
 import imgUrl from "../assets/background_image.jpg";
-import {CSSProperties} from "react";
+import { CSSProperties } from "react";
 
 export const LARGE_SCREEN_MIN_WIDTH = 800;
 
@@ -18,16 +18,15 @@ export const useViewportProperties = () => {
 };
 
 export const BACKGROUND_IMAGE_STYLE = {
-  position: "absolute",
-      top: 55,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundImage: `url(${imgUrl})`,
-    opacity: 0.2,
-    backgroundAttachment: "fixed",
-    backgroundPosition: "center",
-    backgroundRepeat: "no-repeat",
-    backgroundSize: "cover",
-    zIndex: -1,
+  position: "fixed",
+  top: 0,
+  height: "100vh",
+  width: "100vw",
+  backgroundImage: `url(${imgUrl})`,
+  opacity: 0.2,
+  backgroundAttachment: "fixed",
+  backgroundPosition: "center",
+  backgroundRepeat: "no-repeat",
+  backgroundSize: "cover",
+  zIndex: -1,
 } as CSSProperties;
