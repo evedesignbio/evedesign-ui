@@ -94,6 +94,7 @@ export interface StructurePanelProps {
     dispatch: StructureDispatchFunc,
     useFullStructureModel: boolean,
     useStructureAssembly: boolean,
+    firstIndex: number,
   ) => ReactNode;
 }
 
@@ -222,6 +223,7 @@ export const StructurePanel = ({
             dispatchStructureSelection,
             useFullStructureModel,
             useStructureAssembly,
+            firstIndex,
           )
         : undefined,
     [structureHitsSorted, structureSelection, dispatchStructureSelection],
