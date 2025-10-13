@@ -1,5 +1,5 @@
 import { StructureAlignment } from "../../models/structure.ts";
-import { GAP } from "../../utils/bio.ts";
+import { FOLDSEEK_THREE_TO_ONE, GAP } from "../../utils/bio.ts";
 import {
   AtomInfo,
   extractSecondaryStructure,
@@ -11,7 +11,6 @@ import {
   SelectedStructureMap,
   StructurePosition,
 } from "./reducers.ts";
-import { getProteinOneLetterCode } from "molstar/lib/mol-model/sequence/constants";
 import { ColorCallback } from "../../components/structureviewer/molstar-color.tsx";
 import { Color } from "molstar/lib/mol-util/color";
 import { PositionColorCallback } from "../../utils/colormap.ts";
@@ -196,6 +195,11 @@ export const extractMappings = (
         return;
       }
 
+      // skip residues without CA atom, these won't be present in FoldSeek output
+      if (r.otherAtomsInResidue && !r.otherAtomsInResidue.includes("CA")) {
+        return;
+      }
+
       if (!chainModelMap.has(r.labelAsymId)) {
         chainModelMap.set(r.labelAsymId, r.modelId);
       }
@@ -214,11 +218,13 @@ export const extractMappings = (
 
     // create mapping from one-letter code AA sequence to chain IDs,
     // this will be used for sequence-based lookup to find all chains matching the FoldSeek hit
-    // (this avoids any ambiguity whether authAsymId or labelAsymId is used, which can be tricky for assemblies)
+    // (this avoids any ambiguity whether authAsymId or labelAsymId is used, which can be tricky for assemblies);
+
+    // note we have to use Gemmi-specific mapping used in FoldSeek to produce identical one-letter sequences
     const seqToChainId = new Map<string, string[]>();
     chainMap.forEach((value, key) => {
       const seqMerged = value
-        .map((pos) => getProteinOneLetterCode(pos.labelCompId))
+        .map((pos) => FOLDSEEK_THREE_TO_ONE.get(pos.labelCompId) || "X")
         .join("");
 
       if (!seqToChainId.has(seqMerged)) {

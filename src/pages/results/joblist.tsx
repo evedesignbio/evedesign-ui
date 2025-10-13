@@ -12,7 +12,12 @@ import { useViewportProperties } from "../../utils/ui.ts";
 
 export const JobListPage = () => {
   const qJobList = useJobList();
-  const { isDesktop } = useViewportProperties();
+  const { isDesktop, screenSize } = useViewportProperties();
+
+  // render nothing if viewport doesn't have size to avoid flickering between mobile/desktop views
+  if (screenSize.height === 0 && screenSize.width === 0) {
+    return;
+  }
 
   if (qJobList.isPending) {
     return <LoadingView />;

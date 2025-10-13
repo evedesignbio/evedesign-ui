@@ -129,9 +129,9 @@ export const NavBar = () => {
               <Link to={"/submit"} className={"link"}>
                 Log in
               </Link>
-              <Link to={"/auth/sign-up"} className={"link"}>
-                Sign up
-              </Link>
+              {/*<Link to={"/auth/sign-up"} className={"link"}>*/}
+              {/*  Sign up*/}
+              {/*</Link>*/}
             </Group>
           )}
         </Group>
@@ -159,18 +159,18 @@ export const NavBar = () => {
                     component={Link}
                     to={"/submit"}
                     onClick={closeDrawer}
-                    variant={"outline"}
+                    variant={"filled"}
                   >
                     Log in
                   </Button>
-                  <Button
-                    component={Link}
-                    to={"/auth/sign-up"}
-                    onClick={closeDrawer}
-                    variant={"filled"}
-                  >
-                    Sign up
-                  </Button>
+                  {/*<Button*/}
+                  {/*  component={Link}*/}
+                  {/*  to={"/auth/sign-up"}*/}
+                  {/*  onClick={closeDrawer}*/}
+                  {/*  variant={"filled"}*/}
+                  {/*>*/}
+                  {/*  Sign up*/}
+                  {/*</Button>*/}
                 </>
               )}
             </Group>
