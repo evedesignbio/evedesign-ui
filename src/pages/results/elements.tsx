@@ -838,6 +838,7 @@ export const renderStructureSelectionMenu = (
   dispatch: StructureDispatchFunc,
   useFullStructureModel: boolean,
   useStructureAssembly: boolean,
+  firstIndex: number
 ) => {
   const idToPayload = new Map<string, StructureReducerAction>();
 
@@ -851,16 +852,16 @@ export const renderStructureSelectionMenu = (
     const id = structureSelectionId(p.payload.selectedStructures[0]);
     idToPayload.set(id, p);
 
-    const [idNoRange, range] = id
-      .replace("_assembly", "")
-      .replace("_full", "")
-      .split("_");
+    const [idNoRange, chainRange, _] = id.split(":");
+    const chain = chainRange.split("_")[0];
+    const range = `${firstIndex + s.qStartPos - 1}-${firstIndex + s.qEndPos - 1}`;
+
     const percentIdentity = ((1.0 - s.missmatches / s.alnLength) * 100).toFixed(
       0,
     );
 
     return {
-      label: `${idNoRange} (${range}, ${percentIdentity}% identity)`,
+      label: `${idNoRange}:${chain} (${range}, ${percentIdentity}% identity)`,
       value: id,
     };
   });
