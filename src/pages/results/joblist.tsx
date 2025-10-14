@@ -9,10 +9,26 @@ import {
 } from "./helpers.tsx";
 import { JobSummary } from "../../models/api.ts";
 import { useViewportProperties } from "../../utils/ui.ts";
+import {
+  PUBLIC_ACCOUNT_EMAIL,
+  useSession,
+} from "../../context/SessionContext.tsx";
 
 export const JobListPage = () => {
   const qJobList = useJobList();
   const { isDesktop, screenSize } = useViewportProperties();
+  const { session } = useSession();
+
+  if (session && session.user.email === PUBLIC_ACCOUNT_EMAIL) {
+    return (
+      <BoxedLayout title={"Not available for public access mode"}>
+        <Text>
+          Please create a personal account to see a list of all previously
+          submitted jobs and their status.
+        </Text>
+      </BoxedLayout>
+    );
+  }
 
   // render nothing if viewport doesn't have size to avoid flickering between mobile/desktop views
   if (screenSize.height === 0 && screenSize.width === 0) {

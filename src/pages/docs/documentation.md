@@ -35,9 +35,13 @@ If you have spare GPU compute to donate to this project, please reach out to us\
 
 If you want to use the server commercially, please set up your own backend instance using the open source framework on your own infrastructure (to be released very soon).
 
+### Will my free compute time be refilled?
+
+Yes, we will refill your free compute time on a monthly basis. We aim to distribute the total compute resources available to us as fairly as possible across all of our users.
+
 ### Do I need to create an account?
 
-No, you can use the server in public access mode without registration. This is assuming fair usage by everyone \- we reserve to require personal account registration in the future if we detect misuse. Creating your own account does offer private results and your own compute budget on top, so please consider signing up nevertheless.
+No, you can use the server in public access mode without registration. This is assuming fair usage by everyone \- we reserve to require personal account registration in the future if we detect misuse. Creating your own account does offer a summary of all your previous jobs and your own compute budget on top, so please consider signing up nevertheless.
 
 ### Is the code open source?
 
