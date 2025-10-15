@@ -1,4 +1,4 @@
-import { Anchor, Badge, Stack, Table, Text } from "@mantine/core";
+import { Alert, Anchor, Badge, Stack, Table, Text } from "@mantine/core";
 import { Link } from "wouter";
 import { useJobList } from "../../api/backend.ts";
 import {
@@ -9,10 +9,16 @@ import {
 } from "./helpers.tsx";
 import { JobSummary } from "../../models/api.ts";
 import { useViewportProperties } from "../../utils/ui.ts";
+import {
+  PUBLIC_ACCOUNT_EMAIL,
+  useSession,
+} from "../../context/SessionContext.tsx";
+import { IconInfoCircle } from "@tabler/icons-react";
 
 export const JobListPage = () => {
   const qJobList = useJobList();
   const { isDesktop, screenSize } = useViewportProperties();
+  const { session } = useSession();
 
   // render nothing if viewport doesn't have size to avoid flickering between mobile/desktop views
   if (screenSize.height === 0 && screenSize.width === 0) {
@@ -98,6 +104,19 @@ export const JobListPage = () => {
     </>
   );
 
+  const noResultsNotice =
+    session && session.user.email === PUBLIC_ACCOUNT_EMAIL ? (
+      <Alert
+        variant="light"
+        color="blue"
+        title="Not available in public access mode"
+        icon={<IconInfoCircle />}
+      >
+        Please create your own account to see a list of all previously submitted
+        jobs and their status.
+      </Alert>
+    ) : null;
+
   return (
     <BoxedLayout title={"Job results"} size={"md"}>
       <Table>
@@ -106,6 +125,7 @@ export const JobListPage = () => {
         </Table.Thead>
         <Table.Tbody>{rows}</Table.Tbody>
       </Table>
+      {noResultsNotice}
     </BoxedLayout>
   );
 };

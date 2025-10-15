@@ -83,8 +83,8 @@ export const NavBar = () => {
       variant={"dot"}
       color={balance.balance !== null && balance.balance > 0 ? "green" : "red"}
     >
-      {viewportWidth > 500 ? "Credit: " : ""}
-      {balance.balance !== null ? `$${balance.balance.toFixed(2)}` : "N/A"}
+      {viewportWidth > 500 ? "Free compute: " : ""}
+      {balance.balance !== null ? `${balance.balance.toFixed(0)} MINs` : "N/A"}
     </Badge>
   ) : null;
 
