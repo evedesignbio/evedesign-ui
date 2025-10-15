@@ -109,7 +109,7 @@ export const JobListPage = () => {
       <Alert
         variant="light"
         color="blue"
-        title="Not available in public access mode for data privacy"
+        title="Not available in public access mode"
         icon={<IconInfoCircle />}
       >
         Please create your own account to see a list of all previously submitted
