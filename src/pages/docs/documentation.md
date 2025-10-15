@@ -39,6 +39,10 @@ If you want to use the server commercially, please set up your own backend insta
 
 Yes, we will refill your free compute time on a monthly basis. We aim to distribute the total compute resources available to us as fairly as possible across all of our users.
 
+### Is there a limit on job duration?
+
+Design jobs are limited to a maximum duration of 5 hours and codon optimization jobs to 12 hours; any job will be terminated automatically if it takes longer than that to finish. In practice, this limitation will primarily affect design jobs based on Gibbs sampling. Limit your number of designs, the number of Gibbs sweeps, or the length of the modelled region to cut down runtimes.
+
 ### Do I need to create an account?
 
 No, you can use the server in public access mode without registration. This is assuming fair usage by everyone \- we reserve to require personal account registration in the future if we detect misuse. Creating your own account does offer a summary of all your previous jobs and your own compute budget on top, so please consider signing up nevertheless.
@@ -198,3 +202,4 @@ You can specify an existing DNA sequence for your target if available, otherwise
 ### What tool is used to perform codon optimization?
 
 We use the well-established DNA Chisel Python package under the hood to perform codon optimization.
+
