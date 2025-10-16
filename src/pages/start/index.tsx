@@ -22,6 +22,7 @@ import {
   IconBrandSlack,
   IconMail,
 } from "@tabler/icons-react";
+import { LegalLinks } from "../legal";
 
 const EXAMPLE_DESIGN_JOB_URL = "/results/a25685df-6bd6-4272-a715-1ee5b1b47434";
 const EXAMPLE_SCAN_JOB_URL = "/results/969d9fe8-b658-4dd0-9f0c-7826d468f681";
@@ -118,9 +119,11 @@ export const StartPage = () => {
                 >
                   <Text size={"md"}>Single mutation scan</Text>
                 </Menu.Item>
-                {/*{session === null ? (*/}
-                {/*  <Menu.Label>(will log in using public access account)</Menu.Label>*/}
-                {/*) : null}*/}
+                {session === null ? (
+                  <Menu.Label>
+                    You will be logged in with public access account
+                  </Menu.Label>
+                ) : null}
               </Menu.Dropdown>
             </Menu>
             <Button
@@ -203,6 +206,9 @@ export const StartPage = () => {
               >
                 Simon d'Oelsnitz Lab
               </Anchor>
+            </Text>
+            <Text c={"dimmed"} size={"sm"}>
+              By using this service you agree to our <LegalLinks />
             </Text>
           </Stack>
         </Stack>
