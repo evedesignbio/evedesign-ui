@@ -10,12 +10,12 @@ This Privacy Policy applies to all information collected through our Service, as
 
 Please read this Privacy Policy carefully as it will help you understand what we do with the information we collect.
 
-## 2. Information We Collect and How We Use It
+## 2. Personal Information We Collect and How We Use It
 
 We collect the following different types of personal information to provide and improve our Service to you:
 
-- Email address: Used for user identification by account registration and login, and to contact you in matters directly related to the Service, including but not limited to support, questions, and announcements
-- IP address, time and date of your visit: Used to monitor, distribute usage and to detect and prevent technical issues or misuse of our Service
+- Email address: Used for user account registration and login, and to contact you in matters related to the Service, including but not limited to notifications, support, questions, and announcements
+- IP address, time and date of your visit: Used to serve content, monitor and distribute usage and to detect and prevent technical issues or misuse of our Service
 
 ## 3. Legal Basis for Processing Personal Data Under GDPR
 
@@ -60,14 +60,14 @@ evedesign may disclose your Personal Data in the good faith belief that such act
 
 ## 7. Third-Party Disclosure
 
-### 7.1 Personal data processing
+### 7.1 Personal Data Processing
 We may use third-party cloud service providers to host our Service and store your personal data.
 
 - **Amazon Web Services (AWS)**: Their Privacy Policy can be viewed at <https://aws.amazon.com/privacy/>
 - **Supabase**: Their Privacy Policy can be viewed at <https://supabase.com/privacy>
 - **Modal Labs**: Their Privacy Policy can be viewed at <https://modal.com/legal/privacy-policy>
 
-### 7.2 Third-party APIs
+### 7.2 Third-Party APIs
 Our Service connects to third-party APIs to retrieve information relevant for performing computations and analyzing results:
 
 - RCSB (retrieval of 3D structure coordinates based on your target sequence): https://www.rcsb.org/pages/privacy-policy
