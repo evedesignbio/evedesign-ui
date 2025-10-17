@@ -53,6 +53,7 @@ const CONTRIBUTORS = shuffleArray([
   "Milot Mirdita",
   "Thomas Hopf",
   "Debora Marks",
+  "Chris Sander",
 ]);
 
 const GROUPS = [
