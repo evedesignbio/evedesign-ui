@@ -8,6 +8,8 @@ import {
   Stack,
   Menu,
   Anchor,
+  Image,
+  Tooltip,
 } from "@mantine/core";
 import { Link, useLocation } from "wouter";
 import {
@@ -22,9 +24,59 @@ import {
   IconBrandSlack,
   IconMail,
 } from "@tabler/icons-react";
+import { LegalLinks } from "../legal";
+import LogoMarks from "../../assets/marks_lab.png";
+import LogoHopf from "../../assets/hopf_consulting.png";
+import LogoDOelsnitz from "../../assets/doelsnitz_lab.png";
+import LogoSteinegger from "../../assets/steinegger_lab.png";
 
 const EXAMPLE_DESIGN_JOB_URL = "/results/a25685df-6bd6-4272-a715-1ee5b1b47434";
 const EXAMPLE_SCAN_JOB_URL = "/results/969d9fe8-b658-4dd0-9f0c-7826d468f681";
+
+// https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
+const shuffleArray = (array: any[]) => {
+  const arrayShuffled = [...array];
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arrayShuffled[i], arrayShuffled[j]] = [arrayShuffled[j], arrayShuffled[i]];
+  }
+  return arrayShuffled;
+};
+
+// shuffle once (not per rerender)
+const CONTRIBUTORS = shuffleArray([
+  "Simon d'Oelsnitz",
+  "Martin Steinegger",
+  "Artem Gazizov",
+  "Sergio Garcia Busto",
+  "SunJae Lee",
+  "Milot Mirdita",
+  "Thomas Hopf",
+  "Debora Marks",
+]);
+
+const GROUPS = [
+  {
+    title: "Debora Marks Lab",
+    logo: LogoMarks,
+    link: "https://deboramarkslab.com",
+  },
+  {
+    title: "Thomas Hopf Scientific Consulting",
+    logo: LogoHopf,
+    link: "https://thomashopf.com",
+  },
+  {
+    title: "Martin Steinegger Lab",
+    logo: LogoSteinegger,
+    link: "https://steineggerlab.com",
+  },
+  {
+    title: "Simon d'Oelsnitz Lab",
+    logo: LogoDOelsnitz,
+    link: "https://simondoelsnitz.com",
+  },
+];
 
 export const StartPage = () => {
   const [_location, navigate] = useLocation();
@@ -44,7 +96,7 @@ export const StartPage = () => {
       <Container size={"sm"} mt={"xl"}>
         <Stack align={"center"}>
           <Title size={50} fw={600}>
-            Protein design{" "}
+            AI protein design{" "}
             <span
               style={{
                 // backgroundColor: "var(--mantine-color-blue-light)",
@@ -118,9 +170,11 @@ export const StartPage = () => {
                 >
                   <Text size={"md"}>Single mutation scan</Text>
                 </Menu.Item>
-                {/*{session === null ? (*/}
-                {/*  <Menu.Label>(will log in using public access account)</Menu.Label>*/}
-                {/*) : null}*/}
+                {session === null ? (
+                  <Menu.Label>
+                    You will be logged in with public access account
+                  </Menu.Label>
+                ) : null}
               </Menu.Dropdown>
             </Menu>
             <Button
@@ -170,39 +224,31 @@ export const StartPage = () => {
                 Email us
               </Button>
             </Group>
-            <Text size={"sm"} c={"dimmed"}>
-              Developed by{" "}
-              <Anchor
-                c={"dimmed"}
-                target="_blank"
-                href={"https://deboramarkslab.com"}
-              >
-                Debora Marks Lab
-              </Anchor>
-              ,{" "}
-              <Anchor
-                c={"dimmed"}
-                target="_blank"
-                href={"https://thomashopf.com"}
-              >
-                Thomas Hopf Scientific Consulting
-              </Anchor>
-              {", "}
-              <Anchor
-                c={"dimmed"}
-                target="_blank"
-                href={"https://steineggerlab.com/"}
-              >
-                Martin Steinegger Lab
-              </Anchor>
-              {", and "}
-              <Anchor
-                c={"dimmed"}
-                target="_blank"
-                href={"https://simondoelsnitz.com"}
-              >
-                Simon d'Oelsnitz Lab
-              </Anchor>
+
+            <Text c={"dimmed"} size={"sm"}>
+              By using this service you agree to our <LegalLinks />
+            </Text>
+
+            <Group mt={30}>
+              {GROUPS.map((g, i) => (
+                <Tooltip label={g.title} key={i} offset={10}>
+                  <Anchor target="_blank" href={g.link}>
+                    <Image
+                      src={g.logo}
+                      style={{
+                        filter:
+                          "grayscale(70%) drop-shadow(0px 0px 1px #ffffff)",
+                      }}
+                      h={50}
+                      w={"auto"}
+                      fit={"contain"}
+                    />
+                  </Anchor>
+                </Tooltip>
+              ))}
+            </Group>
+            <Text c={"dimmed"} size={"sm"}>
+              Contributors (in random order): {CONTRIBUTORS.join(", ")}
             </Text>
           </Stack>
         </Stack>

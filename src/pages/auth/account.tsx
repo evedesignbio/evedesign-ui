@@ -5,6 +5,7 @@ import {
   Paper,
   PasswordInput,
   Stack,
+  Text,
   TextInput,
   Title,
 } from "@mantine/core";
@@ -15,6 +16,7 @@ import {
   signUp,
 } from "../../context/SessionContext.tsx";
 import { IconExclamationCircle } from "@tabler/icons-react";
+import { LegalLinks } from "../legal";
 
 interface GenericAccountPageProps {
   title: string;
@@ -116,6 +118,12 @@ export const GenericAccountPage = ({
             onChange={(event) => setPassword(event.currentTarget.value)}
             disabled={loading}
           />
+        ) : null}
+
+        {pageType === "sign-up" ? (
+          <Text c={"dimmed"} size={"sm"} mt={"md"}>
+            By signing up you agree to our <LegalLinks />
+          </Text>
         ) : null}
 
         {error != "" ? (
