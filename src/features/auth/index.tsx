@@ -10,6 +10,7 @@ import {
   Stack,
   TextInput,
   Title,
+  Text,
 } from "@mantine/core";
 import React, { useState } from "react";
 import {
@@ -19,6 +20,7 @@ import {
 } from "../../context/SessionContext.tsx";
 import { IconExclamationCircle } from "@tabler/icons-react";
 import { Link } from "wouter";
+import { LegalLinks } from "../../pages/legal";
 
 interface AuthenticationFormProps {
   title?: string;
@@ -52,6 +54,10 @@ export const AuthenticationForm = ({
     <Container size={"xs"} mt={"xl"}>
       <Stack gap={0}>
         {title ? <Title ta="left">{title}</Title> : null}
+
+        <Text c={"dimmed"} size={"sm"} mt={"md"}>
+          By signing in you agree to our <LegalLinks />
+        </Text>
 
         <Button
           fullWidth

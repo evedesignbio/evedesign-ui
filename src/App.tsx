@@ -15,6 +15,7 @@ import {
 } from "./pages/auth/account.tsx";
 import { DocumentationPage } from "./pages/docs";
 import {StartPage} from "./pages/start";
+import {PrivacyPolicyPage, TermsOfServicePage} from "./pages/legal";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,8 @@ const App = () => {
           <NavBar />
           <Switch>
             <Route path="/" component={StartPage} />
+            <Route path="/terms" component={TermsOfServicePage} />
+            <Route path="/privacy" component={PrivacyPolicyPage} />
             <Route path="/submit" component={SubmissionPage} />
             <Route path="/auth/sign-up" component={SignUpPage} />
             <Route path="/auth/reset-password" component={ResetPasswordPage} />
