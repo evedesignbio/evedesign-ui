@@ -54,6 +54,7 @@ const CONTRIBUTORS = shuffleArray([
   "Thomas Hopf",
   "Debora Marks",
   "Chris Sander",
+  "Jake Reardon",
 ]);
 
 const GROUPS = [
@@ -164,7 +165,7 @@ export const StartPage = () => {
                 <Menu.Item
                   onClick={() => navigateToExample(EXAMPLE_DESIGN_JOB_URL)}
                 >
-                  <Text size={"md"}>Sequence sampling</Text>
+                  <Text size={"md"}>Sequence generation</Text>
                 </Menu.Item>
                 <Menu.Item
                   onClick={() => navigateToExample(EXAMPLE_SCAN_JOB_URL)}
