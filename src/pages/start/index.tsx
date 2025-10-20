@@ -249,7 +249,7 @@ export const StartPage = () => {
                 </Tooltip>
               ))}
             </Group>
-            <Text c={"dimmed"} size={"sm"}>
+            <Text size={"sm"}>
               Contributors (in random order): {CONTRIBUTORS.join(", ")}
             </Text>
           </Stack>
