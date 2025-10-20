@@ -112,7 +112,7 @@ export const StartPage = () => {
             </span>
             .
           </Title>
-          <Text c={"dimmed"} size={"xl"}>
+          <Text size={"xl"}>
             Design your sequences end-to-end: input your target protein, analyze
             your generated library interactively, and export codon-optimized DNA
             sequences for experimental testing. All free and backed by an
@@ -227,7 +227,7 @@ export const StartPage = () => {
               </Button>
             </Group>
 
-            <Text c={"dimmed"} size={"sm"}>
+            <Text size={"sm"}>
               By using this service you agree to our <LegalLinks />
             </Text>
 
