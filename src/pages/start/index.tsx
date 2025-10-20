@@ -170,7 +170,7 @@ export const StartPage = () => {
                 <Menu.Item
                   onClick={() => navigateToExample(EXAMPLE_SCAN_JOB_URL)}
                 >
-                  <Text size={"md"}>Single mutation scan</Text>
+                  <Text size={"md"}>Mutational scanning</Text>
                 </Menu.Item>
                 {session === null ? (
                   <Menu.Label>
