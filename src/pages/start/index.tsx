@@ -54,6 +54,7 @@ const CONTRIBUTORS = shuffleArray([
   "Thomas Hopf",
   "Debora Marks",
   "Chris Sander",
+  "Jake Reardon",
 ]);
 
 const GROUPS = [
@@ -111,7 +112,7 @@ export const StartPage = () => {
             </span>
             .
           </Title>
-          <Text c={"dimmed"} size={"xl"}>
+          <Text size={"xl"}>
             Design your sequences end-to-end: input your target protein, analyze
             your generated library interactively, and export codon-optimized DNA
             sequences for experimental testing. All free and backed by an
@@ -164,12 +165,12 @@ export const StartPage = () => {
                 <Menu.Item
                   onClick={() => navigateToExample(EXAMPLE_DESIGN_JOB_URL)}
                 >
-                  <Text size={"md"}>Sequence sampling</Text>
+                  <Text size={"md"}>Sequence generation</Text>
                 </Menu.Item>
                 <Menu.Item
                   onClick={() => navigateToExample(EXAMPLE_SCAN_JOB_URL)}
                 >
-                  <Text size={"md"}>Single mutation scan</Text>
+                  <Text size={"md"}>Mutational scanning</Text>
                 </Menu.Item>
                 {session === null ? (
                   <Menu.Label>
@@ -226,7 +227,7 @@ export const StartPage = () => {
               </Button>
             </Group>
 
-            <Text c={"dimmed"} size={"sm"}>
+            <Text size={"sm"}>
               By using this service you agree to our <LegalLinks />
             </Text>
 
@@ -248,7 +249,7 @@ export const StartPage = () => {
                 </Tooltip>
               ))}
             </Group>
-            <Text c={"dimmed"} size={"sm"}>
+            <Text size={"sm"}>
               Contributors (in random order): {CONTRIBUTORS.join(", ")}
             </Text>
           </Stack>

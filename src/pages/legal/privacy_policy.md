@@ -63,6 +63,7 @@ evedesign may disclose your Personal Data in the good faith belief that such act
 ### 7.1 Personal Data Processing
 We may use third-party cloud service providers to host our Service and store your personal data.
 
+- **Cloudflare**: Their Data Processing Addendum can be viewed at <https://www.cloudflare.com/en-gb/cloudflare-customer-dpa/>
 - **Amazon Web Services (AWS)**: Their Privacy Policy can be viewed at <https://aws.amazon.com/privacy/>
 - **Supabase**: Their Privacy Policy can be viewed at <https://supabase.com/privacy>
 - **Modal Labs**: Their Privacy Policy can be viewed at <https://modal.com/legal/privacy-policy>
