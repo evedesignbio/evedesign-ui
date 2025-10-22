@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Container, LoadingOverlay, Loader, Stack, Text } from "@mantine/core";
+import {Container, LoadingOverlay, Loader, Stack, Text, useComputedColorScheme} from "@mantine/core";
 import { useMmseqsMsa, useMmseqsSearch } from "../../api/mmseqs.ts";
 import { useFoldseekResult, useFoldseekSearch } from "../../api/foldseek.ts";
 import {
@@ -19,6 +19,10 @@ export const SubmissionPage = () => {
 
   // full target sequenceviewer with selected region as fed back by SequenceInput component
   const [targetSeq, setTargetSeq] = useState<SeqWithRegion | null>(null);
+
+  const computedColorScheme = useComputedColorScheme("light", {
+    getInitialValueInEffect: true,
+  });
 
   // rudimentary navigation back to first submission page
   const [hashLocation, hashNavigate] = useHashLocation();
@@ -104,7 +108,7 @@ export const SubmissionPage = () => {
 
   return (
     <>
-      {targetSeq === null ? <div style={BACKGROUND_IMAGE_STYLE} /> : null}
+      {targetSeq === null ? <div style={BACKGROUND_IMAGE_STYLE(computedColorScheme)} /> : null}
       <Container size="sm" pt="xl">
         <Stack>{render}</Stack>
       </Container>
