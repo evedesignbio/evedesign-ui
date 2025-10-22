@@ -10,6 +10,7 @@ import {
   Anchor,
   Image,
   Tooltip,
+  useComputedColorScheme,
 } from "@mantine/core";
 import { Link, useLocation } from "wouter";
 import {
@@ -23,6 +24,7 @@ import {
   IconBrandGithubFilled,
   IconBrandSlack,
   IconMail,
+  IconUsersGroup,
 } from "@tabler/icons-react";
 import { LegalLinks } from "../legal";
 import LogoMarks from "../../assets/marks_lab.png";
@@ -83,6 +85,9 @@ const GROUPS = [
 export const StartPage = () => {
   const [_location, navigate] = useLocation();
   const { session } = useSession();
+  const computedColorScheme = useComputedColorScheme("light", {
+    getInitialValueInEffect: true,
+  });
 
   const navigateToExample = (url: string) => {
     if (!session) {
@@ -94,7 +99,7 @@ export const StartPage = () => {
 
   return (
     <>
-      <div style={BACKGROUND_IMAGE_STYLE} />
+      <div style={BACKGROUND_IMAGE_STYLE(computedColorScheme)} />
       <Container size={"sm"} mt={"xl"}>
         <Stack align={"center"}>
           <Title size={50} fw={600}>
@@ -252,6 +257,15 @@ export const StartPage = () => {
             <Text size={"sm"}>
               Contributors (in random order): {CONTRIBUTORS.join(", ")}
             </Text>
+            <Button
+              variant={"subtle"}
+              component={"a"}
+              href={"mailto:hello@evedesign.bio"}
+              target={"_blank"}
+              leftSection={<IconUsersGroup size={20} />}
+            >
+              Join the team!
+            </Button>
           </Stack>
         </Stack>
       </Container>

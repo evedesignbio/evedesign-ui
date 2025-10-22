@@ -17,16 +17,18 @@ export const useViewportProperties = () => {
   };
 };
 
-export const BACKGROUND_IMAGE_STYLE = {
-  position: "fixed",
-  top: 0,
-  height: "100vh",
-  width: "100vw",
-  backgroundImage: `url(${imgUrl})`,
-  opacity: 0.2,
-  backgroundAttachment: "fixed",
-  backgroundPosition: "center",
-  backgroundRepeat: "no-repeat",
-  backgroundSize: "cover",
-  zIndex: -1,
-} as CSSProperties;
+export const BACKGROUND_IMAGE_STYLE = (colorScheme: "light" | "dark") => {
+  return {
+    position: "fixed",
+    top: 0,
+    height: "100vh",
+    width: "100vw",
+    backgroundImage: `url(${imgUrl})`,
+    opacity: colorScheme === "dark" ? 0.4 : 0.2,
+    backgroundAttachment: "fixed",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+    backgroundSize: "cover",
+    zIndex: -1,
+  } as CSSProperties;
+};
