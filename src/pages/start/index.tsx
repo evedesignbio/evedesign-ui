@@ -203,14 +203,16 @@ export const StartPage = () => {
               >
                 Documentation
               </Button>
-              <Button
-                variant={"subtle"}
-                component={Link}
-                to={"/"}
-                leftSection={<IconBrandGithubFilled size={20} />}
-              >
-                GitHub
-              </Button>
+              <Tooltip label={"Framework will be released very soon!"}>
+                <Button
+                  variant={"subtle"}
+                  // component={Link}
+                  // to={"/"}
+                  leftSection={<IconBrandGithubFilled size={20} />}
+                >
+                  GitHub
+                </Button>
+              </Tooltip>
               <Button
                 variant={"subtle"}
                 component={"a"}
