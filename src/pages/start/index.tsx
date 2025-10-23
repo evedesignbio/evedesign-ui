@@ -1,4 +1,3 @@
-import { BACKGROUND_IMAGE_STYLE } from "../../utils/ui.ts";
 import {
   Button,
   Container,
@@ -10,7 +9,6 @@ import {
   Anchor,
   Image,
   Tooltip,
-  useComputedColorScheme,
 } from "@mantine/core";
 import { Link, useLocation } from "wouter";
 import {
@@ -31,6 +29,7 @@ import LogoMarks from "../../assets/marks_lab.png";
 import LogoHopf from "../../assets/hopf_consulting.png";
 import LogoDOelsnitz from "../../assets/doelsnitz_lab.png";
 import LogoSteinegger from "../../assets/steinegger_lab.png";
+import {BackgroundImage} from "../../features/misc/background_image.tsx";
 
 const EXAMPLE_DESIGN_JOB_URL = "/results/a25685df-6bd6-4272-a715-1ee5b1b47434";
 const EXAMPLE_SCAN_JOB_URL = "/results/969d9fe8-b658-4dd0-9f0c-7826d468f681";
@@ -85,9 +84,6 @@ const GROUPS = [
 export const StartPage = () => {
   const [_location, navigate] = useLocation();
   const { session } = useSession();
-  const computedColorScheme = useComputedColorScheme("light", {
-    getInitialValueInEffect: true,
-  });
 
   const navigateToExample = (url: string) => {
     if (!session) {
@@ -99,7 +95,7 @@ export const StartPage = () => {
 
   return (
     <>
-      <div style={BACKGROUND_IMAGE_STYLE(computedColorScheme)} />
+      <BackgroundImage />
       <Container size={"sm"} mt={"xl"}>
         <Stack align={"center"}>
           <Title size={50} fw={600}>
@@ -203,14 +199,16 @@ export const StartPage = () => {
               >
                 Documentation
               </Button>
-              <Button
-                variant={"subtle"}
-                component={Link}
-                to={"/"}
-                leftSection={<IconBrandGithubFilled size={20} />}
-              >
-                GitHub
-              </Button>
+              <Tooltip label={"Framework will be released very soon!"}>
+                <Button
+                  variant={"subtle"}
+                  // component={Link}
+                  // to={"/"}
+                  leftSection={<IconBrandGithubFilled size={20} />}
+                >
+                  GitHub
+                </Button>
+              </Tooltip>
               <Button
                 variant={"subtle"}
                 component={"a"}

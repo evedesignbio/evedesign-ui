@@ -8,7 +8,7 @@ import {
   LoadingView,
 } from "./helpers.tsx";
 import { JobSummary } from "../../models/api.ts";
-import { useViewportProperties } from "../../utils/ui.ts";
+import { useViewportProperties } from "../../utils/ui.tsx";
 import {
   PUBLIC_ACCOUNT_EMAIL,
   useSession,

@@ -24,7 +24,7 @@ import {
   LoadingView,
   useDownloadButton,
 } from "./helpers.tsx";
-import { useViewportProperties } from "../../utils/ui.ts";
+import { useViewportProperties } from "../../utils/ui.tsx";
 import { useInstances } from "./data.ts";
 import { useDisclosure } from "@mantine/hooks";
 import { InstanceDownloadMenu } from "./elements.tsx";
