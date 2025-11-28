@@ -98,7 +98,7 @@ export const StartPage = () => {
       <BackgroundImage />
       <Container size={"sm"} mt={"xl"}>
         <Stack align={"center"}>
-          <Title size={50} fw={600}>
+          <Title size={50} fw={600} mt={40}>
             AI protein design{" "}
             <span
               style={{
