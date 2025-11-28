@@ -1,4 +1,5 @@
 import "@mantine/core/styles.css";
+import "@mantine/dropzone/styles.css";
 import { MantineProvider } from "@mantine/core";
 import { Route, Switch } from "wouter";
 import { SubmissionPage } from "./pages/submission";
@@ -14,8 +15,8 @@ import {
   SignUpPage,
 } from "./pages/auth/account.tsx";
 import { DocumentationPage } from "./pages/docs";
-import {StartPage} from "./pages/start";
-import {PrivacyPolicyPage, TermsOfServicePage} from "./pages/legal";
+import { StartPage } from "./pages/start";
+import { PrivacyPolicyPage, TermsOfServicePage } from "./pages/legal";
 
 const queryClient = new QueryClient();
 

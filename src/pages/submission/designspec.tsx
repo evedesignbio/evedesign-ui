@@ -30,6 +30,8 @@ import { useBalance, useSubmission } from "../../api/backend.ts";
 import { SubmissionModal } from "../../components/submission/modal.tsx";
 import { TaxoviewModal } from "./taxoview.tsx";
 import { MsaResult } from "../../models/api.ts";
+import { Dropzone, MIME_TYPES } from "@mantine/dropzone";
+import { IconFileTypeCsv, IconUpload, IconX } from "@tabler/icons-react";
 
 const MIN_NUM_DESIGNS = 1;
 const MAX_NUM_DESIGNS = 20000;
@@ -304,6 +306,52 @@ const buildSpec = (
       ],
     } as PipelineSpec;
   }
+};
+
+const DataDropzone = () => {
+  return (
+    <Dropzone
+      onDrop={(files) => console.log("accepted files", files)}
+      onReject={(files) => console.log("rejected files", files)}
+      maxSize={5 * 1024 ** 2}
+      maxFiles={2}
+      accept={[MIME_TYPES.csv]}
+    >
+      <Group
+        justify="center"
+        gap="xl"
+        mih={60}
+        style={{ pointerEvents: "none" }}
+      >
+        <Dropzone.Accept>
+          <IconUpload
+            size={52}
+            color="var(--mantine-color-blue-6)"
+            stroke={1.5}
+          />
+        </Dropzone.Accept>
+        <Dropzone.Reject>
+          <IconX size={52} color="var(--mantine-color-red-6)" stroke={1.5} />
+        </Dropzone.Reject>
+        <Dropzone.Idle>
+          <IconFileTypeCsv
+            size={40}
+            color="var(--mantine-color-dimmed)"
+            stroke={1.0}
+          />
+        </Dropzone.Idle>
+
+        <div>
+          <Text size="md" inline>
+            Upload experimental data to build a customized model
+          </Text>
+          <Text size="sm" c="dimmed" inline mt={7}>
+            Drag your dataset CSV file here or click to select.
+          </Text>
+        </div>
+      </Group>
+    </Dropzone>
+  );
 };
 
 export const DesignSpecInput = ({
@@ -661,6 +709,8 @@ export const DesignSpecInput = ({
           </Badge>
         </Group>
       </Card>
+
+      <DataDropzone />
 
       <Space />
       <Title order={4} c="blue">

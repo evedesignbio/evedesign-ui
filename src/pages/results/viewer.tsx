@@ -2,6 +2,7 @@ import {
   Badge,
   Button,
   Group,
+  HoverCard,
   Menu,
   Modal,
   Title,
@@ -49,7 +50,13 @@ import {
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import { ellipsis } from "../../utils/helpers.ts";
 import { SeqSpaceViewer } from "./seqspace.tsx";
-import { IconCheck, IconDna2, IconMinus, IconPlus } from "@tabler/icons-react";
+import {
+  IconChartCovariate,
+  IconCheck,
+  IconDna2,
+  IconMinus,
+  IconPlus,
+} from "@tabler/icons-react";
 
 export interface AnalysisViewerProps {
   id: string;
@@ -281,7 +288,10 @@ export const AnalysisViewer = ({
 
   const seqSpacePanel =
     showSeqSpace && seqSpaceProjections !== null ? (
-      <div className="resizable-viewer-box" style={{ display: "flex", ...panelWidth }}>
+      <div
+        className="resizable-viewer-box"
+        style={{ display: "flex", ...panelWidth }}
+      >
         <SeqSpaceViewer
           projections={seqSpaceProjections}
           dataSelection={dataSelection}
@@ -317,6 +327,23 @@ export const AnalysisViewer = ({
       {/*  </Button.Group>*/}
       {/*</Group>*/}
       <Group>
+        <HoverCard width={600} shadow="md">
+          <HoverCard.Target>
+            <Button
+              variant={"default"}
+              rightSection={<IconChartCovariate size={16} />}
+              onClick={() => {
+                // setBasket(new Set([...basket, ...activeIds]));
+              }}
+            >
+              Model
+            </Button>
+          </HoverCard.Target>
+          <HoverCard.Dropdown>
+            <div style={{ height: "500px" }}></div>
+          </HoverCard.Dropdown>
+        </HoverCard>
+
         <Menu shadow="md" width={200} position="bottom-start">
           <Menu.Target>
             <Button variant={"default"}>Panels</Button>
