@@ -191,7 +191,12 @@ export const extractMappings = (
     const chainModelMap = new Map<string, number>();
 
     residues.forEach((r) => {
-      if (!r.isResidue) {
+      // disabled the following check as it can be overly restrictive, e.g. for CSX in 2hzp;
+      // instead check if the residue name is mapping dictionary
+      // if (!r.isResidue) {
+      //   return;
+      // }
+      if (!FOLDSEEK_THREE_TO_ONE.has(r.labelCompId)) {
         return;
       }
 
