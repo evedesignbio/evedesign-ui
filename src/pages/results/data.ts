@@ -560,7 +560,7 @@ export const useSeqSpaceProjections = (
 ): SeqSpaceProjections | null => {
   // natural sequences
   const systemProjections = useMemo(() => {
-    return spec.system[0].sequences.seqs
+    return spec.system[0].sequences?.seqs
       ? spec.system[0].sequences.seqs
           .filter(
             (seq) =>

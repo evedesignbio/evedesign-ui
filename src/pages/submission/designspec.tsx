@@ -17,6 +17,7 @@ import {
   useComputedColorScheme,
 } from "@mantine/core";
 import {
+  EntitySpec,
   PipelineSpec,
   Sequence,
   SingleMutationScanSpec,
@@ -24,7 +25,7 @@ import {
 } from "../../models/design.ts";
 import { SeqWithRegion } from "./sequence.tsx";
 import { SequenceViewer } from "../../components/sequenceviewer";
-import { range } from "../../utils/helpers.ts";
+import { ellipsis, range } from "../../utils/helpers.ts";
 import { useDisclosure, useViewportSize } from "@mantine/hooks";
 import { useBalance, useSubmission } from "../../api/backend.ts";
 import { SubmissionModal } from "../../components/submission/modal.tsx";
@@ -32,6 +33,14 @@ import { TaxoviewModal } from "./taxoview.tsx";
 import { MsaResult } from "../../models/api.ts";
 import { Dropzone, MIME_TYPES } from "@mantine/dropzone";
 import { IconFileTypeCsv, IconUpload, IconX } from "@tabler/icons-react";
+import Papa from "papaparse";
+import { RawDataset, verifyRawDatasets } from "./data.ts";
+import { notifications } from "@mantine/notifications";
+import "./dropzone.css";
+
+const MIN_DATASET_SIZE = 2; // TODO: increase to higher number
+const MAX_DATASET_SIZE = 10000;
+const MAX_NUM_DATASETS = 2; // train and test
 
 const MIN_NUM_DESIGNS = 1;
 const MAX_NUM_DESIGNS = 20000;
@@ -308,12 +317,104 @@ const buildSpec = (
   }
 };
 
-const DataDropzone = () => {
+interface DataDropzoneProps {
+  addDataset: (dataset: RawDataset) => void;
+  disabled: boolean;
+  message: string;
+}
+
+const DataDropzone = ({ addDataset, disabled, message }: DataDropzoneProps) => {
   return (
     <Dropzone
-      onDrop={(files) => console.log("accepted files", files)}
-      onReject={(files) => console.log("rejected files", files)}
-      maxSize={5 * 1024 ** 2}
+      className={disabled ? "disabled" : undefined}
+      disabled={disabled}
+      onDrop={(files) => {
+        files.forEach((file) => {
+          Papa.parse(file, {
+            complete: (results) => {
+              if (!results.meta.fields) {
+                notifications.show({
+                  title: "Undefined column headers",
+                  message: "No column header fields defined",
+                  color: "red",
+                });
+                return;
+              }
+
+              // Check if any column header is numeric
+              const hasNumericHeaders = results.meta.fields?.some(
+                (field) => !isNaN(Number(field)),
+              );
+
+              if (hasNumericHeaders) {
+                notifications.show({
+                  title: "Invalid or missing column headers",
+                  message:
+                    "Column headers cannot be numbers. Please use text labels for your columns.",
+                  color: "red",
+                });
+                return;
+              }
+
+              if (results.data.length < MIN_DATASET_SIZE) {
+                notifications.show({
+                  title: "Not enough data rows in file",
+                  message: `Dataset must contain at least ${MIN_DATASET_SIZE} rows`,
+                  color: "red",
+                });
+                return;
+              }
+
+              if (results.data.length > MAX_DATASET_SIZE) {
+                notifications.show({
+                  title: "Too many data rows in file",
+                  message: `Dataset must not contain more than ${MAX_DATASET_SIZE} rows`,
+                  color: "red",
+                });
+                return;
+              }
+
+              if (results.meta.fields.length < 2) {
+                notifications.show({
+                  title: "Not enough columns",
+                  message:
+                    "Dataset must contain at least two columns (sequences/mutants and numerical values)",
+                  color: "red",
+                });
+                return;
+              }
+
+              if (results.errors.length > 0) {
+                notifications.show({
+                  title: "Error loading your dataset",
+                  message: `Your data file contains ${
+                    results.errors.length
+                  } error(s). First error in row ${
+                    results.errors[0].row !== undefined
+                      ? results.errors[0].row + 1
+                      : ""
+                  }: ${results.errors[0].message}`,
+                  color: "red",
+                });
+                return;
+              }
+
+              // keep API surface with papaparse as small as possible,
+              // return our own type to outside this component;
+              // default to first and second field as selected columns
+              addDataset({
+                name: file.name,
+                fields: results.meta.fields!,
+                rows: results.data as object[],
+                sequenceCol: results.meta.fields![0],
+                dataCol: results.meta.fields![1],
+              });
+            },
+            header: true,
+            skipEmptyLines: true,
+          });
+        });
+      }}
       maxFiles={2}
       accept={[MIME_TYPES.csv]}
     >
@@ -346,11 +447,126 @@ const DataDropzone = () => {
             Upload experimental data to build a customized model
           </Text>
           <Text size="sm" c="dimmed" inline mt={7}>
-            Drag your dataset CSV file here or click to select.
+            {message}
           </Text>
         </div>
       </Group>
     </Dropzone>
+  );
+};
+
+interface DataSectionProps {
+  targetSeq: string;
+  firstIndex: number;
+}
+
+const DataSection = ({ targetSeq, firstIndex }: DataSectionProps) => {
+  // user-uploaded data
+  const [rawDatasets, setRawDatasets] = useState<RawDataset[]>([]);
+
+  const verifiedDatasets = useMemo(() => {
+    // create full system on the fly for verification
+    return verifyRawDatasets(rawDatasets, [
+      {
+        type: "protein",
+        rep: targetSeq,
+        first_index: firstIndex,
+        id: "1",
+        sequences: null,
+      } as EntitySpec,
+    ]);
+  }, [rawDatasets]);
+  console.log("VERIFY", verifiedDatasets); // TODO: remove
+
+  const cards = rawDatasets.map((dataset, i) => {
+    const datasetType =
+      rawDatasets.length > 1
+        ? i === 0
+          ? "training"
+          : "test"
+        : "Training / test";
+    return (
+      <Card radius={"md"} key={i}>
+        <Card.Section inheritPadding py="xs">
+          <Group justify={"space-between"}>
+            <Badge variant={"outline"}>{datasetType + " set"}</Badge>
+            <Text c={"blue"} size={"sm"}>
+              {`${dataset.name} (${dataset.rows.length} data points)`}
+            </Text>
+            <CloseButton
+              onClick={() =>
+                setRawDatasets(
+                  rawDatasets.filter((_, curIndex) => curIndex !== i),
+                )
+              }
+              variant={"transparent"}
+            />
+          </Group>
+        </Card.Section>
+        <Group justify={"space-between"} align={"top"}>
+          <Select
+            data={dataset.fields}
+            label={"Sequence/mutant column"}
+            description={
+              "Full length sequences or mutations relative to target"
+            }
+            value={dataset.sequenceCol}
+            error={
+              verifiedDatasets[i].instanceSeriesInvalid.length > 0
+                ? `Invalid ${verifiedDatasets[i].isMutantSeries ? "mutant" : "sequence"} in row ${verifiedDatasets[i].instanceSeriesInvalid[0] + 1}: ${ellipsis(verifiedDatasets[i].rawMutantOrInstanceSeries[verifiedDatasets[i].instanceSeriesInvalid[0]], 15)}`
+                : undefined
+            }
+            onChange={(value) => {
+              if (value)
+                setRawDatasets(
+                  rawDatasets.map((ds, index) =>
+                    index === i ? { ...ds, sequenceCol: value } : ds,
+                  ),
+                );
+            }}
+          />
+          <Select
+            data={dataset.fields}
+            label={"Experimental data column"}
+            description={"Numeric values only, higher value must mean better."}
+            value={dataset.dataCol}
+            error={
+              verifiedDatasets[i].dataSeriesInvalid.length > 0
+                ? `Invalid value in row ${verifiedDatasets[i].dataSeriesInvalid[0] + 1}: ${ellipsis(verifiedDatasets[i].rawDataSeries[verifiedDatasets[i].dataSeriesInvalid[0]], 15)}`
+                : undefined
+            }
+            onChange={(value) => {
+              if (value)
+                setRawDatasets(
+                  rawDatasets.map((ds, index) =>
+                    index === i ? { ...ds, dataCol: value } : ds,
+                  ),
+                );
+            }}
+          />
+        </Group>
+      </Card>
+    );
+  });
+
+  const message =
+    rawDatasets.length >= MAX_NUM_DATASETS
+      ? "Maximum of two files can be uploaded, delete others first to upload."
+      : rawDatasets.length === 0
+        ? "Drag or select your training set CSV file here."
+        : "Add an optional test set to use instead of cross-validation.";
+
+  return (
+    <>
+      <DataDropzone
+        addDataset={(newDataset) =>
+          setRawDatasets([...rawDatasets, newDataset])
+        }
+        disabled={rawDatasets.length >= MAX_NUM_DATASETS}
+        message={message}
+      />
+      {cards}
+    </>
   );
 };
 
@@ -687,7 +903,7 @@ export const DesignSpecInput = ({
       />
       <Title order={1}>Specify design parameters</Title>
       <Title order={4} c="blue">
-        Your sequence
+        Your target protein
       </Title>
       <Card padding="lg" radius="md" withBorder>
         <Group justify="space-between" pb={"xs"}>
@@ -709,9 +925,7 @@ export const DesignSpecInput = ({
           </Badge>
         </Group>
       </Card>
-
-      <DataDropzone />
-
+      <DataSection targetSeq={targetSeqCut} firstIndex={targetSeq.start} />
       <Space />
       <Title order={4} c="blue">
         Choose generation parameters
