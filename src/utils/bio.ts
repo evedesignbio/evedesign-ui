@@ -1,4 +1,38 @@
+export const MASK = "*";
 export const GAP = "-";
+
+export const VALID_AA_SORTED = [
+  "A",
+  "C",
+  "D",
+  "E",
+  "F",
+  "G",
+  "H",
+  "I",
+  "K",
+  "L",
+  "M",
+  "N",
+  "P",
+  "Q",
+  "R",
+  "S",
+  "T",
+  "V",
+  "W",
+  "Y",
+];
+
+export const VALID_AA_OR_GAP_SORTED = [...VALID_AA_SORTED, GAP];
+
+export const VALID_DNA_SORTED = ["A", "C", "G", "T"];
+
+export const VALID_DNA_OR_GAP_SORTED = [...VALID_DNA_SORTED, GAP];
+
+export const VALID_RNA_SORTED = ["A", "C", "G", "U"];
+
+export const VALID_RNA_OR_GAP_SORTED = [...VALID_RNA_SORTED, GAP];
 
 export const STANDARD_GENETIC_CODE = new Map([
   ["TTT", "F"],
