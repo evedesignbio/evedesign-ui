@@ -133,10 +133,9 @@ const RestraintList = ({ restraints, setRestraints }: RestraintListProps) => {
 };
 
 const buildSpec = (
-  targetSeqCut: string,
+  system: EntitySpec[],
   firstIndex: number,
   lastIndex: number,
-  msa: Sequence[],
   numDesigns: number,
   temperature: string,
   model: string,
@@ -182,23 +181,6 @@ const buildSpec = (
   } else {
     throw new Error("Model not yet implemented");
   }
-
-  // also instantiate system
-  const system = [
-    {
-      type: "protein",
-      rep: targetSeqCut,
-      id: "1",
-      first_index: firstIndex,
-      sequences: {
-        seqs: msa,
-        aligned: true,
-        type: "protein",
-        weights: null,
-        format: "a3m",
-      },
-    },
-  ];
 
   // pass MMseqs and FoldSeek IDs, as well as top structure hits
   // TODO: add proper typing here
@@ -456,25 +438,15 @@ const DataDropzone = ({ addDataset, disabled, message }: DataDropzoneProps) => {
 };
 
 interface DataSectionProps {
-  targetSeq: string;
-  firstIndex: number;
+  system: EntitySpec[];
 }
 
-const DataSection = ({ targetSeq, firstIndex }: DataSectionProps) => {
+const DataSection = ({ system }: DataSectionProps) => {
   // user-uploaded data
   const [rawDatasets, setRawDatasets] = useState<RawDataset[]>([]);
 
   const verifiedDatasets = useMemo(() => {
-    // create full system on the fly for verification
-    return verifyRawDatasets(rawDatasets, [
-      {
-        type: "protein",
-        rep: targetSeq,
-        first_index: firstIndex,
-        id: "1",
-        sequences: null,
-      } as EntitySpec,
-    ]);
+    return verifyRawDatasets(rawDatasets, system);
   }, [rawDatasets]);
   console.log("VERIFY", verifiedDatasets); // TODO: remove
 
@@ -612,6 +584,28 @@ export const DesignSpecInput = ({
   const computedColorScheme = useComputedColorScheme("light", {
     getInitialValueInEffect: true,
   });
+
+  // also instantiate system based on its components, will be forwarded to buildSpec
+  // and subcomponents
+  const system = useMemo(
+    () =>
+      [
+        {
+          type: "protein",
+          rep: targetSeqCut,
+          id: "1",
+          first_index: targetSeq.start, // TODO adjust?
+          sequences: {
+            seqs: filteredSeqs,
+            aligned: true,
+            type: "protein",
+            weights: null,
+            format: "a3m",
+          },
+        },
+      ] as EntitySpec[],
+    [targetSeqCut, targetSeq, filteredSeqs],
+  );
 
   const selectAllPos = () =>
     setPosSelection(range(targetSeq.start, targetSeq.end, 1));
@@ -925,7 +919,7 @@ export const DesignSpecInput = ({
           </Badge>
         </Group>
       </Card>
-      <DataSection targetSeq={targetSeqCut} firstIndex={targetSeq.start} />
+      <DataSection system={system} />
       <Space />
       <Title order={4} c="blue">
         Choose generation parameters
@@ -1001,10 +995,9 @@ export const DesignSpecInput = ({
         }
         onClick={() => {
           const spec = buildSpec(
-            targetSeqCut,
+            system,
             targetSeq.start,
             targetSeq.end,
-            filteredSeqs,
             numDesigns,
             temperature,
             model,
