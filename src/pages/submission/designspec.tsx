@@ -34,7 +34,7 @@ import { MsaResult } from "../../models/api.ts";
 import { Dropzone, MIME_TYPES } from "@mantine/dropzone";
 import { IconFileTypeCsv, IconUpload, IconX } from "@tabler/icons-react";
 import Papa from "papaparse";
-import { RawDataset, verifyRawDatasets } from "./data.ts";
+import { RawDataset, VerifiedDatasets, verifyRawDatasets } from "./data.ts";
 import { notifications } from "@mantine/notifications";
 import "./dropzone.css";
 
@@ -439,17 +439,16 @@ const DataDropzone = ({ addDataset, disabled, message }: DataDropzoneProps) => {
 
 interface DataSectionProps {
   system: EntitySpec[];
+  rawDatasets: RawDataset[];
+  setRawDatasets: React.Dispatch<React.SetStateAction<RawDataset[]>>;
+  verified: VerifiedDatasets;
 }
 
-const DataSection = ({ system }: DataSectionProps) => {
-  // user-uploaded data
-  const [rawDatasets, setRawDatasets] = useState<RawDataset[]>([]);
-
-  const verifiedDatasets = useMemo(() => {
-    return verifyRawDatasets(rawDatasets, system);
-  }, [rawDatasets]);
-  console.log("VERIFY", verifiedDatasets); // TODO: remove
-
+const DataSection = ({
+  rawDatasets,
+  setRawDatasets,
+  verified,
+}: DataSectionProps) => {
   const cards = rawDatasets.map((dataset, i) => {
     const datasetType =
       rawDatasets.length > 1
@@ -484,8 +483,8 @@ const DataSection = ({ system }: DataSectionProps) => {
             }
             value={dataset.sequenceCol}
             error={
-              verifiedDatasets[i].instanceSeriesInvalid.length > 0
-                ? `Invalid ${verifiedDatasets[i].isMutantSeries ? "mutant" : "sequence"} in row ${verifiedDatasets[i].instanceSeriesInvalid[0] + 1}: ${ellipsis(verifiedDatasets[i].rawMutantOrInstanceSeries[verifiedDatasets[i].instanceSeriesInvalid[0]], 15)}`
+              verified.datasets[i].instanceSeriesInvalid.length > 0
+                ? `Invalid ${verified.datasets[i].isMutantSeries ? "mutant" : "sequence"} in row ${verified.datasets[i].instanceSeriesInvalid[0] + 1}: ${ellipsis(verified.datasets[i].rawMutantOrInstanceSeries[verified.datasets[i].instanceSeriesInvalid[0]], 15)}`
                 : undefined
             }
             onChange={(value) => {
@@ -503,8 +502,8 @@ const DataSection = ({ system }: DataSectionProps) => {
             description={"Numeric values only, higher value must mean better."}
             value={dataset.dataCol}
             error={
-              verifiedDatasets[i].dataSeriesInvalid.length > 0
-                ? `Invalid value in row ${verifiedDatasets[i].dataSeriesInvalid[0] + 1}: ${ellipsis(verifiedDatasets[i].rawDataSeries[verifiedDatasets[i].dataSeriesInvalid[0]], 15)}`
+              verified.datasets[i].dataSeriesInvalid.length > 0
+                ? `Invalid value in row ${verified.datasets[i].dataSeriesInvalid[0] + 1}: ${ellipsis(verified.datasets[i].rawDataSeries[verified.datasets[i].dataSeriesInvalid[0]], 15)}`
                 : undefined
             }
             onChange={(value) => {
@@ -557,6 +556,9 @@ export const DesignSpecInput = ({
   const [showFilterModal, { toggle: toggleFilterModal }] = useDisclosure(false);
   const [filteredSeqs, setFilteredSeqs] = useState<Sequence[]>(msa.seqs);
 
+  // user-uploaded datasets
+  const [rawDatasets, setRawDatasets] = useState<RawDataset[]>([]);
+
   const [model, setModel] = useState<string>("evmutation2_ensembled");
   const [sampler, setSampler] = useState("single_mutation_scan");
   const [numDesigns, setNumDesigns] = useState<number>(DEFAULT_NUM_DESIGNS);
@@ -594,7 +596,7 @@ export const DesignSpecInput = ({
           type: "protein",
           rep: targetSeqCut,
           id: "1",
-          first_index: targetSeq.start, // TODO adjust?
+          first_index: targetSeq.start,
           sequences: {
             seqs: filteredSeqs,
             aligned: true,
@@ -606,6 +608,11 @@ export const DesignSpecInput = ({
       ] as EntitySpec[],
     [targetSeqCut, targetSeq, filteredSeqs],
   );
+
+  // parse and verify uploaded datasets against system
+  const verifiedDatasets = useMemo(() => {
+    return verifyRawDatasets(rawDatasets, system);
+  }, [rawDatasets, system]);
 
   const selectAllPos = () =>
     setPosSelection(range(targetSeq.start, targetSeq.end, 1));
@@ -879,6 +886,25 @@ export const DesignSpecInput = ({
       </>
     ) : null;
 
+  // only activate submit button if all inputs are valid, otherwise display an error
+  let submitDisabled = false;
+  let submitText = "Generate designs";
+
+  if (posSelection.length === 0) {
+    submitText = "Must select at least one position to design";
+    submitDisabled = true;
+  } else if (
+    balance.finished &&
+    (balance.balance === null || balance.balance <= MINIMUM_CREDIT)
+  ) {
+    submitText = "Insufficient compute credits";
+    submitDisabled = true;
+  } else if (verifiedDatasets.hasData && !verifiedDatasets.allValid) {
+    // dataset handling
+    submitText = "Error in uploaded dataset(s)";
+    submitDisabled = true;
+  }
+
   return (
     <>
       {msa.taxonomyReport !== null ? (
@@ -919,7 +945,12 @@ export const DesignSpecInput = ({
           </Badge>
         </Group>
       </Card>
-      <DataSection system={system} />
+      <DataSection
+        system={system}
+        rawDatasets={rawDatasets}
+        setRawDatasets={setRawDatasets}
+        verified={verifiedDatasets}
+      />
       <Space />
       <Title order={4} c="blue">
         Choose generation parameters
@@ -988,11 +1019,7 @@ export const DesignSpecInput = ({
       <Button
         variant="filled"
         size="md"
-        disabled={
-          posSelection.length === 0 ||
-          (balance.finished &&
-            (balance.balance === null || balance.balance <= MINIMUM_CREDIT))
-        }
+        disabled={submitDisabled}
         onClick={() => {
           const spec = buildSpec(
             system,
@@ -1023,13 +1050,7 @@ export const DesignSpecInput = ({
           openSubmitting();
         }}
       >
-        {posSelection.length > 0
-          ? balance.finished &&
-            balance.balance !== null &&
-            balance.balance > MINIMUM_CREDIT
-            ? "Generate designs"
-            : "Insufficient compute credits"
-          : "Must select at least one position to design"}
+        {submitText}
       </Button>
       <Space />
     </>

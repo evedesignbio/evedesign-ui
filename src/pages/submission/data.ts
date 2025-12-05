@@ -9,6 +9,29 @@ import {
 } from "../../models/design.ts";
 import { GAP } from "../../utils/bio.ts";
 
+export interface VerifiedDataset {
+  rawDataSeries: string[];
+  dataSeries: number[];
+  dataSeriesInvalid: number[];
+  rawMutantOrInstanceSeries: string[];
+  isMutantSeries: boolean;
+  instanceSeries: SystemInstanceSpec[];
+  instanceSeriesInvalid: number[];
+  fixedLength: boolean;
+  containsDeletions: boolean;
+  containsInsertions: boolean;
+}
+
+export interface VerifiedDatasets {
+  datasets: VerifiedDataset[];
+  // aggregations over individual datasets
+  hasData: boolean;
+  allValid: boolean;
+  fixedLength: boolean;
+  containsDeletions: boolean;
+  containsInsertions: boolean;
+}
+
 export interface RawDataset {
   name: string;
   fields: string[];
@@ -178,12 +201,12 @@ export const parseMutantOrInstanceSeries = (
 export const verifyRawDatasets = (
   datasets: RawDataset[],
   system: EntitySpec[],
-) => {
-  return datasets.map((curDataset) => {
-    const extractedMutantSeries = curDataset.rows.map(
+): VerifiedDatasets => {
+  const verified = datasets.map((curDataset) => {
+    const extractedMutantSeries: string[] = curDataset.rows.map(
       (row) => row[curDataset.sequenceCol as keyof typeof row],
     );
-    const extractedDataSeries = curDataset.rows.map(
+    const extractedDataSeries: string[] = curDataset.rows.map(
       (row) => row[curDataset.dataCol as keyof typeof row],
     );
     return {
@@ -193,4 +216,18 @@ export const verifyRawDatasets = (
       ...parseMutantOrInstanceSeries(extractedMutantSeries, system),
     };
   });
+
+  return {
+    datasets: verified,
+    // compute agggregations acros all datasets
+    hasData: verified.length > 0,
+    allValid: verified.every(
+      (ds) =>
+        ds.dataSeriesInvalid.length === 0 &&
+        ds.instanceSeriesInvalid.length === 0,
+    ),
+    fixedLength: verified.every((ds) => ds.fixedLength),
+    containsDeletions: verified.some((ds) => ds.containsDeletions),
+    containsInsertions: verified.some((ds) => ds.containsInsertions),
+  };
 };
