@@ -91,6 +91,16 @@ export const systemInstanceFromSystem = (
   };
 };
 
+export interface LabeledInstanceDatasetSpec {
+  instances: SystemInstanceSpec[];
+  labels: Record<string, (number | null)[]>;
+}
+
+export interface LabeledInstanceTrainTestDatasetSpec {
+  training_set: LabeledInstanceDatasetSpec;
+  test_set: LabeledInstanceDatasetSpec | null;
+}
+
 export interface JobSpecMetadata {
   msa_search_job_id: string;
   structure_search_job_id: string;

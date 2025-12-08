@@ -18,6 +18,8 @@ import {
 } from "@mantine/core";
 import {
   EntitySpec,
+  LabeledInstanceDatasetSpec,
+  LabeledInstanceTrainTestDatasetSpec,
   PipelineSpec,
   Sequence,
   SingleMutationScanSpec,
@@ -34,7 +36,12 @@ import { MsaResult } from "../../models/api.ts";
 import { Dropzone, MIME_TYPES } from "@mantine/dropzone";
 import { IconFileTypeCsv, IconUpload, IconX } from "@tabler/icons-react";
 import Papa from "papaparse";
-import { RawDataset, VerifiedDatasets, verifyRawDatasets } from "./data.ts";
+import {
+  RawDataset,
+  VerifiedDataset,
+  VerifiedDatasets,
+  verifyRawDatasets,
+} from "./data.ts";
 import { notifications } from "@mantine/notifications";
 import "./dropzone.css";
 
@@ -132,6 +139,17 @@ const RestraintList = ({ restraints, setRestraints }: RestraintListProps) => {
   ));
 };
 
+const transformDataset = (
+  dataset: VerifiedDataset,
+): LabeledInstanceDatasetSpec => {
+  return {
+    instances: dataset.instanceSeries,
+    labels: {
+      target: dataset.dataSeries,
+    },
+  };
+};
+
 const buildSpec = (
   system: EntitySpec[],
   firstIndex: number,
@@ -148,6 +166,8 @@ const buildSpec = (
   seqSearchId: string,
   structSearchId: string,
   structSearchResult: object,
+  datasets: VerifiedDatasets | null,
+  regressor: string,
 ): PipelineSpec | SingleMutationScanSpec => {
   const temperatureNumeric = parseFloat(temperature);
   // instantiate core molecular model (used for any type of pipeline)
@@ -158,7 +178,7 @@ const buildSpec = (
       variant: "msa-only-small",
       args: {
         encoder_num_samples: 1,
-        decoder_batch_size: Math.min(numDesigns, 512),
+        decoder_batch_size: Math.min(numDesigns, 256),
       },
     };
   } else if (model === "evmutation2_ensembled") {
@@ -167,7 +187,7 @@ const buildSpec = (
       variant: "msa-only-small",
       args: {
         encoder_num_samples: 4,
-        decoder_batch_size: Math.min(numDesigns, 512),
+        decoder_batch_size: Math.min(numDesigns, 256),
       },
     };
   } else if (model === "esm2_650m") {
@@ -175,7 +195,7 @@ const buildSpec = (
       key: "esm2",
       variant: "esm2_t33_650M_UR50D",
       args: {
-        batch_size: Math.min(numDesigns, 512),
+        batch_size: Math.min(numDesigns, 128),
       },
     };
   } else {
@@ -201,6 +221,37 @@ const buildSpec = (
     structure_search_job_id: structSearchId,
     structure_search_result: topStructures,
   };
+
+  // wrap predictor in supervised regressor if data is available
+  if (datasets !== null) {
+    console.log("datasets", datasets, datasets.datasets.length); // TODO: remove
+    console.log("regressor", regressor); // TODO: remove
+
+    modelSpec = {
+      key: "supervised_sklearn_predictor",
+      variant: "default",
+      args: {
+        predictor: regressor,
+        predictor_kwargs: null,
+        embedder: modelSpec,
+        scorer: null, // both EVmutation2 and ESM2 can compute scores with embeddings, use these for now
+        use_embeddings: true,
+        use_scores: true,
+        override_models_for_training: false,
+        target_name: null, // use default target
+        pooling: "mean",
+        cv_folds: 5,
+        batch_size: 128,
+      },
+      data: {
+        training_set: transformDataset(datasets.datasets[0]),
+        test_set:
+          datasets.datasets.length > 1
+            ? transformDataset(datasets.datasets[1])
+            : null,
+      } as LabeledInstanceTrainTestDatasetSpec,
+    };
+  }
 
   if (sampler === "single_mutation_scan") {
     return {
@@ -541,6 +592,12 @@ const DataSection = ({
   );
 };
 
+/*
+  TODO: limit models based on uploaded dataset properties
+  TODO: limit sampling strategies based on uploaded dataset properties
+  TODO: offer dataset transformations (log, sign inversion)
+  TODO: more sensible batch size handling for different tasks
+ */
 export const DesignSpecInput = ({
   targetSeq,
   msa,
@@ -560,6 +617,7 @@ export const DesignSpecInput = ({
   const [rawDatasets, setRawDatasets] = useState<RawDataset[]>([]);
 
   const [model, setModel] = useState<string>("evmutation2_ensembled");
+  const [regressor, setRegressor] = useState<string>("RandomForestRegressor");
   const [sampler, setSampler] = useState("single_mutation_scan");
   const [numDesigns, setNumDesigns] = useState<number>(DEFAULT_NUM_DESIGNS);
   const [temperature, setTemperature] = useState<string>("0.5");
@@ -957,7 +1015,7 @@ export const DesignSpecInput = ({
       </Title>
       <Stack>
         <Select
-          label="Design model"
+          label={"Protein model"}
           description="Select a molecular model that best aligns with your design goals"
           placeholder="Pick value"
           data={[
@@ -987,6 +1045,29 @@ export const DesignSpecInput = ({
           onOptionSubmit={setModel}
           allowDeselect={false}
         />
+        {verifiedDatasets.hasData ? (
+          <Select
+            label={"Regression model"}
+            description="Select a model that will learn to map from embeddings/scores to your experimental data"
+            placeholder={"Pick value"}
+            data={[
+              {
+                value: "RandomForestRegressor",
+                label: "Random forest regression",
+              },
+              {
+                value: "RidgeCV",
+                label: "Ridge regression",
+              },
+              {
+                value: "LogisticRegressionCV",
+                label: "Logistic regression",
+              },
+            ]}
+            value={regressor}
+            onOptionSubmit={setRegressor}
+          />
+        ) : undefined}
       </Stack>
 
       <Stack gap={6}>
@@ -1037,6 +1118,8 @@ export const DesignSpecInput = ({
             seqSearchId,
             structSearchId,
             structures,
+            verifiedDatasets.hasData ? verifiedDatasets : null,
+            regressor,
           );
 
           // perform submission
