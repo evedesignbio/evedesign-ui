@@ -27,6 +27,7 @@ export interface VerifiedDatasets {
   // aggregations over individual datasets
   hasData: boolean;
   allValid: boolean;
+  allPositive: boolean;
   fixedLength: boolean;
   containsDeletions: boolean;
   containsInsertions: boolean;
@@ -225,6 +226,9 @@ export const verifyRawDatasets = (
       (ds) =>
         ds.dataSeriesInvalid.length === 0 &&
         ds.instanceSeriesInvalid.length === 0,
+    ),
+    allPositive: verified.every((ds) =>
+      ds.dataSeries.every((value) => value > 0),
     ),
     fixedLength: verified.every((ds) => ds.fixedLength),
     containsDeletions: verified.some((ds) => ds.containsDeletions),

@@ -15,6 +15,7 @@ import {
   Text,
   Title,
   useComputedColorScheme,
+  Switch,
 } from "@mantine/core";
 import {
   EntitySpec,
@@ -141,11 +142,14 @@ const RestraintList = ({ restraints, setRestraints }: RestraintListProps) => {
 
 const transformDataset = (
   dataset: VerifiedDataset,
+  applylogTransform: boolean,
 ): LabeledInstanceDatasetSpec => {
   return {
     instances: dataset.instanceSeries,
     labels: {
-      target: dataset.dataSeries,
+      target: dataset.dataSeries.map((value) =>
+        applylogTransform ? Math.log2(value) : value,
+      ),
     },
   };
 };
@@ -168,6 +172,7 @@ const buildSpec = (
   structSearchResult: object,
   datasets: VerifiedDatasets | null,
   regressor: string,
+  logTransform: boolean,
 ): PipelineSpec | SingleMutationScanSpec => {
   const temperatureNumeric = parseFloat(temperature);
   // instantiate core molecular model (used for any type of pipeline)
@@ -224,8 +229,8 @@ const buildSpec = (
 
   // wrap predictor in supervised regressor if data is available
   if (datasets !== null) {
-    console.log("datasets", datasets, datasets.datasets.length); // TODO: remove
-    console.log("regressor", regressor); // TODO: remove
+    // only apply log transform if all values are actually positive
+    const applylogTransform = logTransform && datasets.allPositive;
 
     modelSpec = {
       key: "supervised_sklearn_predictor",
@@ -244,10 +249,10 @@ const buildSpec = (
         batch_size: 128,
       },
       data: {
-        training_set: transformDataset(datasets.datasets[0]),
+        training_set: transformDataset(datasets.datasets[0], applylogTransform),
         test_set:
           datasets.datasets.length > 1
-            ? transformDataset(datasets.datasets[1])
+            ? transformDataset(datasets.datasets[1], applylogTransform)
             : null,
       } as LabeledInstanceTrainTestDatasetSpec,
     };
@@ -301,7 +306,7 @@ const buildSpec = (
             type: "linear",
             update: temperatureUpdate,
           },
-          record_full_chain: true, // TODO: revert this to false
+          record_full_chain: false,
         },
       };
     }
@@ -493,12 +498,16 @@ interface DataSectionProps {
   rawDatasets: RawDataset[];
   setRawDatasets: React.Dispatch<React.SetStateAction<RawDataset[]>>;
   verified: VerifiedDatasets;
+  logTransform: boolean;
+  setLogTransform: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const DataSection = ({
   rawDatasets,
   setRawDatasets,
   verified,
+  logTransform,
+  setLogTransform,
 }: DataSectionProps) => {
   const cards = rawDatasets.map((dataset, i) => {
     const datasetType =
@@ -588,6 +597,15 @@ const DataSection = ({
         message={message}
       />
       {cards}
+      {cards.length > 0 ? (
+        <Switch
+          checked={logTransform}
+          onChange={(event) => setLogTransform(event.currentTarget.checked)}
+          disabled={!verified.allPositive}
+          label="Apply log transformation to data"
+          description="Recommended for enrichment ratios relative to WT, kcat/Km, or similar. Requires all values to be positive."
+        />
+      ) : null}
     </>
   );
 };
@@ -609,6 +627,7 @@ export const DesignSpecInput = ({
 
   // user-uploaded datasets
   const [rawDatasets, setRawDatasets] = useState<RawDataset[]>([]);
+  const [logTransform, setLogTransform] = useState(false);
 
   const [model, setModel] = useState<string | null>("evmutation2_ensembled");
   const [regressor, setRegressor] = useState<string>("RandomForestRegressor");
@@ -1053,6 +1072,8 @@ export const DesignSpecInput = ({
         rawDatasets={rawDatasets}
         setRawDatasets={setRawDatasets}
         verified={verifiedDatasets}
+        logTransform={logTransform}
+        setLogTransform={setLogTransform}
       />
       <Space />
       <Title order={4} c="blue">
@@ -1148,6 +1169,7 @@ export const DesignSpecInput = ({
             structures,
             verifiedDatasets.hasData ? verifiedDatasets : null,
             regressor,
+            logTransform,
           );
 
           // perform submission
