@@ -592,12 +592,6 @@ const DataSection = ({
   );
 };
 
-/*
-  TODO: limit models based on uploaded dataset properties
-  TODO: limit sampling strategies based on uploaded dataset properties
-  TODO: offer dataset transformations (log, sign inversion)
-  TODO: more sensible batch size handling for different tasks
- */
 export const DesignSpecInput = ({
   targetSeq,
   msa,
@@ -616,7 +610,7 @@ export const DesignSpecInput = ({
   // user-uploaded datasets
   const [rawDatasets, setRawDatasets] = useState<RawDataset[]>([]);
 
-  const [model, setModel] = useState<string>("evmutation2_ensembled");
+  const [model, setModel] = useState<string | null>("evmutation2_ensembled");
   const [regressor, setRegressor] = useState<string>("RandomForestRegressor");
   const [sampler, setSampler] = useState("single_mutation_scan");
   const [numDesigns, setNumDesigns] = useState<number>(DEFAULT_NUM_DESIGNS);
@@ -680,15 +674,15 @@ export const DesignSpecInput = ({
 
   // set only viable sampler option if ESM2 selected
   useEffect(() => {
-    if (model.startsWith("esm2")) {
+    if (model?.startsWith("esm2") || verifiedDatasets.hasData) {
       if (sampler === "model") {
         setSampler("gibbs");
       }
       setInitStrategy("system");
-    } else if (model.startsWith("evmutation2")) {
+    } else if (model?.startsWith("evmutation2")) {
       setInitStrategy("random");
     }
-  }, [model, sampler]);
+  }, [model, sampler, verifiedDatasets.hasData]);
 
   // useEffect(() => {
   //   if (sampler === "gibbs") setTemperature("1.0");
@@ -767,10 +761,58 @@ export const DesignSpecInput = ({
     },
   ];
 
-  // no own sampling on esm2, so remove from list
-  if (model.startsWith("esm2")) {
+  // no own sampling on esm2, so remove from list; same for sampling from supervised model which needs Gibbs
+  if (model?.startsWith("esm2") || verifiedDatasets.hasData) {
     samplerOptions = samplerOptions.filter((x) => x.value !== "model");
   }
+
+  const availableModelsRaw = [
+    {
+      value: "evmutation2_ensembled",
+      label:
+        "EVmutation2 (evolutionary model; best for designing functional proteins)",
+    },
+    // {
+    //   value: "evmutation2",
+    //   label:
+    //     "EVmutation2 (lower accuracy mode, 4x speedup over ensembled version)",
+    // },
+    {
+      value: "esm2_650m",
+      label:
+        "ESM2 650M (best for sequence-only design in absence of evolutionary record)",
+    },
+    // {
+    //   value: "proteinmpnn",
+    //   label:
+    //     "ProteinMPNN (inverse folding model; best for designing stability but may lose function)",
+    //   disabled: true,
+    // },
+  ];
+
+  const availableModels = availableModelsRaw.filter(
+    (model) =>
+      !verifiedDatasets.hasData ||
+      (model.value.startsWith("esm2") &&
+        !verifiedDatasets.containsInsertions &&
+        !verifiedDatasets.containsDeletions) ||
+      (model.value.startsWith("evmutation2") &&
+        !verifiedDatasets.containsInsertions &&
+        verifiedDatasets.fixedLength),
+  );
+
+  // make sure our model selection is still valid, update otherwise
+  useEffect(() => {
+    if (availableModels.filter((am) => am.value === model).length === 0) {
+      // if no available models, empty selection
+      if (availableModels.length === 0) {
+        setModel(null);
+      } else {
+        // otherwise default to first available model
+        setModel(availableModels[0].value);
+      }
+    }
+  }, [availableModels]);
 
   let restraintSelection = null;
   if (sampler === "gibbs") {
@@ -961,6 +1003,9 @@ export const DesignSpecInput = ({
     // dataset handling
     submitText = "Error in uploaded dataset(s)";
     submitDisabled = true;
+  } else if (model === null) {
+    submitText = "No model is able to handle prediction task";
+    submitDisabled = true;
   }
 
   return (
@@ -1018,30 +1063,13 @@ export const DesignSpecInput = ({
           label={"Protein model"}
           description="Select a molecular model that best aligns with your design goals"
           placeholder="Pick value"
-          data={[
-            {
-              value: "evmutation2_ensembled",
-              label:
-                "EVmutation2 (evolutionary model; best for designing functional proteins)",
-            },
-            // {
-            //   value: "evmutation2",
-            //   label:
-            //     "EVmutation2 (lower accuracy mode, 4x speedup over ensembled version)",
-            // },
-            {
-              value: "esm2_650m",
-              label:
-                "ESM2 650M (best for sequence-only design in absence of evolutionary record)",
-            },
-            {
-              value: "proteinmpnn",
-              label:
-                "ProteinMPNN (inverse folding model; best for designing stability but may lose function)",
-              disabled: true,
-            },
-          ]}
+          data={availableModels}
           value={model}
+          error={
+            model === null
+              ? "No suitable model available for modeling problem"
+              : undefined
+          }
           onOptionSubmit={setModel}
           allowDeselect={false}
         />
@@ -1108,7 +1136,7 @@ export const DesignSpecInput = ({
             targetSeq.end,
             numDesigns,
             temperature,
-            model,
+            model!,
             sampler,
             restraints,
             posSelection,
