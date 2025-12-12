@@ -2,7 +2,6 @@ import {
   Badge,
   Button,
   Group,
-  HoverCard,
   Menu,
   Modal,
   Title,
@@ -57,6 +56,7 @@ import {
   IconMinus,
   IconPlus,
 } from "@tabler/icons-react";
+import { ModelStatsModal } from "./modelstats.tsx";
 
 export interface AnalysisViewerProps {
   id: string;
@@ -79,6 +79,8 @@ export const AnalysisViewer = ({
   isPublic = false,
 }: AnalysisViewerProps) => {
   const { width: viewportWidth } = useViewportSize();
+  const [modelStatsOpen, { toggle: toggleModelStatsOpen }] =
+    useDisclosure(false);
   const [dnaOpen, { toggle: toggleDnaOpen }] = useDisclosure(false);
   const [showTable, { toggle: toggleShowTable }] = useDisclosure(true);
   const [showHeatmap, { toggle: toggleShowHeatmap }] = useDisclosure(true);
@@ -327,22 +329,13 @@ export const AnalysisViewer = ({
       {/*  </Button.Group>*/}
       {/*</Group>*/}
       <Group>
-        <HoverCard width={600} shadow="md">
-          <HoverCard.Target>
-            <Button
-              variant={"default"}
-              rightSection={<IconChartCovariate size={16} />}
-              onClick={() => {
-                // setBasket(new Set([...basket, ...activeIds]));
-              }}
-            >
-              Model
-            </Button>
-          </HoverCard.Target>
-          <HoverCard.Dropdown>
-            <div style={{ height: "500px" }}></div>
-          </HoverCard.Dropdown>
-        </HoverCard>
+        <Button
+          variant={"default"}
+          rightSection={<IconChartCovariate size={16} />}
+          onClick={toggleModelStatsOpen}
+        >
+          Model
+        </Button>
 
         <Menu shadow="md" width={200} position="bottom-start">
           <Menu.Target>
@@ -448,6 +441,11 @@ export const AnalysisViewer = ({
   return (
     <>
       {dnaModal}
+      <ModelStatsModal
+        opened={modelStatsOpen}
+        toggleOpened={toggleModelStatsOpen}
+        spec={spec}
+      />
       <div className="outer-wrapper">
         <div className="menubar-wrapper">{menuPanel}</div>
         <div className="resizable-viewer-wrapper">

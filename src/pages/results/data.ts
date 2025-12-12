@@ -6,7 +6,8 @@ import {
   SystemInstanceSpecEnhanced,
   Mutation,
   PipelineSpec,
-  SingleMutationScanSpec, Sequence,
+  SingleMutationScanSpec,
+  Sequence,
 } from "../../models/design.ts";
 import { useMemo } from "react";
 import {
@@ -231,6 +232,7 @@ export const useInstances = (
               .filter(
                 (pos) =>
                   !(
+                    resultsCast.spec.steps[0].key === "generate" &&
                     resultsCast.spec.steps[0].args.fixed_pos
                       ? (resultsCast.spec.steps[0].args.fixed_pos[
                           `${entIdx}`
@@ -561,13 +563,12 @@ export const useSeqSpaceProjections = (
   // natural sequences
   const systemProjections = useMemo(() => {
     return spec.system[0].sequences?.seqs
-      ? spec.system[0].sequences.seqs
-          .filter(
-            (seq) =>
-              seq.metadata &&
-              seq.metadata.seqspace_projection &&
-              seq.metadata.seqspace_projection.length === 2,
-          )
+      ? spec.system[0].sequences.seqs.filter(
+          (seq) =>
+            seq.metadata &&
+            seq.metadata.seqspace_projection &&
+            seq.metadata.seqspace_projection.length === 2,
+        )
       : [];
   }, [spec]);
 

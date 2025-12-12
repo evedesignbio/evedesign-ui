@@ -121,13 +121,30 @@ export interface GenerationStepSpec {
   args: GenerateArgsSpec;
 }
 
+export interface ScoringStepSpec {
+  key: "score";
+  scorer: object;
+  metadata_key: string | null;
+}
+
+export interface TransformationStepSpec {
+  key: "transform";
+  transformer: object;
+}
+
+export interface AnalysisStepSpec {
+  key: "analyze";
+  analyzer: object;
+  entity: number | null;
+}
+
 export interface PipelineSpec {
   key: "pipeline";
   schema_version: string;
   metadata: JobSpecMetadata | null;
   system: EntitySpec[];
   system_instances: SystemInstanceSpec[] | null;
-  steps: GenerationStepSpec[]; // TODO: implement other step types from backend
+  steps: (GenerationStepSpec | ScoringStepSpec | TransformationStepSpec | AnalysisStepSpec)[];
 }
 
 export interface SingleMutationScanSpec {
@@ -206,6 +223,20 @@ export type InputSpecTypeKeys =
   | "pipeline"
   | "single_mutation_scan"
   | "protein_to_dna";
+
+export type EvaluationScoreName =
+  | "r2"
+  | "pearson"
+  | "spearman"
+  | "rocauc"
+  | "mcc"
+  | "average_precision";
+
+export interface ModelStatsSpec {
+  y_true: number[] | null;
+  y_pred: number[] | null;
+  scores: { [K in EvaluationScoreName]?: number[] | null };
+}
 
 // equivalent of protdesign.entity.Entity.alphabet()
 export const alphabet = (
