@@ -820,6 +820,14 @@ export const DesignSpecInput = ({
         verifiedDatasets.fixedLength),
   );
 
+  // default to ESM2 for supervised modeling for now; but keep
+  // user selection after uploading first dataset
+  useEffect(() => {
+    if (rawDatasets.length > 0) {
+      setModel("esm2_650m");
+    }
+  }, [rawDatasets.length > 0]);
+
   // make sure our model selection is still valid, update otherwise
   useEffect(() => {
     if (availableModels.filter((am) => am.value === model).length === 0) {
