@@ -14,8 +14,10 @@ export const BackgroundImage = () => {
           top: 0,
           height: "100vh",
           width: "100vw",
-          backgroundImage: `url(${imgUrl})`,
-          opacity: computedColorScheme === "dark" ? 0.4 : 0.2,
+          backgroundImage:
+            computedColorScheme === "dark" ? `url(${imgUrl})` : "none",
+          // opacity: computedColorScheme === "dark" ? 0.4 : 0.4,
+          opacity: 0.4,
           backgroundAttachment: "fixed",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
@@ -23,18 +25,20 @@ export const BackgroundImage = () => {
           zIndex: -1,
         }}
       />
-      <div
-        style={{
-          position: "absolute",
-          bottom: 5,
-          right: 5,
-          opacity: 0.7,
-        }}
-      >
-        <Text c={"dimmed"} size={"xs"}>
-          Image by freepik
-        </Text>
-      </div>
+      {computedColorScheme === "dark" ? (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 5,
+            right: 5,
+            opacity: 0.7,
+          }}
+        >
+          <Text c={"dimmed"} size={"xs"}>
+            Image by freepik
+          </Text>
+        </div>
+      ) : null}
     </>
   );
 };

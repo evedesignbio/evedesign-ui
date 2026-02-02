@@ -49,7 +49,14 @@ import {
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import { ellipsis } from "../../utils/helpers.ts";
 import { SeqSpaceViewer } from "./seqspace.tsx";
-import { IconCheck, IconDna2, IconMinus, IconPlus } from "@tabler/icons-react";
+import {
+  IconChartCovariate,
+  IconCheck,
+  IconDna2,
+  IconMinus,
+  IconPlus,
+} from "@tabler/icons-react";
+import { ModelStatsModal } from "./modelstats.tsx";
 
 export interface AnalysisViewerProps {
   id: string;
@@ -72,6 +79,8 @@ export const AnalysisViewer = ({
   isPublic = false,
 }: AnalysisViewerProps) => {
   const { width: viewportWidth } = useViewportSize();
+  const [modelStatsOpen, { toggle: toggleModelStatsOpen }] =
+    useDisclosure(false);
   const [dnaOpen, { toggle: toggleDnaOpen }] = useDisclosure(false);
   const [showTable, { toggle: toggleShowTable }] = useDisclosure(true);
   const [showHeatmap, { toggle: toggleShowHeatmap }] = useDisclosure(true);
@@ -281,7 +290,10 @@ export const AnalysisViewer = ({
 
   const seqSpacePanel =
     showSeqSpace && seqSpaceProjections !== null ? (
-      <div className="resizable-viewer-box" style={{ display: "flex", ...panelWidth }}>
+      <div
+        className="resizable-viewer-box"
+        style={{ display: "flex", ...panelWidth }}
+      >
         <SeqSpaceViewer
           projections={seqSpaceProjections}
           dataSelection={dataSelection}
@@ -317,6 +329,14 @@ export const AnalysisViewer = ({
       {/*  </Button.Group>*/}
       {/*</Group>*/}
       <Group>
+        <Button
+          variant={"default"}
+          rightSection={<IconChartCovariate size={16} />}
+          onClick={toggleModelStatsOpen}
+        >
+          Model
+        </Button>
+
         <Menu shadow="md" width={200} position="bottom-start">
           <Menu.Target>
             <Button variant={"default"}>Panels</Button>
@@ -421,6 +441,11 @@ export const AnalysisViewer = ({
   return (
     <>
       {dnaModal}
+      <ModelStatsModal
+        opened={modelStatsOpen}
+        toggleOpened={toggleModelStatsOpen}
+        spec={spec}
+      />
       <div className="outer-wrapper">
         <div className="menubar-wrapper">{menuPanel}</div>
         <div className="resizable-viewer-wrapper">
