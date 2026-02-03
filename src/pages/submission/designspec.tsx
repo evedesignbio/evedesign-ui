@@ -15,21 +15,40 @@ import {
   Text,
   Title,
   useComputedColorScheme,
+  Switch,
 } from "@mantine/core";
 import {
+  EntitySpec,
+  LabeledInstanceDatasetSpec,
+  LabeledInstanceTrainTestDatasetSpec,
   PipelineSpec,
   Sequence,
   SingleMutationScanSpec,
-  systemInstanceFromSystem,
+  systemInstanceFromSystem, systemSpecFromSystemArray,
 } from "../../models/design.ts";
 import { SeqWithRegion } from "./sequence.tsx";
 import { SequenceViewer } from "../../components/sequenceviewer";
-import { range } from "../../utils/helpers.ts";
+import { ellipsis, range } from "../../utils/helpers.ts";
 import { useDisclosure, useViewportSize } from "@mantine/hooks";
 import { useBalance, useSubmission } from "../../api/backend.ts";
 import { SubmissionModal } from "../../components/submission/modal.tsx";
 import { TaxoviewModal } from "./taxoview.tsx";
 import { MsaResult } from "../../models/api.ts";
+import { Dropzone, MIME_TYPES } from "@mantine/dropzone";
+import { IconFileTypeCsv, IconUpload, IconX } from "@tabler/icons-react";
+import Papa from "papaparse";
+import {
+  RawDataset,
+  VerifiedDataset,
+  VerifiedDatasets,
+  verifyRawDatasets,
+} from "./data.ts";
+import { notifications } from "@mantine/notifications";
+import "./dropzone.css";
+
+const MIN_DATASET_SIZE = 2; // TODO: increase to higher number
+const MAX_DATASET_SIZE = 10000;
+const MAX_NUM_DATASETS = 2; // train and test
 
 const MIN_NUM_DESIGNS = 1;
 const MAX_NUM_DESIGNS = 20000;
@@ -121,11 +140,24 @@ const RestraintList = ({ restraints, setRestraints }: RestraintListProps) => {
   ));
 };
 
+const transformDataset = (
+  dataset: VerifiedDataset,
+  applylogTransform: boolean,
+): LabeledInstanceDatasetSpec => {
+  return {
+    instances: dataset.instanceSeries,
+    labels: {
+      target: dataset.dataSeries.map((value) =>
+        applylogTransform ? Math.log2(value) : value,
+      ),
+    },
+  };
+};
+
 const buildSpec = (
-  targetSeqCut: string,
+  system: EntitySpec[],
   firstIndex: number,
   lastIndex: number,
-  msa: Sequence[],
   numDesigns: number,
   temperature: string,
   model: string,
@@ -138,6 +170,9 @@ const buildSpec = (
   seqSearchId: string,
   structSearchId: string,
   structSearchResult: object,
+  datasets: VerifiedDatasets | null,
+  regressor: string,
+  logTransform: boolean,
 ): PipelineSpec | SingleMutationScanSpec => {
   const temperatureNumeric = parseFloat(temperature);
   // instantiate core molecular model (used for any type of pipeline)
@@ -148,7 +183,7 @@ const buildSpec = (
       variant: "msa-only-small",
       args: {
         encoder_num_samples: 1,
-        decoder_batch_size: Math.min(numDesigns, 512),
+        decoder_batch_size: Math.min(numDesigns, 256),
       },
     };
   } else if (model === "evmutation2_ensembled") {
@@ -157,7 +192,7 @@ const buildSpec = (
       variant: "msa-only-small",
       args: {
         encoder_num_samples: 4,
-        decoder_batch_size: Math.min(numDesigns, 512),
+        decoder_batch_size: Math.min(numDesigns, 256),
       },
     };
   } else if (model === "esm2_650m") {
@@ -165,29 +200,12 @@ const buildSpec = (
       key: "esm2",
       variant: "esm2_t33_650M_UR50D",
       args: {
-        batch_size: Math.min(numDesigns, 512),
+        batch_size: Math.min(numDesigns, 128),
       },
     };
   } else {
     throw new Error("Model not yet implemented");
   }
-
-  // also instantiate system
-  const system = [
-    {
-      type: "protein",
-      rep: targetSeqCut,
-      id: "1",
-      first_index: firstIndex,
-      sequences: {
-        seqs: msa,
-        aligned: true,
-        type: "protein",
-        weights: null,
-        format: "a3m",
-      },
-    },
-  ];
 
   // pass MMseqs and FoldSeek IDs, as well as top structure hits
   // TODO: add proper typing here
@@ -209,11 +227,42 @@ const buildSpec = (
     structure_search_result: topStructures,
   };
 
+  // wrap predictor in supervised regressor if data is available
+  if (datasets !== null) {
+    // only apply log transform if all values are actually positive
+    const applylogTransform = logTransform && datasets.allPositive;
+
+    modelSpec = {
+      key: "supervised_sklearn_predictor",
+      variant: "default",
+      args: {
+        predictor: regressor,
+        predictor_kwargs: null,
+        embedder: modelSpec,
+        scorer: null, // both EVmutation2 and ESM2 can compute scores with embeddings, use these for now
+        use_embeddings: true,
+        use_scores: true,
+        override_models_for_training: false,
+        target_name: null, // use default target
+        pooling: "mean",
+        cv_folds: 5,
+        batch_size: 128,
+      },
+      data: {
+        training_set: transformDataset(datasets.datasets[0], applylogTransform),
+        test_set:
+          datasets.datasets.length > 1
+            ? transformDataset(datasets.datasets[1], applylogTransform)
+            : null,
+      } as LabeledInstanceTrainTestDatasetSpec,
+    };
+  }
+
   if (sampler === "single_mutation_scan") {
     return {
       key: "single_mutation_scan",
-      schema_version: "0.1",
-      system: system,
+      schema_version: "0.2",
+      system: systemSpecFromSystemArray(system),
       system_instance: systemInstanceFromSystem(system),
       scorer: modelSpec,
       entity: 0,
@@ -257,7 +306,7 @@ const buildSpec = (
             type: "linear",
             update: temperatureUpdate,
           },
-          record_full_chain: true, // TODO: revert this to false
+          record_full_chain: false,
         },
       };
     }
@@ -269,10 +318,10 @@ const buildSpec = (
 
     return {
       key: "pipeline",
-      schema_version: "0.1",
+      schema_version: "0.2",
       metadata: metadata,
 
-      system: system,
+      system: systemSpecFromSystemArray(system),
       system_instances: null,
       steps: [
         {
@@ -285,7 +334,6 @@ const buildSpec = (
               0: fixedPos,
             },
             temperature: temperatureNumeric,
-            deletions: false,
           },
         },
         {
@@ -306,6 +354,261 @@ const buildSpec = (
   }
 };
 
+interface DataDropzoneProps {
+  addDataset: (dataset: RawDataset) => void;
+  disabled: boolean;
+  message: string;
+}
+
+const DataDropzone = ({ addDataset, disabled, message }: DataDropzoneProps) => {
+  return (
+    <Dropzone
+      className={disabled ? "disabled" : undefined}
+      disabled={disabled}
+      onDrop={(files) => {
+        files.forEach((file) => {
+          Papa.parse(file, {
+            complete: (results) => {
+              if (!results.meta.fields) {
+                notifications.show({
+                  title: "Undefined column headers",
+                  message: "No column header fields defined",
+                  color: "red",
+                });
+                return;
+              }
+
+              // Check if any column header is numeric
+              const hasNumericHeaders = results.meta.fields?.some(
+                (field) => !isNaN(Number(field)),
+              );
+
+              if (hasNumericHeaders) {
+                notifications.show({
+                  title: "Invalid or missing column headers",
+                  message:
+                    "Column headers cannot be numbers. Please use text labels for your columns.",
+                  color: "red",
+                });
+                return;
+              }
+
+              if (results.data.length < MIN_DATASET_SIZE) {
+                notifications.show({
+                  title: "Not enough data rows in file",
+                  message: `Dataset must contain at least ${MIN_DATASET_SIZE} rows`,
+                  color: "red",
+                });
+                return;
+              }
+
+              if (results.data.length > MAX_DATASET_SIZE) {
+                notifications.show({
+                  title: "Too many data rows in file",
+                  message: `Dataset must not contain more than ${MAX_DATASET_SIZE} rows`,
+                  color: "red",
+                });
+                return;
+              }
+
+              if (results.meta.fields.length < 2) {
+                notifications.show({
+                  title: "Not enough columns",
+                  message:
+                    "Dataset must contain at least two columns (sequences/mutants and numerical values)",
+                  color: "red",
+                });
+                return;
+              }
+
+              if (results.errors.length > 0) {
+                notifications.show({
+                  title: "Error loading your dataset",
+                  message: `Your data file contains ${
+                    results.errors.length
+                  } error(s). First error in row ${
+                    results.errors[0].row !== undefined
+                      ? results.errors[0].row + 1
+                      : ""
+                  }: ${results.errors[0].message}`,
+                  color: "red",
+                });
+                return;
+              }
+
+              // keep API surface with papaparse as small as possible,
+              // return our own type to outside this component;
+              // default to first and second field as selected columns
+              addDataset({
+                name: file.name,
+                fields: results.meta.fields!,
+                rows: results.data as object[],
+                sequenceCol: results.meta.fields![0],
+                dataCol: results.meta.fields![1],
+              });
+            },
+            header: true,
+            skipEmptyLines: true,
+          });
+        });
+      }}
+      maxFiles={2}
+      accept={[MIME_TYPES.csv]}
+    >
+      <Group
+        justify="center"
+        gap="xl"
+        mih={60}
+        style={{ pointerEvents: "none" }}
+      >
+        <Dropzone.Accept>
+          <IconUpload
+            size={52}
+            color="var(--mantine-color-blue-6)"
+            stroke={1.5}
+          />
+        </Dropzone.Accept>
+        <Dropzone.Reject>
+          <IconX size={52} color="var(--mantine-color-red-6)" stroke={1.5} />
+        </Dropzone.Reject>
+        <Dropzone.Idle>
+          <IconFileTypeCsv
+            size={40}
+            color="var(--mantine-color-dimmed)"
+            stroke={1.0}
+          />
+        </Dropzone.Idle>
+
+        <div>
+          <Text size="md" inline>
+            Upload experimental data to build a customized model
+          </Text>
+          <Text size="sm" c="dimmed" inline mt={7}>
+            {message}
+          </Text>
+        </div>
+      </Group>
+    </Dropzone>
+  );
+};
+
+interface DataSectionProps {
+  system: EntitySpec[];
+  rawDatasets: RawDataset[];
+  setRawDatasets: React.Dispatch<React.SetStateAction<RawDataset[]>>;
+  verified: VerifiedDatasets;
+  logTransform: boolean;
+  setLogTransform: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+const DataSection = ({
+  rawDatasets,
+  setRawDatasets,
+  verified,
+  logTransform,
+  setLogTransform,
+}: DataSectionProps) => {
+  const cards = rawDatasets.map((dataset, i) => {
+    const datasetType =
+      rawDatasets.length > 1
+        ? i === 0
+          ? "training"
+          : "test"
+        : "Training / test";
+    return (
+      <Card radius={"md"} key={i}>
+        <Card.Section inheritPadding py="xs">
+          <Group justify={"space-between"}>
+            <Badge variant={"outline"}>{datasetType + " set"}</Badge>
+            <Text c={"blue"} size={"sm"}>
+              {`${dataset.name} (${dataset.rows.length} data points)`}
+            </Text>
+            <CloseButton
+              onClick={() =>
+                setRawDatasets(
+                  rawDatasets.filter((_, curIndex) => curIndex !== i),
+                )
+              }
+              variant={"transparent"}
+            />
+          </Group>
+        </Card.Section>
+        <Group justify={"space-between"} align={"top"}>
+          <Select
+            data={dataset.fields}
+            label={"Sequence/mutant column"}
+            description={
+              "Full length sequences or mutations relative to target"
+            }
+            value={dataset.sequenceCol}
+            error={
+              verified.datasets[i].instanceSeriesInvalid.length > 0
+                ? `Invalid ${verified.datasets[i].isMutantSeries ? "mutant" : "sequence"} in row ${verified.datasets[i].instanceSeriesInvalid[0] + 1}: ${ellipsis(verified.datasets[i].rawMutantOrInstanceSeries[verified.datasets[i].instanceSeriesInvalid[0]], 15)}`
+                : undefined
+            }
+            onChange={(value) => {
+              if (value)
+                setRawDatasets(
+                  rawDatasets.map((ds, index) =>
+                    index === i ? { ...ds, sequenceCol: value } : ds,
+                  ),
+                );
+            }}
+          />
+          <Select
+            data={dataset.fields}
+            label={"Experimental data column"}
+            description={"Numeric values only, higher value must mean better."}
+            value={dataset.dataCol}
+            error={
+              verified.datasets[i].dataSeriesInvalid.length > 0
+                ? `Invalid value in row ${verified.datasets[i].dataSeriesInvalid[0] + 1}: ${ellipsis(verified.datasets[i].rawDataSeries[verified.datasets[i].dataSeriesInvalid[0]], 15)}`
+                : undefined
+            }
+            onChange={(value) => {
+              if (value)
+                setRawDatasets(
+                  rawDatasets.map((ds, index) =>
+                    index === i ? { ...ds, dataCol: value } : ds,
+                  ),
+                );
+            }}
+          />
+        </Group>
+      </Card>
+    );
+  });
+
+  const message =
+    rawDatasets.length >= MAX_NUM_DATASETS
+      ? "Maximum of two files can be uploaded, delete others first to upload."
+      : rawDatasets.length === 0
+        ? "Drag or select your training set CSV file here."
+        : "Add an optional test set to use instead of cross-validation.";
+
+  return (
+    <>
+      <DataDropzone
+        addDataset={(newDataset) =>
+          setRawDatasets([...rawDatasets, newDataset])
+        }
+        disabled={rawDatasets.length >= MAX_NUM_DATASETS}
+        message={message}
+      />
+      {cards}
+      {cards.length > 0 ? (
+        <Switch
+          checked={logTransform}
+          onChange={(event) => setLogTransform(event.currentTarget.checked)}
+          disabled={!verified.allPositive}
+          label="Apply log transformation to data"
+          description="Recommended for enrichment ratios relative to WT, kcat/Km, or similar. Requires all values to be positive."
+        />
+      ) : null}
+    </>
+  );
+};
+
 export const DesignSpecInput = ({
   targetSeq,
   msa,
@@ -321,7 +624,12 @@ export const DesignSpecInput = ({
   const [showFilterModal, { toggle: toggleFilterModal }] = useDisclosure(false);
   const [filteredSeqs, setFilteredSeqs] = useState<Sequence[]>(msa.seqs);
 
-  const [model, setModel] = useState<string>("evmutation2_ensembled");
+  // user-uploaded datasets
+  const [rawDatasets, setRawDatasets] = useState<RawDataset[]>([]);
+  const [logTransform, setLogTransform] = useState(false);
+
+  const [model, setModel] = useState<string | null>("evmutation2_ensembled");
+  const [regressor, setRegressor] = useState<string>("RandomForestRegressor");
   const [sampler, setSampler] = useState("single_mutation_scan");
   const [numDesigns, setNumDesigns] = useState<number>(DEFAULT_NUM_DESIGNS);
   const [temperature, setTemperature] = useState<string>("0.5");
@@ -349,6 +657,34 @@ export const DesignSpecInput = ({
     getInitialValueInEffect: true,
   });
 
+  // also instantiate system based on its components, will be forwarded to buildSpec
+  // and subcomponents
+  const system = useMemo(
+    () =>
+      [
+        {
+          type: "protein",
+          rep: targetSeqCut,
+          id: "1",
+          first_index: targetSeq.start,
+          sequences: {
+            seqs: filteredSeqs,
+            aligned: true,
+            type: "protein",
+            weights: null,
+            format: "a3m",
+          },
+          deletions: false,
+        },
+      ] as EntitySpec[],
+    [targetSeqCut, targetSeq, filteredSeqs],
+  );
+
+  // parse and verify uploaded datasets against system
+  const verifiedDatasets = useMemo(() => {
+    return verifyRawDatasets(rawDatasets, system);
+  }, [rawDatasets, system]);
+
   const selectAllPos = () =>
     setPosSelection(range(targetSeq.start, targetSeq.end, 1));
 
@@ -357,15 +693,15 @@ export const DesignSpecInput = ({
 
   // set only viable sampler option if ESM2 selected
   useEffect(() => {
-    if (model.startsWith("esm2")) {
+    if (model?.startsWith("esm2") || verifiedDatasets.hasData) {
       if (sampler === "model") {
         setSampler("gibbs");
       }
       setInitStrategy("system");
-    } else if (model.startsWith("evmutation2")) {
+    } else if (model?.startsWith("evmutation2")) {
       setInitStrategy("random");
     }
-  }, [model, sampler]);
+  }, [model, sampler, verifiedDatasets.hasData]);
 
   // useEffect(() => {
   //   if (sampler === "gibbs") setTemperature("1.0");
@@ -444,10 +780,66 @@ export const DesignSpecInput = ({
     },
   ];
 
-  // no own sampling on esm2, so remove from list
-  if (model.startsWith("esm2")) {
+  // no own sampling on esm2, so remove from list; same for sampling from supervised model which needs Gibbs
+  if (model?.startsWith("esm2") || verifiedDatasets.hasData) {
     samplerOptions = samplerOptions.filter((x) => x.value !== "model");
   }
+
+  const availableModelsRaw = [
+    {
+      value: "evmutation2_ensembled",
+      label:
+        "EVmutation2 (evolutionary model; best for designing functional proteins)",
+    },
+    // {
+    //   value: "evmutation2",
+    //   label:
+    //     "EVmutation2 (lower accuracy mode, 4x speedup over ensembled version)",
+    // },
+    {
+      value: "esm2_650m",
+      label:
+        "ESM2 650M (best for sequence-only design in absence of evolutionary record)",
+    },
+    // {
+    //   value: "proteinmpnn",
+    //   label:
+    //     "ProteinMPNN (inverse folding model; best for designing stability but may lose function)",
+    //   disabled: true,
+    // },
+  ];
+
+  const availableModels = availableModelsRaw.filter(
+    (model) =>
+      !verifiedDatasets.hasData ||
+      (model.value.startsWith("esm2") &&
+        !verifiedDatasets.containsInsertions &&
+        !verifiedDatasets.containsDeletions) ||
+      (model.value.startsWith("evmutation2") &&
+        !verifiedDatasets.containsInsertions &&
+        verifiedDatasets.fixedLength),
+  );
+
+  // default to ESM2 for supervised modeling for now; but keep
+  // user selection after uploading first dataset
+  useEffect(() => {
+    if (rawDatasets.length > 0) {
+      setModel("esm2_650m");
+    }
+  }, [rawDatasets.length > 0]);
+
+  // make sure our model selection is still valid, update otherwise
+  useEffect(() => {
+    if (availableModels.filter((am) => am.value === model).length === 0) {
+      // if no available models, empty selection
+      if (availableModels.length === 0) {
+        setModel(null);
+      } else {
+        // otherwise default to first available model
+        setModel(availableModels[0].value);
+      }
+    }
+  }, [availableModels]);
 
   let restraintSelection = null;
   if (sampler === "gibbs") {
@@ -621,6 +1013,28 @@ export const DesignSpecInput = ({
       </>
     ) : null;
 
+  // only activate submit button if all inputs are valid, otherwise display an error
+  let submitDisabled = false;
+  let submitText = "Generate designs";
+
+  if (posSelection.length === 0) {
+    submitText = "Must select at least one position to design";
+    submitDisabled = true;
+  } else if (
+    balance.finished &&
+    (balance.balance === null || balance.balance <= MINIMUM_CREDIT)
+  ) {
+    submitText = "Insufficient compute credits";
+    submitDisabled = true;
+  } else if (verifiedDatasets.hasData && !verifiedDatasets.allValid) {
+    // dataset handling
+    submitText = "Error in uploaded dataset(s)";
+    submitDisabled = true;
+  } else if (model === null) {
+    submitText = "No model is able to handle prediction task";
+    submitDisabled = true;
+  }
+
   return (
     <>
       {msa.taxonomyReport !== null ? (
@@ -639,7 +1053,7 @@ export const DesignSpecInput = ({
       />
       <Title order={1}>Specify design parameters</Title>
       <Title order={4} c="blue">
-        Your sequence
+        Your target protein
       </Title>
       <Card padding="lg" radius="md" withBorder>
         <Group justify="space-between" pb={"xs"}>
@@ -661,43 +1075,56 @@ export const DesignSpecInput = ({
           </Badge>
         </Group>
       </Card>
-
+      <DataSection
+        system={system}
+        rawDatasets={rawDatasets}
+        setRawDatasets={setRawDatasets}
+        verified={verifiedDatasets}
+        logTransform={logTransform}
+        setLogTransform={setLogTransform}
+      />
       <Space />
       <Title order={4} c="blue">
         Choose generation parameters
       </Title>
       <Stack>
         <Select
-          label="Design model"
+          label={"Protein model"}
           description="Select a molecular model that best aligns with your design goals"
           placeholder="Pick value"
-          data={[
-            {
-              value: "evmutation2_ensembled",
-              label:
-                "EVmutation2 (evolutionary model; best for designing functional proteins)",
-            },
-            // {
-            //   value: "evmutation2",
-            //   label:
-            //     "EVmutation2 (lower accuracy mode, 4x speedup over ensembled version)",
-            // },
-            {
-              value: "esm2_650m",
-              label:
-                "ESM2 650M (best for sequence-only design in absence of evolutionary record)",
-            },
-            {
-              value: "proteinmpnn",
-              label:
-                "ProteinMPNN (inverse folding model; best for designing stability but may lose function)",
-              disabled: true,
-            },
-          ]}
+          data={availableModels}
           value={model}
+          error={
+            model === null
+              ? "No suitable model available for modeling problem"
+              : undefined
+          }
           onOptionSubmit={setModel}
           allowDeselect={false}
         />
+        {verifiedDatasets.hasData ? (
+          <Select
+            label={"Regression model"}
+            description="Select a model that will learn to map from embeddings/scores to your experimental data"
+            placeholder={"Pick value"}
+            data={[
+              {
+                value: "RandomForestRegressor",
+                label: "Random forest regression",
+              },
+              {
+                value: "RidgeCV",
+                label: "Ridge regression",
+              },
+              {
+                value: "LogisticRegressionCV",
+                label: "Logistic regression",
+              },
+            ]}
+            value={regressor}
+            onOptionSubmit={setRegressor}
+          />
+        ) : undefined}
       </Stack>
 
       <Stack gap={6}>
@@ -730,20 +1157,15 @@ export const DesignSpecInput = ({
       <Button
         variant="filled"
         size="md"
-        disabled={
-          posSelection.length === 0 ||
-          (balance.finished &&
-            (balance.balance === null || balance.balance <= MINIMUM_CREDIT))
-        }
+        disabled={submitDisabled}
         onClick={() => {
           const spec = buildSpec(
-            targetSeqCut,
+            system,
             targetSeq.start,
             targetSeq.end,
-            filteredSeqs,
             numDesigns,
             temperature,
-            model,
+            model!,
             sampler,
             restraints,
             posSelection,
@@ -753,6 +1175,9 @@ export const DesignSpecInput = ({
             seqSearchId,
             structSearchId,
             structures,
+            verifiedDatasets.hasData ? verifiedDatasets : null,
+            regressor,
+            logTransform,
           );
 
           // perform submission
@@ -766,13 +1191,7 @@ export const DesignSpecInput = ({
           openSubmitting();
         }}
       >
-        {posSelection.length > 0
-          ? balance.finished &&
-            balance.balance !== null &&
-            balance.balance > MINIMUM_CREDIT
-            ? "Generate designs"
-            : "Insufficient compute credits"
-          : "Must select at least one position to design"}
+        {submitText}
       </Button>
       <Space />
     </>

@@ -209,8 +209,8 @@ export const useHeatmapCellMarks = (
         null,
         designedPositions,
         0,
-        spec.system[0].rep,
-        spec.system[0].first_index,
+        spec.system.entities[0].rep,
+        spec.system.entities[0].first_index,
         false,
       );
       const counts = countMatrix.data[countMatrix.names.get("counts")!];
