@@ -1,20 +1,22 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, UseQueryResult } from "@tanstack/react-query";
 import {
   PipelineSpec,
   ProteinToDnaSpec,
-  SingleMutationScanSpec,
+  SingleMutationScanSpec, systemSpecFromSystemArray,
 } from "../models/design.ts";
 // import { useJobList } from "./local.ts";
 import {
   ApiBalanceResult,
   ApiJobResult,
-  JobListResponse,
+  JobListResponse, PipelineApiResult, ProteinToDnaApiResult, SingleMutationScanApiResult,
 } from "../models/api.ts";
 import { getAccessToken, useSession } from "../context/SessionContext.tsx";
+import { useMemo } from "react";
 
 export const getBackendUrl = () =>
   // "https://deboramarkslab--designserver-api-fastapi-app.modal.run/";
-  "https://deboramarkslab--designserver-api-nextgen-api.modal.run/";
+  // "https://deboramarkslab--designserver-api-nextgen-api.modal.run/"; // production
+  "https://deboramarkslab--evedesign-server-api.modal.run/";
 // "http://127.0.0.1:8000/";
 
 export interface SubmissionParams {
@@ -108,6 +110,44 @@ export const useJobData = (id: string) => {
     // enabled: token !== null,
   });
 };
+
+export const useJobDataTransformed = (qJob: UseQueryResult<ApiJobResult, Error>) => {
+  // transform old result JSON format to new format for backwards compatibility
+  return useMemo(() => {
+    if (qJob.isSuccess && qJob.data?.type && qJob.data?.results) {
+      if (
+        qJob.data.type === "pipeline" ||
+        qJob.data.type === "single_mutation_scan"
+      ) {
+        const results = structuredClone(qJob.data.results) as
+          | PipelineApiResult
+          | SingleMutationScanApiResult;
+        // update old list-only system format
+        if (Array.isArray(results.spec.system)) {
+          results.spec.system = systemSpecFromSystemArray(results.spec.system);
+        }
+        return results;
+      } else if (qJob.data.type === "protein_to_dna") {
+        const resultsDna = structuredClone(
+          qJob.data.results,
+        ) as ProteinToDnaApiResult;
+        // update old list-only system format
+        if (Array.isArray(resultsDna.spec.args.system)) {
+          resultsDna.spec.args.system = systemSpecFromSystemArray(
+            resultsDna.spec.args.system,
+          );
+        }
+        return resultsDna;
+      }
+      // should not happen currently
+      return qJob.data.results;
+    } else {
+      return undefined;
+    }
+  }, [qJob.isSuccess, qJob.data]);
+}
+
+
 
 export const useBalance = () => {
   const { session } = useSession();

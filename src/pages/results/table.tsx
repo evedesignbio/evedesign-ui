@@ -152,7 +152,7 @@ const AUX_COLUMNS: ColumnRenderSpec[] = [
             variant="subtle"
             data-tooltip-content={JSON.stringify({
               instance: instance,
-              firstIndex: spec.system[0].first_index,
+              firstIndex: spec.system.entities[0].first_index,
             })}
             data-tooltip-id="tableViewer"
             onClick={(e) => e.stopPropagation()}

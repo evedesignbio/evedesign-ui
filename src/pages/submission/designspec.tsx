@@ -24,7 +24,7 @@ import {
   PipelineSpec,
   Sequence,
   SingleMutationScanSpec,
-  systemInstanceFromSystem,
+  systemInstanceFromSystem, systemSpecFromSystemArray,
 } from "../../models/design.ts";
 import { SeqWithRegion } from "./sequence.tsx";
 import { SequenceViewer } from "../../components/sequenceviewer";
@@ -261,8 +261,8 @@ const buildSpec = (
   if (sampler === "single_mutation_scan") {
     return {
       key: "single_mutation_scan",
-      schema_version: "0.1",
-      system: system,
+      schema_version: "0.2",
+      system: systemSpecFromSystemArray(system),
       system_instance: systemInstanceFromSystem(system),
       scorer: modelSpec,
       entity: 0,
@@ -318,10 +318,10 @@ const buildSpec = (
 
     return {
       key: "pipeline",
-      schema_version: "0.1",
+      schema_version: "0.2",
       metadata: metadata,
 
-      system: system,
+      system: systemSpecFromSystemArray(system),
       system_instances: null,
       steps: [
         {
@@ -334,7 +334,6 @@ const buildSpec = (
               0: fixedPos,
             },
             temperature: temperatureNumeric,
-            deletions: false,
           },
         },
         {
@@ -675,6 +674,7 @@ export const DesignSpecInput = ({
             weights: null,
             format: "a3m",
           },
+          deletions: false,
         },
       ] as EntitySpec[],
     [targetSeqCut, targetSeq, filteredSeqs],

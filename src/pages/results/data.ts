@@ -150,7 +150,7 @@ export const useInstances = (
       const resultsCast = results as PipelineApiResult;
       const fixedLength = resultsCast.instances.every((inst) =>
         inst.entity_instances.every(
-          (ei, j) => ei.rep.length === results.spec.system[j].rep.length,
+          (ei, j) => ei.rep.length === results.spec.system.entities[j].rep.length,
         ),
       );
 
@@ -200,9 +200,9 @@ export const useInstances = (
         if (fixedLength) {
           inst.entity_instances.forEach((ei, eiIdx) => {
             [...ei.rep].forEach((symbol, repIdx) => {
-              const ref = resultsCast.spec.system[eiIdx].rep[repIdx];
+              const ref = resultsCast.spec.system.entities[eiIdx].rep[repIdx];
               const curPos =
-                repIdx + resultsCast.spec.system[eiIdx].first_index;
+                repIdx + resultsCast.spec.system.entities[eiIdx].first_index;
               inst.seqMap!.set(
                 encodePosition({ entity: eiIdx, pos: curPos }),
                 symbol,
@@ -226,7 +226,7 @@ export const useInstances = (
       return {
         instances: instancesEnhanced,
         fixedLength: fixedLength,
-        designedPositions: resultsCast.spec.system
+        designedPositions: resultsCast.spec.system.entities
           .map((ent, entIdx) =>
             range(ent.first_index, ent.first_index + ent.rep.length - 1, 1)
               .filter(
@@ -250,7 +250,7 @@ export const useInstances = (
     } else {
       const resultsCast = results as SingleMutationScanApiResult;
       const instances = singleMutationScanToInstances(
-        results.spec.system,
+        results.spec.system.entities,
         results.spec.system_instance,
         resultsCast.scores,
         true,
@@ -443,8 +443,8 @@ export const useMatrix = (
         altInstances,
         designedPositions,
         0,
-        spec.system[0].rep,
-        spec.system[0].first_index,
+        spec.system.entities[0].rep,
+        spec.system.entities[0].first_index,
         false,
       );
     } else {
@@ -453,8 +453,8 @@ export const useMatrix = (
         null,
         designedPositions,
         0,
-        spec.system[0].rep,
-        spec.system[0].first_index,
+        spec.system.entities[0].rep,
+        spec.system.entities[0].first_index,
         true,
       );
     }
@@ -562,8 +562,8 @@ export const useSeqSpaceProjections = (
 ): SeqSpaceProjections | null => {
   // natural sequences
   const systemProjections = useMemo(() => {
-    return spec.system[0].sequences?.seqs
-      ? spec.system[0].sequences.seqs.filter(
+    return spec.system.entities[0].sequences?.seqs
+      ? spec.system.entities[0].sequences.seqs.filter(
           (seq) =>
             seq.metadata &&
             seq.metadata.seqspace_projection &&
