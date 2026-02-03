@@ -7,7 +7,7 @@ import {
   Space,
   Stack,
 } from "@mantine/core";
-import { useJobData } from "../../api/backend.ts";
+import { useJobData, useJobDataTransformed } from "../../api/backend.ts";
 import { AnalysisViewer } from "./viewer.tsx";
 import {
   DesignJobApiResult,
@@ -28,7 +28,9 @@ import { useViewportProperties } from "../../utils/ui.tsx";
 import { useInstances } from "./data.ts";
 import { useDisclosure } from "@mantine/hooks";
 import { InstanceDownloadMenu } from "./elements.tsx";
-import { InputSpecTypeKeys } from "../../models/design.ts";
+import {
+  InputSpecTypeKeys
+} from "../../models/design.ts";
 
 export interface FinishedResultsWrapperProps {
   id: string;
@@ -83,7 +85,7 @@ export const InstanceDownload = ({
     >
       <BoxedLayout title={"DNA library generation"}>
         <DNAGenerationDialog
-          system={results.spec.system}
+          system={results.spec.system.entities}
           instances={enhancedInstances.instances}
           parentJobId={id}
           projectId={projectId}
@@ -165,10 +167,7 @@ export const DownloadOnlyViewer = ({
   return (
     <>
       <BoxedLayout id={id} name={name} title={"Job result"}>
-        <JobStatusBadge
-          label={"finished"}
-          jobType={results.spec.key}
-        />
+        <JobStatusBadge label={"finished"} jobType={results.spec.key} />
         <Stack>
           {message ? (
             <>
@@ -253,6 +252,9 @@ export const ResultsPageWrapper = ({ id }: ResultsWrapperProps) => {
   // status options: initialized, running, failed, finished, invalid
   const qJob = useJobData(id);
 
+  // for backwards compatibility, transform results to new system format wrapped as object
+  const resultsTransformed = useJobDataTransformed(qJob);
+
   if (qJob.isSuccess) {
     const jobType = qJob.data.type;
     const status = qJob.data.status;
@@ -263,7 +265,7 @@ export const ResultsPageWrapper = ({ id }: ResultsWrapperProps) => {
     if (status === "finished") {
       return (
         <FinishedResultsPageWrapper
-          results={qJob.data.results!}
+          results={resultsTransformed!}
           id={id}
           name={qJob.data.name}
           jobType={jobType}

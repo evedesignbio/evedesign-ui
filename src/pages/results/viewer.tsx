@@ -197,7 +197,7 @@ export const AnalysisViewer = ({
     >
       <BoxedLayout title={"DNA library generation"}>
         <DNAGenerationDialog
-          system={spec.system}
+          system={spec.system.entities}
           instances={basketInstances}
           parentJobId={id}
           isPublic={isPublic}
@@ -241,7 +241,7 @@ export const AnalysisViewer = ({
         structureHits={
           spec.metadata ? spec.metadata.structure_search_result : []
         }
-        firstIndex={spec.system[0].first_index}
+        firstIndex={spec.system.entities[0].first_index}
         backgroundColor={
           computedColorScheme === "dark"
             ? theme.colors.dark[7] // cf. https://mantine.dev/styles/css-variables-list/

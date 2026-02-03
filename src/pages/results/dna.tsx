@@ -20,10 +20,12 @@ import { useDisclosure } from "@mantine/hooks";
 import { useSubmission } from "../../api/backend.ts";
 import {
   CodonOptimizationMethod,
+  DEFAULT_SYSTEM_INSTANCE_SCHEMA_VERSION,
   EntitySpec,
   ProteinToDnaSpec,
   systemInstanceFromSystem,
   SystemInstanceSpec,
+  systemSpecFromSystemArray,
 } from "../../models/design.ts";
 import { SubmissionModal } from "../../components/submission/modal.tsx";
 
@@ -111,13 +113,19 @@ const buildSpec = (
     ? systemInstanceFromSystem(system)
     : null;
 
-  const finalInstances = includeTarget
-    ? [systemInstanceFromSystem(system)].concat(instances)
-    : instances;
+  // update instance schema_version for older runs
+  const finalInstances = (
+    includeTarget
+      ? [systemInstanceFromSystem(system)].concat(instances)
+      : instances
+  ).map((i) => ({
+    ...i,
+    schema_version: DEFAULT_SYSTEM_INSTANCE_SCHEMA_VERSION,
+  }));
 
   return {
     key: "protein_to_dna",
-    schema_version: "0.1",
+    schema_version: "0.2",
     optimizer: {
       key: "dnachisel",
       variant: "default",
@@ -135,7 +143,7 @@ const buildSpec = (
       },
     },
     args: {
-      system: system,
+      system: systemSpecFromSystemArray(system),
       system_instances: finalInstances,
       entity: 0,
       upstream_dna: upstreamDna,

@@ -41,7 +41,22 @@ export interface EntitySpec {
   id: string;
   first_index: number;
   sequences: SequencesSpec | null;
+  deletions?: boolean;
 }
+
+export interface SystemSpec {
+  entities: EntitySpec[];
+  schema_version: string;
+}
+
+const DEFAULT_SYSTEM_SCHEMA_VERSION = "0.2";
+
+export const systemSpecFromSystemArray = (system: EntitySpec[]): SystemSpec => {
+  return {
+    entities: system,
+    schema_version: DEFAULT_SYSTEM_SCHEMA_VERSION,
+  };
+};
 
 export interface EntityInstanceSpec {
   rep: string;
@@ -67,6 +82,7 @@ export interface SystemInstanceSpec {
   confidence: number | null;
   metadata: SystemInstanceMetadata | null;
   id: string | null;
+  schema_version: string;
 }
 
 export interface SystemInstanceSpecEnhanced extends SystemInstanceSpec {
@@ -75,6 +91,8 @@ export interface SystemInstanceSpecEnhanced extends SystemInstanceSpec {
   seqMap?: Map<string, string>;
   count: number;
 }
+
+export const DEFAULT_SYSTEM_INSTANCE_SCHEMA_VERSION = "0.2";
 
 export const systemInstanceFromSystem = (
   system: EntitySpec[],
@@ -88,6 +106,7 @@ export const systemInstanceFromSystem = (
     confidence: null,
     metadata: null,
     id: null,
+    schema_version: DEFAULT_SYSTEM_INSTANCE_SCHEMA_VERSION,
   };
 };
 
@@ -112,7 +131,6 @@ export interface GenerateArgsSpec {
   entities: number[] | null;
   fixed_pos: Record<number, number[]> | null;
   temperature: number;
-  deletions: boolean;
 }
 
 export interface GenerationStepSpec {
@@ -142,15 +160,20 @@ export interface PipelineSpec {
   key: "pipeline";
   schema_version: string;
   metadata: JobSpecMetadata | null;
-  system: EntitySpec[];
+  system: SystemSpec;
   system_instances: SystemInstanceSpec[] | null;
-  steps: (GenerationStepSpec | ScoringStepSpec | TransformationStepSpec | AnalysisStepSpec)[];
+  steps: (
+    | GenerationStepSpec
+    | ScoringStepSpec
+    | TransformationStepSpec
+    | AnalysisStepSpec
+  )[];
 }
 
 export interface SingleMutationScanSpec {
   key: "single_mutation_scan";
   schema_version: string;
-  system: EntitySpec[];
+  system: SystemSpec;
   system_instance: SystemInstanceSpec;
   scorer: object;
   entity: number | null;
@@ -171,7 +194,7 @@ export interface SingleMutationScanResult {
 }
 
 export interface ProteinToDnaOptimizerArgsSpec {
-  system: EntitySpec[];
+  system: SystemSpec;
   system_instances: SystemInstanceSpec[];
   entity: number;
   upstream_dna: string;
