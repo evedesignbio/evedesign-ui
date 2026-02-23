@@ -9,7 +9,7 @@ import {
 } from "../utils/bio.ts";
 import { MsaResult } from "../models/api.ts";
 
-const mmseqsBaseUrl = (): string => "https://api.colabfold.com/";
+const mmseqsBaseUrl = (): string => import.meta.env.VITE_MMSEQS_BASE_URL;
 
 export const useMmseqsSearch = (seq: string | null) => {
   return usePolling(
