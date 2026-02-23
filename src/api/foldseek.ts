@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { usePolling } from "./polling.ts";
 
-const foldseek3DiBaseUrl = (): string => "https://3di.foldseek.com/";
-const foldseekBaseUrl = (): string => "https://search.foldseek.com/";
+const foldseek3DiBaseUrl = (): string => import.meta.env.VITE_FOLDSEEK_3DIPRED_BASE_URL;
+const foldseekBaseUrl = (): string => import.meta.env.VITE_FOLDSEEK_BASE_URL;
 
 export const useFoldseekSearch = (seq: string | null) => {
   // Step 1: predict 3Di states from sequenceviewer

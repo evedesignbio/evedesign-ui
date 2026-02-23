@@ -19,6 +19,7 @@ import { DocumentationPage } from "./pages/docs";
 import { StartPage } from "./pages/start";
 import { PrivacyPolicyPage, TermsOfServicePage } from "./pages/legal";
 import { Notifications } from "@mantine/notifications";
+import {CodePage} from "./pages/code";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => {
             <Route path="/" component={StartPage} />
             <Route path="/terms" component={TermsOfServicePage} />
             <Route path="/privacy" component={PrivacyPolicyPage} />
+            <Route path="/code" component={CodePage} />
             <Route path="/submit" component={SubmissionPage} />
             <Route path="/auth/sign-up" component={SignUpPage} />
             <Route path="/auth/reset-password" component={ResetPasswordPage} />

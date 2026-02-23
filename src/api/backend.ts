@@ -2,22 +2,22 @@ import { useMutation, useQuery, UseQueryResult } from "@tanstack/react-query";
 import {
   PipelineSpec,
   ProteinToDnaSpec,
-  SingleMutationScanSpec, systemSpecFromSystemArray,
+  SingleMutationScanSpec,
+  systemSpecFromSystemArray,
 } from "../models/design.ts";
 // import { useJobList } from "./local.ts";
 import {
   ApiBalanceResult,
   ApiJobResult,
-  JobListResponse, PipelineApiResult, ProteinToDnaApiResult, SingleMutationScanApiResult,
+  JobListResponse,
+  PipelineApiResult,
+  ProteinToDnaApiResult,
+  SingleMutationScanApiResult,
 } from "../models/api.ts";
 import { getAccessToken, useSession } from "../context/SessionContext.tsx";
 import { useMemo } from "react";
 
-export const getBackendUrl = () =>
-  // "https://deboramarkslab--designserver-api-fastapi-app.modal.run/";
-  // "https://deboramarkslab--designserver-api-nextgen-api.modal.run/"; // production
-  "https://deboramarkslab--evedesign-server-api.modal.run/";
-// "http://127.0.0.1:8000/";
+export const getBackendUrl = () => import.meta.env.VITE_BACKEND_BASE_URL;
 
 export interface SubmissionParams {
   spec: PipelineSpec | SingleMutationScanSpec | ProteinToDnaSpec;
@@ -111,7 +111,9 @@ export const useJobData = (id: string) => {
   });
 };
 
-export const useJobDataTransformed = (qJob: UseQueryResult<ApiJobResult, Error>) => {
+export const useJobDataTransformed = (
+  qJob: UseQueryResult<ApiJobResult, Error>,
+) => {
   // transform old result JSON format to new format for backwards compatibility
   return useMemo(() => {
     if (qJob.isSuccess && qJob.data?.type && qJob.data?.results) {
@@ -145,9 +147,7 @@ export const useJobDataTransformed = (qJob: UseQueryResult<ApiJobResult, Error>)
       return undefined;
     }
   }, [qJob.isSuccess, qJob.data]);
-}
-
-
+};
 
 export const useBalance = () => {
   const { session } = useSession();
