@@ -145,17 +145,6 @@ export const StartPage = () => {
           {/*</List>*/}
 
           <Group mt={30} align={"center"} justify={"center"}>
-            {/*<Button*/}
-            {/*  // component="a"*/}
-            {/*  disabled={true}*/}
-            {/*  size={"lg"}*/}
-            {/*  variant="light"*/}
-            {/*  leftSection={<IconBrandGithubFilled size={20} />}*/}
-            {/*>*/}
-            {/*  <Stack gap={0}>*/}
-            {/*    GitHub<Text size={"xs"}>(coming soon)</Text>*/}
-            {/*  </Stack>*/}
-            {/*</Button>*/}
             <Menu shadow="md" width={200} position="bottom-start">
               <Menu.Target>
                 <Button variant={"light"} size={"lg"}>
@@ -199,16 +188,15 @@ export const StartPage = () => {
               >
                 Documentation
               </Button>
-              <Tooltip label={"Framework will be released very soon!"}>
-                <Button
-                  variant={"subtle"}
-                  // component={Link}
-                  // to={"/"}
-                  leftSection={<IconBrandGithubFilled size={20} />}
-                >
-                  GitHub
-                </Button>
-              </Tooltip>
+              <Button
+                variant={"subtle"}
+                component={"a"}
+                href={"https://github.com/evedesignbio/"}
+                target={"_blank"}
+                leftSection={<IconBrandGithubFilled size={20} />}
+              >
+                GitHub
+              </Button>
               <Button
                 variant={"subtle"}
                 component={"a"}
