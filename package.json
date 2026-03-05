@@ -51,6 +51,6 @@
     "vite": "^6.2.0"
   },
   "overrides": {
-    "minimatch": "10.2.2"
+    "minimatch": "10.2.4"
   }
 }
