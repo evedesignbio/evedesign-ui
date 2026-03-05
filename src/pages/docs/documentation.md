@@ -41,7 +41,7 @@ Yes, we will refill your free compute time on a monthly basis. We aim to distrib
 
 ### Is there a limit on job duration?
 
-Design jobs are limited to a maximum duration of 5 hours and codon optimization jobs to 12 hours; any job will be terminated automatically if it takes longer than that to finish. In practice, this limitation will primarily affect design jobs based on Gibbs sampling. Limit your number of designs, the number of Gibbs sweeps, or the length of the modelled region to cut down runtimes.
+Design jobs are limited to a maximum duration of 5 hours  and codon optimization jobs to 12 hours; any job will be terminated automatically if it takes longer than that to finish. In practice, this limitation will primarily affect design jobs based on Gibbs sampling. Limit your number of designs, the number of Gibbs sweeps, or the length of the modelled region to cut down runtimes.
 
 ### Do I need to create an account?
 
@@ -65,18 +65,42 @@ You can design any protein sequence of interest, either by inputting a UniProt I
 
 If your protein consists of multiple domains, you may want to consider limiting the modelled protein region to the parts relevant to the design problem (e.g. by not including the Fc region if designing antibody CDRs), as this will both speed up the computation and potentially can give more accurate results.
 
-### What model should I use? / What properties do different zero-shot methods capture?
+### What zero-shot model should I use? / What properties do different zero-shot methods capture?
 
-As a rule of thumb, to design functional proteins we recommend to use:
+As a rule of thumb, to design functional proteins we recommend to use one of the following methods:
 
 1. An evolutionary model if enough related sequences are available in the multiple sequence alignment (the server will check this for you and display an indication). You have control over the model predictions by selecting which evolutionary sequences to use for modelling with the taxonomy filter (accessible through the "Filter" button)
 2. a large language model if the multiple sequence alignment contains few sequences (use for CDR designs, de novo proteins, etc.; note that these models also degrade in performance as fewer evolutionary related sequences are available at training time).
 
-Evolutionary models and large language models typically score and optimize for the joint functional properties the natural sequences in the related protein family were selected for in evolution (this is typically an aggregate of folding into a stable molecule, enzymatic activity, etc.). These models are typically best for predicting the overall function/fitness effect of mutations, but usually do not work well to predict different/novel functions not present in the natural sequences. Inverse folding models tend to predict protein stability the most accurately, but tend to fail in capturing protein function.
+Evolutionary models and large language models score and optimize for the joint functional properties the natural sequences in the related protein family were selected for in evolution (this is typically an aggregate of folding into a stable molecule, enzymatic activity, etc.). These models are typically best for predicting the overall function/fitness effect of mutations, but usually do not work well to predict different/novel functions not present in the natural sequences. Inverse folding models tend to predict protein stability the most accurately, but tend to fail in capturing protein function.
 
 Which different categories of protein function (e.g. overall fitness/function, stability alone, ...) are predicted best by different classes of zero-shot models are still a topic of ongoing research. We refer to the ProteinGym benchmark ([proteingym.org](http://proteingym.org)) for more detail and performance assessments on different prediction categories.
 
-We plan to add explicit predictors for different biochemical and functional properties (e.g. melting temperature, or user-uploaded assay data) in the future for more fine-grained control over the design process.
+We plan to add predictors for different biochemical and functional properties (e.g. melting temperature) in the future for more fine-grained control over the design goals.
+
+### Can I use my own experimental data to customize models?
+
+Yes\! You can incorporate your experimental data to customize models through supervised learning by uploading it on the job submission page. Please note that there is no guarantee that using experimental data will actually improve results over and above using zero-shot models, which is an ongoing topic of research.
+
+Requirements for the uploaded data:
+
+1. Data files must be in CSV format with arbitrary column headers. After uploading the file, you will be able to select which columns to use for defining your mutants and which for experimental data.
+2. One column must either contain mutants relative to the chosen target sequence with consistent numbering and wildtype amino acids, or entire sequences (note that  if you upload entire sequences and these have different lengths, you will only be able to use ESM-2 as the model for computing embeddings). Individual substitutions must be in the format \<wt\>\<pos\>\<subs\> (e.g. A123V), and multiple substitutions can be combined into higher-order mutants by separating them with a whitespace or underscore (e.g. A123V\_C456S).
+3. At least one column must contain experimental data, which can only be numerical values
+
+evedesign validates your files upon upload and will display a descriptive message if there are any issues.
+
+If you upload a single data file, the performance of the trained model will be estimated by cross-validation with random splitting on this data (note this can give misleading results, see next sections), and the final model will be trained on the entire dataset. You also have the option to upload a second data file, in which case the first file will be used as the training set and the second file will be used as the test set for estimating model performance. You will be able to inspect estimated model performance after job completion on the results page by clicking on the "Model" button.
+
+### Which protein and regression models should I use for supervised model training?
+
+For the underlying protein embedding/score model, please refer to the previous section about zero-shot models, as the same basic considerations apply here. Additionally, if you plan to train on sequences of different lengths, you can currently only use ESM-2.
+
+For the regression model, Random Forest Regression will be typically a good default choice that can also handle non-linear relationships, but we also offer Ridge Regression and Logistic Regression if you are able to make stronger assumptions about your data and how it relates to sequence embeddings and log-likelihood scores (linear or sigmoid relationship, respectively).
+
+### How many data points are needed for supervised model training and what model accuracy can I expect?
+
+These are topics of ongoing research. Note that your estimated model performance may also not be reflective of the actual performance on the predicted mutants or generated designs, in particular if predicting positions or mutational depths not covered in the training set.
 
 ### What design approach should I use?
 
