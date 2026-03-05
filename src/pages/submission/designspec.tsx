@@ -481,7 +481,7 @@ const DataDropzone = ({ addDataset, disabled, message }: DataDropzoneProps) => {
 
         <div>
           <Text size="md" inline>
-            Upload experimental data to build a customized model
+            Upload experimental data customize your model
           </Text>
           <Text size="sm" c="dimmed" inline mt={7}>
             {message}
@@ -583,7 +583,7 @@ const DataSection = ({
     rawDatasets.length >= MAX_NUM_DATASETS
       ? "Maximum of two files can be uploaded, delete others first to upload."
       : rawDatasets.length === 0
-        ? "Drag or select your training set CSV file here."
+        ? "Drag or select your training set file in CSV format here."
         : "Add an optional test set to use instead of cross-validation.";
 
   return (
