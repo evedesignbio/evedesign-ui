@@ -9,6 +9,7 @@ import {
   Anchor,
   Image,
   Tooltip,
+  useComputedColorScheme,
 } from "@mantine/core";
 import { Link, useLocation } from "wouter";
 import {
@@ -29,7 +30,8 @@ import LogoMarks from "../../assets/marks_lab.png";
 import LogoHopf from "../../assets/hopf_consulting.png";
 import LogoDOelsnitz from "../../assets/doelsnitz_lab.png";
 import LogoSteinegger from "../../assets/steinegger_lab.png";
-import {BackgroundImage} from "../../features/misc/background_image.tsx";
+import LogoDark from "../../assets/logo_dark.svg";
+import LogoLight from "../../assets/logo_light.svg";
 
 const EXAMPLE_DESIGN_JOB_URL = "/results/a25685df-6bd6-4272-a715-1ee5b1b47434";
 const EXAMPLE_SCAN_JOB_URL = "/results/969d9fe8-b658-4dd0-9f0c-7826d468f681";
@@ -56,6 +58,10 @@ const CONTRIBUTORS = shuffleArray([
   "Debora Marks",
   "Chris Sander",
   "Jake Reardon",
+  "Ethan Eschbach",
+  "Rose Orenbuch",
+  "Khaoula Belahsen",
+  "David Ross",
 ]);
 
 const GROUPS = [
@@ -84,6 +90,9 @@ const GROUPS = [
 export const StartPage = () => {
   const [_location, navigate] = useLocation();
   const { session } = useSession();
+  const computedColorScheme = useComputedColorScheme("light", {
+    getInitialValueInEffect: true,
+  });
 
   const navigateToExample = (url: string) => {
     if (!session) {
@@ -95,19 +104,29 @@ export const StartPage = () => {
 
   return (
     <>
-      <BackgroundImage />
-      <Container size={"sm"} mt={"xl"}>
-        <Stack align={"center"}>
+      <Container size={"sm"}>
+        <Stack
+          align={"center"}
+          justify={"center"}
+          style={{ minHeight: "calc(100dvh - 56px)" }}
+        >
+          <Image
+            src={computedColorScheme === "dark" ? LogoDark : LogoLight}
+            w={"90%"}
+            mt={40}
+          />
           <Title size={50} fw={600} mt={40}>
             AI protein design{" "}
             <span
-              style={{
-                // backgroundColor: "var(--mantine-color-blue-light)",
-                // borderRadius: "var(--mantine-radius-sm)",
-                // padding: "4px 12px",
-                color:
-                  "light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-4))",
-              }}
+              style={
+                {
+                  // fontStyle: "italic",
+                  // backgroundColor: "var(--mantine-color-blue-light)",
+                  // borderRadius: "var(--mantine-radius-sm)",
+                  // padding: "4px 12px",
+                  // color: "light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-4))",
+                }
+              }
             >
               for everyone
             </span>
@@ -120,31 +139,16 @@ export const StartPage = () => {
             open-source framework.
           </Text>
 
-          {/*<List*/}
-          {/*  mt={30}*/}
-          {/*  spacing="sm"*/}
-          {/*  size="md"*/}
-          {/*  icon={*/}
-          {/*    <ThemeIcon size={20} radius="xl">*/}
-          {/*      <IconCheck size={12} stroke={1.5} />*/}
-          {/*    </ThemeIcon>*/}
-          {/*  }*/}
-          {/*>*/}
-          {/*  <List.Item>*/}
-          {/*    <b>Free design jobs</b> – we provide the computing free of charge*/}
-          {/*    for academic/non-commercial research, no registration required.*/}
-          {/*  </List.Item>*/}
-          {/*  <List.Item>*/}
-          {/*    <b>Open source</b> – backed by a unified framework for biosequence*/}
-          {/*    design (will be released shortly under a permissive license)*/}
-          {/*  </List.Item>*/}
-          {/*  <List.Item>*/}
-          {/*    <b>Interactive analysis</b> – curate your generated sequence*/}
-          {/*    library in the context of 3D structures and natural sequences*/}
-          {/*  </List.Item>*/}
-          {/*</List>*/}
-
-          <Group mt={30} align={"center"} justify={"center"}>
+          <Group mt={30} align={"center"} justify={"center"} mb={40}>
+            <Button
+              component={"a"}
+              href="https://www.biorxiv.org/content/10.64898/2026.03.17.712115v1"
+              size={"lg"}
+              variant={"light"}
+              target={"_blank"}
+            >
+              Preprint
+            </Button>
             <Menu shadow="md" width={200} position="bottom-start">
               <Menu.Target>
                 <Button variant={"light"} size={"lg"}>
@@ -169,16 +173,13 @@ export const StartPage = () => {
                 ) : null}
               </Menu.Dropdown>
             </Menu>
-            <Button
-              component={Link}
-              to="/submit"
-              size={"lg"}
-              // leftSection={<IconCircleArrowRight size={20} />}
-            >
+            <Button component={Link} to="/submit" size={"lg"}>
               Create designs
             </Button>
           </Group>
-          <Stack mt={50} mb={30} align={"center"}>
+        </Stack>
+        <Stack align={"center"}>
+          <Stack mb={30} align={"center"}>
             <Group align={"center"} justify={"center"}>
               <Button
                 variant={"subtle"}
