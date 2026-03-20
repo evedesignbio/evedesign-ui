@@ -12,8 +12,6 @@ import { useSession } from "../../context/SessionContext.tsx";
 import { AuthenticationForm } from "../../features/auth";
 import { useHashLocation } from "wouter/use-hash-location";
 
-import {BackgroundImage} from "../../features/misc/background_image.tsx";
-
 export const SubmissionPage = () => {
   // login session
   const { session } = useSession();
@@ -104,13 +102,8 @@ export const SubmissionPage = () => {
   }
 
   return (
-    <>
-      {targetSeq === null ? (
-        <BackgroundImage />
-      ) : null}
-      <Container size="sm" pt="xl">
-        <Stack>{render}</Stack>
-      </Container>
-    </>
+    <Container size="sm" pt="xl">
+      <Stack>{render}</Stack>
+    </Container>
   );
 };
