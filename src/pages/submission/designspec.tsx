@@ -18,13 +18,15 @@ import {
   Switch,
 } from "@mantine/core";
 import {
+  DatasetSplitSpec,
   EntitySpec,
   LabeledInstanceDatasetSpec,
-  LabeledInstanceTrainTestDatasetSpec,
   PipelineSpec,
   Sequence,
   SingleMutationScanSpec,
-  systemInstanceFromSystem, systemSpecFromSystemArray,
+  systemInstanceFromSystem,
+  SystemInstanceSpec,
+  systemSpecFromSystemArray,
 } from "../../models/design.ts";
 import { SeqWithRegion } from "./sequence.tsx";
 import { SequenceViewer } from "../../components/sequenceviewer";
@@ -39,7 +41,6 @@ import { IconFileTypeCsv, IconUpload, IconX } from "@tabler/icons-react";
 import Papa from "papaparse";
 import {
   RawDataset,
-  VerifiedDataset,
   VerifiedDatasets,
   verifyRawDatasets,
 } from "./data.ts";
@@ -140,17 +141,56 @@ const RestraintList = ({ restraints, setRestraints }: RestraintListProps) => {
   ));
 };
 
-const transformDataset = (
-  dataset: VerifiedDataset,
+const transformDatasets = (
+  datasets: VerifiedDatasets,
   applylogTransform: boolean,
 ): LabeledInstanceDatasetSpec => {
+  let instances: SystemInstanceSpec[];
+  let data: number[];
+  let splits: LabeledInstanceDatasetSpec["splits"];
+
+  if (datasets.datasets.length == 1) {
+    instances = datasets.datasets[0].instanceSeries;
+    data = datasets.datasets[0].dataSeries;
+    splits = ["cv", 5];
+  } else if (datasets.datasets.length == 2) {
+    // merge instances
+    instances = [
+      ...datasets.datasets[0].instanceSeries,
+      ...datasets.datasets[1].instanceSeries,
+    ];
+
+    data = [
+      ...datasets.datasets[0].dataSeries,
+      ...datasets.datasets[1].dataSeries,
+    ];
+
+    const nTrain = datasets.datasets[0].instanceSeries.length;
+    const nTest = datasets.datasets[1].instanceSeries.length;
+
+    const trainIndices: number[] = Array.from({ length: nTrain }, (_, i) => i );
+    const testIndices: number[] = Array.from({ length: nTest }, (_, i) => i + nTrain);
+
+    splits = {
+      train_test: {
+        train: trainIndices,
+        test: testIndices,
+        val: null,
+      } as DatasetSplitSpec
+    }
+
+  } else {
+    throw new Error("Invalid number of datasets: " + datasets.datasets.length);
+  }
+
   return {
-    instances: dataset.instanceSeries,
+    instances: instances,
     labels: {
-      target: dataset.dataSeries.map((value) =>
+      target: data.map((value: number) =>
         applylogTransform ? Math.log2(value) : value,
       ),
     },
+    splits: splits,
   };
 };
 
@@ -231,7 +271,7 @@ const buildSpec = (
   if (datasets !== null) {
     // only apply log transform if all values are actually positive
     const applylogTransform = logTransform && datasets.allPositive;
-
+    const dataTransformed = transformDatasets(datasets, applylogTransform);
     modelSpec = {
       key: "supervised_sklearn_predictor",
       variant: "default",
@@ -239,22 +279,15 @@ const buildSpec = (
         predictor: regressor,
         predictor_kwargs: null,
         embedder: modelSpec,
-        scorer: null, // both EVmutation2 and ESM2 can compute scores with embeddings, use these for now
+        scorer: null, // both EVmutation2 and ESM2 can compute scores together with embeddings, use these for now
         use_embeddings: true,
         use_scores: true,
         override_models_for_training: false,
         target_name: null, // use default target
         pooling: "mean",
-        cv_folds: 5,
         batch_size: 128,
       },
-      data: {
-        training_set: transformDataset(datasets.datasets[0], applylogTransform),
-        test_set:
-          datasets.datasets.length > 1
-            ? transformDataset(datasets.datasets[1], applylogTransform)
-            : null,
-      } as LabeledInstanceTrainTestDatasetSpec,
+      data: dataTransformed
     };
   }
 
