@@ -14,7 +14,7 @@ import {
 } from "@mantine/core";
 import {
   EvaluationScoreName,
-  LabeledInstanceTrainTestDatasetSpec,
+  LabeledInstanceDatasetSpec,
   ModelStatsSpec,
   PipelineSpec,
   SingleMutationScanSpec,
@@ -31,7 +31,7 @@ export interface ModelInfo {
   key: string | null;
   citations: string[];
   stats: ModelStatsSpec | null;
-  data: LabeledInstanceTrainTestDatasetSpec | any;
+  data: LabeledInstanceDatasetSpec | any;
   level: number;
 }
 
@@ -158,8 +158,9 @@ export const ModelStatsModal = ({
             // https://community.plotly.com/t/react-scattergl-drag-issue/87737
             [
               {
-                x: curModel.stats?.y_pred,
-                y: curModel.stats?.y_true,
+                // flatten over different splits, assume each test datapoint only present once
+                x: curModel.stats?.y_pred.flat(),
+                y: curModel.stats?.y_true.flat(),
                 // ids: [...naturalPoints.ids, ...instancePoints.ids],
                 // text: [...naturalPoints.text, ...instancePoints.text],
                 // hoverinfo: "text",

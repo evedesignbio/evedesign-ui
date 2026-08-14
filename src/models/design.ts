@@ -110,14 +110,17 @@ export const systemInstanceFromSystem = (
   };
 };
 
+export interface DatasetSplitSpec {
+  train: number[];
+  test: number[] | null;
+  val: number[] | null;
+}
+
 export interface LabeledInstanceDatasetSpec {
   instances: SystemInstanceSpec[];
   labels: Record<string, (number | null)[]>;
-}
-
-export interface LabeledInstanceTrainTestDatasetSpec {
-  training_set: LabeledInstanceDatasetSpec;
-  test_set: LabeledInstanceDatasetSpec | null;
+  splits?: Record<string, DatasetSplitSpec> | ["cv", number] | null;
+  final_train_val_split?: DatasetSplitSpec | null;
 }
 
 export interface JobSpecMetadata {
@@ -256,8 +259,9 @@ export type EvaluationScoreName =
   | "average_precision";
 
 export interface ModelStatsSpec {
-  y_true: number[] | null;
-  y_pred: number[] | null;
+  // note that number[] for y_true and y_pred is for backward compatibility before arbitrary set splits were introduced
+  y_true: number[] | number[][] | null;
+  y_pred: number[] | number[][] | null;
   scores: { [K in EvaluationScoreName]?: number[] | null };
 }
 
