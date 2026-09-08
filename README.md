@@ -45,7 +45,7 @@ npm run build
 
 ## License
 
-evedesign-ui is released under the APGLv3 license.
+evedesign-ui is released under the MIT license.
 
 ## Contact
 
