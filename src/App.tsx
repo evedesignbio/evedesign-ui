@@ -2,7 +2,7 @@ import "@mantine/core/styles.css";
 import "@mantine/dropzone/styles.css";
 import "@mantine/notifications/styles.css";
 import { MantineProvider } from "@mantine/core";
-import { Route, Switch } from "wouter";
+import { Route, Router, Switch } from "wouter";
 import { SubmissionPage } from "./pages/submission";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ResultsPageWrapper } from "./pages/results";
@@ -23,55 +23,59 @@ import { CodePage } from "./pages/code";
 
 const queryClient = new QueryClient();
 
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+
 const App = () => {
   return (
     <MantineProvider defaultColorScheme="dark">
       <Notifications />
       <SessionProvider>
         <QueryClientProvider client={queryClient}>
-          <NavBar />
-          <Switch>
-            <Route path="/" component={StartPage} />
-            <Route path="/terms" component={TermsOfServicePage} />
-            <Route path="/privacy" component={PrivacyPolicyPage} />
-            <Route path="/code" component={CodePage} />
-            <Route path="/submit">
-              <AuthProtectedRoute>
-                <SubmissionPage />
-              </AuthProtectedRoute>
-            </Route>
-            {/* Password flows only exist for Supabase */}
-            {auth.password && (
-              <Route path="/auth/sign-up" component={SignUpPage} />
-            )}
-            {auth.password && (
-              <Route
-                path="/auth/reset-password"
-                component={ResetPasswordPage}
-              />
-            )}
-            {auth.password && (
-              <Route path="/auth/change-password">
+          <Router base={base}>
+            <NavBar />
+            <Switch>
+              <Route path="/" component={StartPage} />
+              <Route path="/terms" component={TermsOfServicePage} />
+              <Route path="/privacy" component={PrivacyPolicyPage} />
+              <Route path="/code" component={CodePage} />
+              <Route path="/submit">
                 <AuthProtectedRoute>
-                  <ChangePasswordPage />
+                  <SubmissionPage />
                 </AuthProtectedRoute>
               </Route>
-            )}
-            <Route path="/docs" component={DocumentationPage} />
-            <Route path="/results/">
-              <AuthProtectedRoute>
-                <JobListPage />
-              </AuthProtectedRoute>
-            </Route>
-            <Route path="/results/:id">
-              {(params) => (
-                <AuthProtectedRoute>
-                  <ResultsPageWrapper id={params.id} />
-                </AuthProtectedRoute>
+              {/* Password flows only exist for Supabase */}
+              {auth.password && (
+                <Route path="/auth/sign-up" component={SignUpPage} />
               )}
-            </Route>
-            <Route>Error: invalid route</Route>
-          </Switch>
+              {auth.password && (
+                <Route
+                  path="/auth/reset-password"
+                  component={ResetPasswordPage}
+                />
+              )}
+              {auth.password && (
+                <Route path="/auth/change-password">
+                  <AuthProtectedRoute>
+                    <ChangePasswordPage />
+                  </AuthProtectedRoute>
+                </Route>
+              )}
+              <Route path="/docs" component={DocumentationPage} />
+              <Route path="/results/">
+                <AuthProtectedRoute>
+                  <JobListPage />
+                </AuthProtectedRoute>
+              </Route>
+              <Route path="/results/:id">
+                {(params) => (
+                  <AuthProtectedRoute>
+                    <ResultsPageWrapper id={params.id} />
+                  </AuthProtectedRoute>
+                )}
+              </Route>
+              <Route>Error: invalid route</Route>
+            </Switch>
+          </Router>
         </QueryClientProvider>
       </SessionProvider>
     </MantineProvider>
