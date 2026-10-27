@@ -57,6 +57,7 @@ import {
   IconPlus,
 } from "@tabler/icons-react";
 import { ModelStatsModal } from "./modelstats.tsx";
+import { HIDE_DNA_BUILDER } from "../../config.ts";
 
 export interface AnalysisViewerProps {
   id: string;
@@ -426,13 +427,15 @@ export const AnalysisViewer = ({
           basket={basket}
           useIcon={true}
         />
-        <Button onClick={toggleDnaOpen} disabled={basket.size === 0}>
-          {viewportWidth > REDUCED_MENU_WIDTH ? (
-            "Build DNA..."
-          ) : (
-            <IconDna2 size={16} />
-          )}
-        </Button>
+        {!HIDE_DNA_BUILDER ? (
+          <Button onClick={toggleDnaOpen} disabled={basket.size === 0}>
+            {viewportWidth > REDUCED_MENU_WIDTH ? (
+              "Build DNA..."
+            ) : (
+              <IconDna2 size={16} />
+            )}
+          </Button>
+        ) : null}
       </Group>
     </>
   );

@@ -28,9 +28,8 @@ import { useViewportProperties } from "../../utils/ui.tsx";
 import { useInstances } from "./data.ts";
 import { useDisclosure } from "@mantine/hooks";
 import { InstanceDownloadMenu } from "./elements.tsx";
-import {
-  InputSpecTypeKeys
-} from "../../models/design.ts";
+import { InputSpecTypeKeys } from "../../models/design.ts";
+import { HIDE_DNA_BUILDER } from "../../config.ts";
 
 export interface FinishedResultsWrapperProps {
   id: string;
@@ -104,7 +103,9 @@ export const InstanceDownload = ({
         basket={null}
       />
       <Space />
-      <Button onClick={toggleDnaOpen}>Build DNA sequences...</Button>
+      {!HIDE_DNA_BUILDER ? (
+        <Button onClick={toggleDnaOpen}>Build DNA sequences...</Button>
+      ) : null}
     </>
   );
 };
