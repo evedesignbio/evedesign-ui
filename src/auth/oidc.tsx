@@ -9,16 +9,21 @@ export const OIDC_CLIENT_ID = import.meta.env.VITE_OIDC_CLIENT_ID;
 export const OIDC_SCOPE =  import.meta.env.VITE_OIDC_SCOPE;
 
 // Own instance (like msalInstance), so tokens and redirects work outside the provider too.
-// Pure annotation: lets the bundler drop this module from builds that don't use it.
-export const userManager = /* @__PURE__ */ new UserManager({
-  authority: OIDC_AUTHORITY, // Entra: https://login.microsoftonline.com/<tenant-id>/v2.0
-  client_id: OIDC_CLIENT_ID,
-  redirect_uri: window.location.origin, // the provider handles the callback; no extra page
-  post_logout_redirect_uri: window.location.origin,
-  scope: OIDC_SCOPE, // e.g. "openid profile email offline_access api://<api-app-id>/access_as_user"
-  userStore: new WebStorageStateStore({ store: window.localStorage }), // survive new tabs
-  automaticSilentRenew: true,
-});
+// Created inside a function so the pure call has no arguments: the bundler can then drop
+// the whole module from builds that don't use it. (Arguments of a pure call are still kept
+// if they have side effects, e.g. `new WebStorageStateStore(...)` or reading `window`.)
+const createUserManager = () =>
+  new UserManager({
+    authority: OIDC_AUTHORITY, // Entra: https://login.microsoftonline.com/<tenant-id>/v2.0
+    client_id: OIDC_CLIENT_ID,
+    redirect_uri: window.location.origin, // the provider handles the callback; no extra page
+    post_logout_redirect_uri: window.location.origin,
+    scope: OIDC_SCOPE, // e.g. "openid profile email offline_access api://<api-app-id>/access_as_user"
+    userStore: new WebStorageStateStore({ store: window.localStorage }), // survive new tabs
+    automaticSilentRenew: true,
+  });
+
+export const userManager = /* @__PURE__ */ createUserManager();
 
 // Remove ?code=&state= from the URL after sign-in.
 const onSigninCallback = () =>
@@ -33,13 +38,14 @@ const SessionProvider = ({ children }: { children: ReactNode }) => (
 const useAuth = (): AuthState => {
   const { user: oidcUser, isLoading } = useOidc();
   const sub = oidcUser?.profile.sub;
-
   const user = useMemo<AuthUser | null>(
     () =>
       oidcUser
         ? {
-          id: oidcUser.profile.sub, // Entra: use profile.oid if you need the object id
-          email: oidcUser.profile.email ?? null,
+          // Entra: object id (`oid`, same as MSAL's localAccountId); its `sub` is per app.
+          // Other providers have no `oid` and use `sub`.
+          id: (oidcUser.profile.oid as string | undefined) ?? oidcUser.profile.sub,
+          email: oidcUser.profile.email ?? oidcUser.profile.preferred_username ?? null,
           name: oidcUser.profile.name ?? null,
         }
         : null,
