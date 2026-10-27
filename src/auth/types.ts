@@ -1,6 +1,6 @@
 import type { FC, ReactNode } from "react";
 
-export type AuthProviderKind = "supabase";
+export type AuthProviderKind = "supabase" | "oidc";
 
 // provider agnostic view of the signed in user
 export type AuthUser = {

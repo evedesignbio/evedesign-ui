@@ -1,14 +1,16 @@
 import { supabaseAuth } from "./supabase";
 import type { AuthService } from "./types";
 import { AUTH_PROVIDER } from "../config.ts";
+import { oidcAuth } from "./oidc.tsx";
 
-if (AUTH_PROVIDER !== "supabase") {
+if (AUTH_PROVIDER !== "supabase" && AUTH_PROVIDER !== "oidc") {
   throw new Error(
-    `VITE_AUTH_PROVIDER is invalid, got ${JSON.stringify(AUTH_PROVIDER)}`,
+    `VITE_AUTH_PROVIDER must be 'supabase' or 'oidc', got ${JSON.stringify(AUTH_PROVIDER)}`,
   );
 }
 
-export const auth: AuthService = supabaseAuth;
+export const auth: AuthService =
+  AUTH_PROVIDER === "supabase" ? supabaseAuth : oidcAuth;
 
 export const SessionProvider = auth.SessionProvider;
 export const useAuth = () => ({
