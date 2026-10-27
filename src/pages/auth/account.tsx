@@ -10,13 +10,9 @@ import {
   Title,
 } from "@mantine/core";
 import React, { useState } from "react";
-import {
-  resetPassword,
-  updatePassword,
-  signUp,
-} from "../../context/SessionContext.tsx";
 import { IconExclamationCircle } from "@tabler/icons-react";
 import { LegalLinks } from "../legal";
+import { useAuth } from "../../auth";
 
 interface GenericAccountPageProps {
   title: string;
@@ -53,20 +49,23 @@ export const GenericAccountPage = ({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const auth = useAuth();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     let authError = null;
 
-    if (pageType === "reset-password") {
-      const { error } = await resetPassword(userName);
+    // note that route handler is responsible for only displaying this component
+    // for password-based flows
+    if (pageType === "reset-password" && auth.password) {
+      const { error } = await auth.password.resetPassword(userName);
       authError = error;
-    } else if (pageType === "change-password") {
-      const { error } = await updatePassword(password);
+    } else if (pageType === "change-password" && auth.password) {
+      const { error } = await auth.password.updatePassword(password);
       authError = error;
-    } else if (pageType === "sign-up") {
-      const { error } = await signUp(userName, password);
+    } else if (pageType === "sign-up" && auth.password) {
+      const { error } = await auth.password.signUp(userName, password);
       authError = error;
     } else {
       throw new Error("Invalid type");

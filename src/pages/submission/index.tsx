@@ -8,14 +8,9 @@ import {
   SeqWithRegion,
 } from "./sequence.tsx";
 import { DesignSpecInput } from "./designspec.tsx";
-import { useSession } from "../../context/SessionContext.tsx";
-import { AuthenticationForm } from "../../features/auth";
 import { useHashLocation } from "wouter/use-hash-location";
 
 export const SubmissionPage = () => {
-  // login session
-  const { session } = useSession();
-
   // full target sequenceviewer with selected region as fed back by SequenceInput component
   const [targetSeq, setTargetSeq] = useState<SeqWithRegion | null>(null);
 
@@ -62,43 +57,40 @@ export const SubmissionPage = () => {
     foldseekResult.isSuccess;
 
   let render;
-  if (session) {
-    if (targetSeq === null || anyLoading) {
-      render = (
-        <>
-          <LoadingOverlay
-            visible={anyLoading}
-            zIndex={1000}
-            overlayProps={{ radius: "sm", blur: 2, fixed: true }}
-            loaderProps={{
-              children: (
-                <Stack align="center" m={"lg"} justify={"center"}>
-                  <Loader type="dots" size="xl" />
-                  <Text ta={"center"}>
-                    Retrieving evolutionary sequences and 3D structures
-                  </Text>
-                </Stack>
-              ),
-            }}
-          />
-          <SequenceInput setTargetSeq={setTargetSeq} />
-        </>
-      );
-    } else if (allCompleted) {
-      render = (
-        <DesignSpecInput
-          targetSeq={targetSeq}
-          msa={msa.data!}
-          structures={foldseekResult.data!}
-          seqSearchId={seqSearch.id}
-          structSearchId={foldseekSearch.id}
+
+  if (targetSeq === null || anyLoading) {
+    render = (
+      <>
+        <LoadingOverlay
+          visible={anyLoading}
+          zIndex={1000}
+          overlayProps={{ radius: "sm", blur: 2, fixed: true }}
+          loaderProps={{
+            children: (
+              <Stack align="center" m={"lg"} justify={"center"}>
+                <Loader type="dots" size="xl" />
+                <Text ta={"center"}>
+                  Retrieving evolutionary sequences and 3D structures
+                </Text>
+              </Stack>
+            ),
+          }}
         />
-      );
-    } else {
-      render = <MsaOrStructureError reset={() => setTargetSeq(null)} />;
-    }
+        <SequenceInput setTargetSeq={setTargetSeq} />
+      </>
+    );
+  } else if (allCompleted) {
+    render = (
+      <DesignSpecInput
+        targetSeq={targetSeq}
+        msa={msa.data!}
+        structures={foldseekResult.data!}
+        seqSearchId={seqSearch.id}
+        structSearchId={foldseekSearch.id}
+      />
+    );
   } else {
-    render = <AuthenticationForm title={"Please sign in to design!"} />;
+    render = <MsaOrStructureError reset={() => setTargetSeq(null)} />;
   }
 
   return (

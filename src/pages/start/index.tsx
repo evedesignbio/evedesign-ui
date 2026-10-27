@@ -13,12 +13,6 @@ import {
 } from "@mantine/core";
 import { Link, useLocation } from "wouter";
 import {
-  useSession,
-  signIn,
-  PUBLIC_ACCOUNT_EMAIL,
-  PUBLIC_ACCOUNT_PW,
-} from "../../context/SessionContext.tsx";
-import {
   IconBook,
   IconBrandGithubFilled,
   IconBrandSlack,
@@ -32,6 +26,8 @@ import LogoDOelsnitz from "../../assets/doelsnitz_lab.png";
 import LogoSteinegger from "../../assets/steinegger_lab.png";
 import LogoDark from "../../assets/logo_dark.svg";
 import LogoLight from "../../assets/logo_light.svg";
+import { PUBLIC_ACCOUNT_EMAIL, PUBLIC_ACCOUNT_PW } from "../../config.ts";
+import { useAuth } from "../../auth";
 
 const EXAMPLE_DESIGN_JOB_URL = "/results/a25685df-6bd6-4272-a715-1ee5b1b47434";
 const EXAMPLE_SCAN_JOB_URL = "/results/969d9fe8-b658-4dd0-9f0c-7826d468f681";
@@ -89,15 +85,23 @@ const GROUPS = [
 
 export const StartPage = () => {
   const [_location, navigate] = useLocation();
-  const { session } = useSession();
+  const auth = useAuth();
   const computedColorScheme = useComputedColorScheme("light", {
     getInitialValueInEffect: true,
   });
 
   const navigateToExample = (url: string) => {
-    if (!session) {
-      signIn(PUBLIC_ACCOUNT_EMAIL, PUBLIC_ACCOUNT_PW).then(() => navigate(url));
+    if (
+      !auth.user &&
+      auth.password &&
+      PUBLIC_ACCOUNT_EMAIL &&
+      PUBLIC_ACCOUNT_PW
+    ) {
+      auth.password
+        .signIn(PUBLIC_ACCOUNT_EMAIL, PUBLIC_ACCOUNT_PW)
+        .then(() => navigate(url));
     } else {
+      // simply navigate, this will trigger normal login flow via auth protected route
       navigate(url);
     }
   };
@@ -166,7 +170,10 @@ export const StartPage = () => {
                 >
                   <Text size={"md"}>Mutational scanning</Text>
                 </Menu.Item>
-                {session === null ? (
+                {auth.user === null &&
+                auth.password &&
+                PUBLIC_ACCOUNT_EMAIL &&
+                PUBLIC_ACCOUNT_PW ? (
                   <Menu.Label>
                     You will be logged in with public access account
                   </Menu.Label>

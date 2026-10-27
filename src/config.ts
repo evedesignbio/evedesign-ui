@@ -1,2 +1,5 @@
-export const SUPABASE_URL =  import.meta.env.VITE_SUPABASE_URL;
-export const SUPABASE_ANON_KEY =  import.meta.env.VITE_SUPABASE_ANON_KEY;
+export const AUTH_PROVIDER = import.meta.env.VITE_AUTH_PROVIDER;
+
+// only works with supabase currently for public instance
+export const PUBLIC_ACCOUNT_EMAIL =  import.meta.env.VITE_PUBLIC_ACCOUNT_EMAIL;
+export const PUBLIC_ACCOUNT_PW =  import.meta.env.VITE_PUBLIC_ACCOUNT_PW;

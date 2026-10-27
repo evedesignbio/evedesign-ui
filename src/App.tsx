@@ -8,7 +8,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ResultsPageWrapper } from "./pages/results";
 import { JobListPage } from "./pages/results/joblist.tsx";
 import { NavBar } from "./features/navbar";
-import { SessionProvider } from "./context/SessionContext.tsx";
+import { auth, SessionProvider } from "./auth";
 import { AuthProtectedRoute } from "./features/auth/protected_route.tsx";
 import {
   ResetPasswordPage,
@@ -19,7 +19,7 @@ import { DocumentationPage } from "./pages/docs";
 import { StartPage } from "./pages/start";
 import { PrivacyPolicyPage, TermsOfServicePage } from "./pages/legal";
 import { Notifications } from "@mantine/notifications";
-import {CodePage} from "./pages/code";
+import { CodePage } from "./pages/code";
 
 const queryClient = new QueryClient();
 
@@ -35,14 +35,28 @@ const App = () => {
             <Route path="/terms" component={TermsOfServicePage} />
             <Route path="/privacy" component={PrivacyPolicyPage} />
             <Route path="/code" component={CodePage} />
-            <Route path="/submit" component={SubmissionPage} />
-            <Route path="/auth/sign-up" component={SignUpPage} />
-            <Route path="/auth/reset-password" component={ResetPasswordPage} />
-            <Route path="/auth/change-password">
+            <Route path="/submit">
               <AuthProtectedRoute>
-                <ChangePasswordPage />
+                <SubmissionPage />
               </AuthProtectedRoute>
             </Route>
+            {/* Password flows only exist for Supabase */}
+            {auth.password && (
+              <Route path="/auth/sign-up" component={SignUpPage} />
+            )}
+            {auth.password && (
+              <Route
+                path="/auth/reset-password"
+                component={ResetPasswordPage}
+              />
+            )}
+            {auth.password && (
+              <Route path="/auth/change-password">
+                <AuthProtectedRoute>
+                  <ChangePasswordPage />
+                </AuthProtectedRoute>
+              </Route>
+            )}
             <Route path="/docs" component={DocumentationPage} />
             <Route path="/results/">
               <AuthProtectedRoute>

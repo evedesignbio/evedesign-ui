@@ -14,12 +14,12 @@ import {
 // import { useDisclosure } from "@mantine/hooks";
 import { Link, useLocation } from "wouter";
 import "./index.css";
-import { signOut, useSession } from "../../context/SessionContext.tsx";
 import { IconLogout, IconSun, IconMoon } from "@tabler/icons-react";
 import { useMantineColorScheme } from "@mantine/core";
 import { useBalance } from "../../api/backend.ts";
 import { useHashLocation } from "wouter/use-hash-location";
 import { useDisclosure, useViewportSize } from "@mantine/hooks";
+import { useAuth } from "../../auth";
 
 const links = [
   { link: "/", label: "evedesign", requiresLogin: false },
@@ -35,7 +35,7 @@ export const NavBar = () => {
   const [drawerOpened, { toggle: toggleDrawer, close: closeDrawer }] =
     useDisclosure(false);
 
-  const { session } = useSession();
+  const auth = useAuth();
   const { toggleColorScheme } = useMantineColorScheme();
   const computedColorScheme = useComputedColorScheme("light", {
     getInitialValueInEffect: true,
@@ -49,7 +49,7 @@ export const NavBar = () => {
   const [location, _] = useLocation();
 
   const items = links
-    .filter((link) => !link.requiresLogin || session)
+    .filter((link) => !link.requiresLogin || auth.user)
     .map((link) => (
       <Link
         key={link.label}
@@ -114,12 +114,12 @@ export const NavBar = () => {
               <IconMoon size={16} />
             )}
           </ActionIcon>
-          {session ? (
+          {auth.user ? (
             <ActionIcon
               visibleFrom={"sm"}
               variant="subtle"
               color={"gray"}
-              onClick={signOut}
+              onClick={auth.signOut}
               //rightSection={<IconLogout size={16} />}
             >
               <IconLogout size={16} />
@@ -149,8 +149,8 @@ export const NavBar = () => {
             {items}
             <Divider my="sm" />
             <Group justify="center" grow pb="xl" px={"sm"}>
-              {session ? (
-                <Button onClick={() => signOut().then(closeDrawer)}>
+              {auth.user ? (
+                <Button onClick={() => auth.signOut().then(closeDrawer)}>
                   Log out
                 </Button>
               ) : (

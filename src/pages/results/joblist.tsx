@@ -9,16 +9,14 @@ import {
 } from "./helpers.tsx";
 import { JobSummary } from "../../models/api.ts";
 import { useViewportProperties } from "../../utils/ui.tsx";
-import {
-  PUBLIC_ACCOUNT_EMAIL,
-  useSession,
-} from "../../context/SessionContext.tsx";
 import { IconInfoCircle } from "@tabler/icons-react";
+import { PUBLIC_ACCOUNT_EMAIL } from "../../config.ts";
+import { useAuth } from "../../auth";
 
 export const JobListPage = () => {
   const qJobList = useJobList();
   const { isDesktop, screenSize } = useViewportProperties();
-  const { session } = useSession();
+  const auth = useAuth();
 
   // render nothing if viewport doesn't have size to avoid flickering between mobile/desktop views
   if (screenSize.height === 0 && screenSize.width === 0) {
@@ -105,7 +103,7 @@ export const JobListPage = () => {
   );
 
   const noResultsNotice =
-    session && session.user.email === PUBLIC_ACCOUNT_EMAIL ? (
+    auth && auth.user?.email === PUBLIC_ACCOUNT_EMAIL ? (
       <Alert
         variant="light"
         color="blue"
