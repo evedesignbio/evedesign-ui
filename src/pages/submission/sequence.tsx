@@ -3,7 +3,8 @@ import { Button, Group, Space, Text, Textarea, Title } from "@mantine/core";
 import { useDebouncedValue } from "@mantine/hooks";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SequenceViewer } from "../../components/sequenceviewer";
-import {useHashLocation} from "wouter/use-hash-location";
+import { useHashLocation } from "wouter/use-hash-location";
+import { NO_UNIPROT_QUERY } from "../../config.ts";
 
 const UNIPROT_AC_REGEXP = RegExp(
   "^[OPQ][0-9][A-Z0-9]{3}[0-9]$|^[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}$",
@@ -119,7 +120,7 @@ export const SequenceInput = ({ setTargetSeq }: SequenceInputProps) => {
         return res.text();
       }),
     staleTime: Infinity,
-    enabled: validUniprotId,
+    enabled: validUniprotId && !NO_UNIPROT_QUERY,
     retry: false,
   });
 
@@ -185,7 +186,11 @@ export const SequenceInput = ({ setTargetSeq }: SequenceInputProps) => {
       </Title>
       <Textarea
         size="md"
-        placeholder="UniProt identifier, entry name or amino acid sequence"
+        placeholder={
+          NO_UNIPROT_QUERY
+            ? "Amino acid sequence"
+            : "UniProt identifier, entry name or amino acid sequence"
+        }
         autosize
         value={seqInput}
         onChange={(e) => setSeqInput(e.target.value)}
@@ -217,7 +222,7 @@ export const SequenceInput = ({ setTargetSeq }: SequenceInputProps) => {
             disabled={regionError !== null}
             onClick={() => {
               setTargetSeq({ seq: seq, start: regionStart!, end: regionEnd! });
-              hashNavigate("/designspec");  // allow to navigate back to first part of submission form
+              hashNavigate("/designspec"); // allow to navigate back to first part of submission form
             }}
           >
             {regionError === null ? "Continue to next step" : regionError}

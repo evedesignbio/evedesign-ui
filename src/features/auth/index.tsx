@@ -13,14 +13,11 @@ import {
   Text,
 } from "@mantine/core";
 import React, { useState } from "react";
-import {
-  PUBLIC_ACCOUNT_EMAIL,
-  PUBLIC_ACCOUNT_PW,
-  signIn,
-} from "../../context/SessionContext.tsx";
 import { IconExclamationCircle } from "@tabler/icons-react";
 import { Link } from "wouter";
 import { LegalLinks } from "../../pages/legal";
+import { PUBLIC_ACCOUNT_EMAIL, PUBLIC_ACCOUNT_PW } from "../../config.ts";
+import { useAuth } from "../../auth";
 
 interface AuthenticationFormProps {
   title?: string;
@@ -33,10 +30,14 @@ export const AuthenticationForm = ({
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const auth = useAuth();
 
   const executeLogin = async (user: string, pw: string) => {
+    if (!auth.password) {
+      return;
+    }
     setLoading(true);
-    const { error } = await signIn(user, pw);
+    const { error } = await auth.password.signIn(user, pw);
     setLoading(false);
     if (error) {
       setError(error.message);

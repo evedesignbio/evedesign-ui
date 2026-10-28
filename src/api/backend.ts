@@ -14,7 +14,7 @@ import {
   ProteinToDnaApiResult,
   SingleMutationScanApiResult,
 } from "../models/api.ts";
-import { getAccessToken, useSession } from "../context/SessionContext.tsx";
+import { useAccessToken, useAuth } from "../auth";
 import { useMemo } from "react";
 
 export const getBackendUrl = () => import.meta.env.VITE_BACKEND_BASE_URL;
@@ -38,15 +38,16 @@ export const JOB_LIST_STORAGE_KEY = "design-job-list";
 const POLLING_INTERVAL = 5000;
 
 export const useSubmission = () => {
-  // const [jobList, setJobList] = useJobList();
-  const { session } = useSession();
-  const token = getAccessToken(session);
+  const getToken = useAccessToken();
 
   return useMutation({
-    mutationFn: (params: SubmissionParams) => {
-      // const { spec, token } = params;
-      // const { spec } = params;
-      return fetch(getBackendUrl() + "job", {
+    mutationFn: async (params: SubmissionParams) => {
+      // Fresh token per submission (cached by MSAL/Supabase until close to expiry)
+      const token = await getToken();
+
+      if (!token) throw new Error("Not signed in");
+
+      const res = await fetch(getBackendUrl() + "job", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -54,13 +55,13 @@ export const useSubmission = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(params),
-      }).then((res) => {
-        if (!res.ok) {
-          throw new Error(`${res.status}`);
-        }
-
-        return res.json();
       });
+
+      if (!res.ok) {
+        throw new Error(`${res.status}`);
+      }
+
+      return res.json();
     },
     onSuccess: (data, _params) => {
       // const { parent_job_id, spec } = params;
@@ -81,25 +82,31 @@ export const useSubmission = () => {
 };
 
 export const useJobData = (id: string) => {
-  const { session } = useSession();
-  const token = getAccessToken(session);
+  const getToken = useAccessToken();
 
   // status options: initialized, running, failed, finished, invalid
   return useQuery({
     queryKey: ["jobdata", id],
-    queryFn: (): Promise<ApiJobResult> =>
-      fetch(getBackendUrl() + "job/" + id, {
+    queryFn: async (): Promise<ApiJobResult> => {
+      // Called on every fetch and poll; served from cache until close to expiry
+      const token = await getToken();
+      if (!token) {
+        throw new Error("Not signed in");
+      }
+
+      const res = await fetch(getBackendUrl() + "job/" + id, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
         },
-      }).then((res) => {
-        if (!res.ok) {
-          throw new Error(`${res.status}`);
-        }
-        return res.json();
-      }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`${res.status}`);
+      }
+      return res.json();
+    },
     refetchInterval: (query) =>
       query.state.data?.status === "initialized" ||
       query.state.data?.status === "pending" ||
@@ -107,7 +114,6 @@ export const useJobData = (id: string) => {
         ? POLLING_INTERVAL
         : false,
     // staleTime: Infinity,
-    // enabled: token !== null,
   });
 };
 
@@ -150,27 +156,34 @@ export const useJobDataTransformed = (
 };
 
 export const useBalance = () => {
-  const { session } = useSession();
-  const token = getAccessToken(session);
+  const { user } = useAuth();
+  const getToken = useAccessToken();
 
   // status options: initialized, running, failed, finished, invalid
   const query = useQuery({
-    queryKey: ["balance", token],
-    queryFn: (): Promise<ApiBalanceResult> =>
-      fetch(getBackendUrl() + "balance", {
+    // Key on the user, not the token: tokens rotate, users don't
+    queryKey: ["balance", user?.id],
+    queryFn: async (): Promise<ApiBalanceResult> => {
+      const token = await getToken();
+      if (!token) {
+        throw new Error("Not signed in");
+      }
+
+      const res = await fetch(getBackendUrl() + "balance", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
         },
-      }).then((res) => {
-        if (!res.ok) {
-          throw new Error(`${res.status}`);
-        }
-        return res.json();
-      }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`${res.status}`);
+      }
+      return res.json();
+    },
     refetchInterval: () => 60 * 1000, // refresh once per minute
-    enabled: token !== null,
+    enabled: !!user,
   });
 
   if (query.isSuccess) {
@@ -187,25 +200,31 @@ export const useBalance = () => {
 };
 
 export const useJobList = () => {
-  const { session } = useSession();
-  const token = getAccessToken(session);
+  const { user } = useAuth();
+  const getToken = useAccessToken();
 
   // status options: initialized, running, failed, finished, invalid
   return useQuery({
-    queryKey: ["joblist", token], // include token in case we switch accounts and need to reload
-    queryFn: (): Promise<JobListResponse> =>
-      fetch(getBackendUrl() + "job", {
+    queryKey: ["joblist", user?.id], // reload when switching accounts (stable across token refreshes)
+    queryFn: async (): Promise<JobListResponse> => {
+      const token = await getToken();
+      if (!token) {
+        throw new Error("Not signed in");
+      }
+
+      const res = await fetch(getBackendUrl() + "job", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
         },
-      }).then((res) => {
-        if (!res.ok) {
-          throw new Error(`${res.status}`);
-        }
-        return res.json();
-      }),
-    enabled: token !== null,
+      });
+
+      if (!res.ok) {
+        throw new Error(`${res.status}`);
+      }
+      return res.json();
+    },
+    enabled: !!user,
   });
 };

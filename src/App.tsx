@@ -2,13 +2,13 @@ import "@mantine/core/styles.css";
 import "@mantine/dropzone/styles.css";
 import "@mantine/notifications/styles.css";
 import { MantineProvider } from "@mantine/core";
-import { Route, Switch } from "wouter";
+import { Route, Router, Switch } from "wouter";
 import { SubmissionPage } from "./pages/submission";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ResultsPageWrapper } from "./pages/results";
 import { JobListPage } from "./pages/results/joblist.tsx";
 import { NavBar } from "./features/navbar";
-import { SessionProvider } from "./context/SessionContext.tsx";
+import { auth, SessionProvider } from "./auth";
 import { AuthProtectedRoute } from "./features/auth/protected_route.tsx";
 import {
   ResetPasswordPage,
@@ -19,9 +19,11 @@ import { DocumentationPage } from "./pages/docs";
 import { StartPage } from "./pages/start";
 import { PrivacyPolicyPage, TermsOfServicePage } from "./pages/legal";
 import { Notifications } from "@mantine/notifications";
-import {CodePage} from "./pages/code";
+import { CodePage } from "./pages/code";
 
 const queryClient = new QueryClient();
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const App = () => {
   return (
@@ -29,35 +31,51 @@ const App = () => {
       <Notifications />
       <SessionProvider>
         <QueryClientProvider client={queryClient}>
-          <NavBar />
-          <Switch>
-            <Route path="/" component={StartPage} />
-            <Route path="/terms" component={TermsOfServicePage} />
-            <Route path="/privacy" component={PrivacyPolicyPage} />
-            <Route path="/code" component={CodePage} />
-            <Route path="/submit" component={SubmissionPage} />
-            <Route path="/auth/sign-up" component={SignUpPage} />
-            <Route path="/auth/reset-password" component={ResetPasswordPage} />
-            <Route path="/auth/change-password">
-              <AuthProtectedRoute>
-                <ChangePasswordPage />
-              </AuthProtectedRoute>
-            </Route>
-            <Route path="/docs" component={DocumentationPage} />
-            <Route path="/results/">
-              <AuthProtectedRoute>
-                <JobListPage />
-              </AuthProtectedRoute>
-            </Route>
-            <Route path="/results/:id">
-              {(params) => (
+          <Router base={base}>
+            <NavBar />
+            <Switch>
+              <Route path="/" component={StartPage} />
+              <Route path="/terms" component={TermsOfServicePage} />
+              <Route path="/privacy" component={PrivacyPolicyPage} />
+              <Route path="/code" component={CodePage} />
+              <Route path="/submit">
                 <AuthProtectedRoute>
-                  <ResultsPageWrapper id={params.id} />
+                  <SubmissionPage />
                 </AuthProtectedRoute>
+              </Route>
+              {/* Password flows only exist for Supabase */}
+              {auth.password && (
+                <Route path="/auth/sign-up" component={SignUpPage} />
               )}
-            </Route>
-            <Route>Error: invalid route</Route>
-          </Switch>
+              {auth.password && (
+                <Route
+                  path="/auth/reset-password"
+                  component={ResetPasswordPage}
+                />
+              )}
+              {auth.password && (
+                <Route path="/auth/change-password">
+                  <AuthProtectedRoute>
+                    <ChangePasswordPage />
+                  </AuthProtectedRoute>
+                </Route>
+              )}
+              <Route path="/docs" component={DocumentationPage} />
+              <Route path="/results/">
+                <AuthProtectedRoute>
+                  <JobListPage />
+                </AuthProtectedRoute>
+              </Route>
+              <Route path="/results/:id">
+                {(params) => (
+                  <AuthProtectedRoute>
+                    <ResultsPageWrapper id={params.id} />
+                  </AuthProtectedRoute>
+                )}
+              </Route>
+              <Route>Error: invalid route</Route>
+            </Switch>
+          </Router>
         </QueryClientProvider>
       </SessionProvider>
     </MantineProvider>
