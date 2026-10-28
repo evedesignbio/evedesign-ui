@@ -11,15 +11,20 @@
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { AuthChangeEvent, createClient, Session } from "@supabase/supabase-js";
+import { AuthChangeEvent, createClient, Session, SupabaseClient } from "@supabase/supabase-js";
 import { useLocation } from "wouter";
 import type { AuthService, AuthState, AuthUser } from "./types";
 
 export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Pure annotation: lets the bundler drop this module from other builds.
-export const supabase = /* @__PURE__ */ createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Only build the client when Supabase is configured; with VITE_AUTH_PROVIDER=oidc
+// this module is still imported but the client is never used.
+export const supabase = (
+  SUPABASE_URL && SUPABASE_ANON_KEY
+    ? /* @__PURE__ */ createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : undefined
+) as SupabaseClient;
 
 const toUser = (session: Session | null): AuthUser | null =>
   session
